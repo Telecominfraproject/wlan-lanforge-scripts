@@ -44,6 +44,7 @@ class StationProfile:
                  resource=1,
                  shelf=1,
                  dhcp=True,
+                 ipv6=False,
                  debug_=False,
                  use_ht160=False):
         self.debug = debug_
@@ -55,6 +56,7 @@ class StationProfile:
         self.resource = resource
         self.shelf = shelf
         self.dhcp = dhcp
+        self.ipv6 = ipv6
         self.security = security
         self.local_realm = local_realm
         self.use_ht160 = use_ht160
@@ -79,8 +81,12 @@ class StationProfile:
         self.desired_set_port_current_flags = ["if_down"]
         self.desired_set_port_interest_flags = ["current_flags", "ifdown"]
         if self.dhcp:
-            self.desired_set_port_current_flags.append("use_dhcp")
-            self.desired_set_port_interest_flags.append("dhcp")
+            if self.ipv6:
+                self.desired_set_port_current_flags.append("use_dhcpv6")
+                self.desired_set_port_interest_flags.append("dhcpv6")
+            else:
+                self.desired_set_port_current_flags.append("use_dhcp")
+                self.desired_set_port_interest_flags.append("dhcp")
 
         self.set_port_data = {
             "shelf": 1,
