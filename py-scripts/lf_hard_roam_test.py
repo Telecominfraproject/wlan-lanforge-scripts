@@ -22,7 +22,6 @@ if sys.version_info[0] != 3:
     logger.critical("This script requires Python 3")
     exit(1)
 
-
 sys.path.append(os.path.join(os.path.abspath(__file__ + "../../../")))
 lfcli_base = importlib.import_module("py-json.LANforge.lfcli_base")
 LFCliBase = lfcli_base.LFCliBase
@@ -66,7 +65,7 @@ class HardRoam(Realm):
                  option=None,
                  duration_based=None,
                  iteration_based=None,
-                 dut_name = [],
+                 dut_name=[],
                  traffic_type="lf_udp",
                  roaming_delay=None,
                  path="../",
@@ -203,7 +202,7 @@ class HardRoam(Realm):
                         file_name.append("file not found")
                 else:
                     for i in range(client):
-                        z = file[y + (int(i)+1)]
+                        z = file[y + (int(i) + 1)]
                         list_ = []
                         list_.append(z)
                         m = list_[0].split(" ")
@@ -258,7 +257,7 @@ class HardRoam(Realm):
             LFUtils.wait_until_ports_disappear(base_url=local_realm.lfclient_url,
                                                port_list=sta_list,
                                                debug=True)
-            #time.sleep(2)
+            # time.sleep(2)
             print("pre cleanup done")
 
         station_list = LFUtils.portNameSeries(prefix_=sta_prefix, start_id_=start_id,
@@ -331,21 +330,21 @@ class HardRoam(Realm):
         local_realm.wait_until_ports_appear(sta_list=station_list)
 
         for sta_name in station_list:
-            sta = sta_name.split(".")[2] # TODO:  Use name_to_eid
+            sta = sta_name.split(".")[2]  # TODO:  Use name_to_eid
             # wpa_cmd = "roam " + str(checker2)
 
             bgscan = {
                 "shelf": 1,
-                "resource": 1, # TODO:  Do not hard-code resource, get it from radio eid I think.
+                "resource": 1,  # TODO:  Do not hard-code resource, get it from radio eid I think.
                 "port": str(sta),
                 "type": 'NA',
                 "text": 'bgscan="simple:30:-65:300"'
-                }
+            }
 
             print(bgscan)
             self.local_realm.json_post("/cli-json/set_wifi_custom", bgscan)
-            #time.sleep(2)
-        
+            # time.sleep(2)
+
         station_profile.admin_up()
         print("Waiting for ports to admin up")
         if local_realm.wait_for_ip(station_list):
@@ -476,7 +475,8 @@ class HardRoam(Realm):
         for i in range(self.num_sta):
             file = 'test_client_' + str(i) + '.csv'
             lf_csv_obj = lf_csv.lf_csv(_columns=['Iterations', 'bssid1', 'bssid2', "Roam Time(ms)",
-                                                 "PASS/FAIL", "Pcap file Name", "Log File", "Remark"], _rows=[], _filename=file)
+                                                 "PASS/FAIL", "Pcap file Name", "Log File", "Remark"], _rows=[],
+                                       _filename=file)
             # "Packet loss",
             file_name.append(file)
             lf_csv_obj.generate_csv()
@@ -491,7 +491,8 @@ class HardRoam(Realm):
             ssh = paramiko.SSHClient()
             command = "journalctl --since '5 minutes ago' > kernel_log" + file + ".txt"
             ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-            ssh.connect(hostname=self.lanforge_ip, port=self.lanforge_ssh_port, username="lanforge", password="lanforge", banner_timeout=600)
+            ssh.connect(hostname=self.lanforge_ip, port=self.lanforge_ssh_port, username="lanforge",
+                        password="lanforge", banner_timeout=600)
             stdin, stdout, stderr = ssh.exec_command(str(command))
             stdout.readlines()
             ssh.close()
@@ -503,13 +504,14 @@ class HardRoam(Realm):
         return jor_lst
 
     # gives wlan management status of pcap file
-    def get_wlan_mgt_status(self, file_name, filter="(wlan.fc.type_subtype eq 3 && wlan.fixed.status_code == 0x0000 && wlan.tag.number == 55)"):
+    def get_wlan_mgt_status(self, file_name,
+                            filter="(wlan.fc.type_subtype eq 3 && wlan.fixed.status_code == 0x0000 && wlan.tag.number == 55)"):
         query_reasso_response = self.pcap_obj.get_wlan_mgt_status_code(pcap_file=str(file_name),
                                                                        filter=filter)
         print("query", query_reasso_response)
         return query_reasso_response
 
-     # get attenuator serial number
+    # get attenuator serial number
     def attenuator_serial(self):
         obj = attenuator.AttenuatorSerial(
             lfclient_host=self.lanforge_ip,
@@ -548,8 +550,6 @@ class HardRoam(Realm):
             self.attenuator_modify(ser_1, "all", 0)
             self.attenuator_modify(ser_2, "all", 0)
 
-
-
         # create clients with respect to bands
         self.start_sniffer(radio_channel=int(self.channel), radio=self.sniff_radio,
                            test_name="roam_11r_" + str(self.option) + "start" + "_",
@@ -581,8 +581,8 @@ class HardRoam(Realm):
 
             mac_list = []
             for sta_name in sta_list:
-                sta = sta_name.split(".")[2] # use name_to_eid
-                #time.sleep(0.5)
+                sta = sta_name.split(".")[2]  # use name_to_eid
+                # time.sleep(0.5)
                 mac = self.station_data_query(station_name=str(sta), query="mac")
                 mac_list.append(mac)
 
@@ -603,8 +603,6 @@ class HardRoam(Realm):
             #     self.stop_debug_(mac_list=mac_list)
             #     # time.sleep(40)
             # exit()
-
-
 
             # if all stations got ip check mac address
             if val:
@@ -652,12 +650,12 @@ class HardRoam(Realm):
                     print("new_sta_list", new_sta_list)
 
                     for sta_name in new_sta_list:
-                        sta = sta_name.split(".")[2] # TODO: use name-to-eid
+                        sta = sta_name.split(".")[2]  # TODO: use name-to-eid
                         print(sta)
                         wpa_cmd = "roam " + str(checker2)
                         wifi_cli_cmd_data1 = {
                             "shelf": 1,
-                            "resource": 1, # TODO: do not hard-code
+                            "resource": 1,  # TODO: do not hard-code
                             "port": str(sta),
                             "wpa_cli_cmd": 'scan trigger freq 5180 5300'
                         }
@@ -823,7 +821,6 @@ class HardRoam(Realm):
                                 print("station are connected to post bssid", post_bssid)
                                 result1 = all(element == before_bssid[0] for element in before_bssid)
 
-
                                 if result1:
                                     print("All stations connected to one ap")
                                     for i in before_bssid:
@@ -898,7 +895,7 @@ class HardRoam(Realm):
                                                 for sta_name in sta_list:
                                                     sta = sta_name.split(".")[2]
                                                     bssid = self.station_data_query(station_name=str(sta),
-                                                                                        query="ap")
+                                                                                    query="ap")
                                                     bssid_check2.append(bssid)
                                                 print(bssid_check2)
                                                 # check if all are equal
@@ -1112,12 +1109,14 @@ class HardRoam(Realm):
                                                         if roam_time < 50:
                                                             pass_fail_list.append("FAIL")
                                                             pcap_file_list.append(str(file_name))
-                                                            remark.append("(bssid mismatched)Client disconnected after roaming")
+                                                            remark.append(
+                                                                "(bssid mismatched)Client disconnected after roaming")
 
                                                         else:
                                                             pass_fail_list.append("FAIL")
                                                             pcap_file_list.append(str(file_name))
-                                                            remark.append("(bssid mis matched)Roam time is greater then 50 ms,")
+                                                            remark.append(
+                                                                "(bssid mis matched)Roam time is greater then 50 ms,")
 
 
                                                     else:
@@ -1261,7 +1260,7 @@ class HardRoam(Realm):
         print("csv_list", csv_list)
         x_axis_category = []
         for i in range(self.num_sta):
-            x_axis_category.append(i+1)
+            x_axis_category.append(i + 1)
         print(x_axis_category)
         pass_list = []
         fail_list = []
@@ -1280,11 +1279,11 @@ class HardRoam(Realm):
         dataset.append(fail_list)
         print(dataset)
 
-
         # it will contain per station station pass and fail number eg [[9, 7], [3, 4]] here 9, 7 are pass number for clients  3 and 4 are fail number
         # dataset = [[9, 7 , 4], [3, 4,9]]
-        graph = lf_graph.lf_bar_graph(_data_set=dataset, _xaxis_name="Stations = " + str(self.num_sta), _yaxis_name="Total iterations = " + str(self.iteration),
-                                      _xaxis_categories = x_axis_category,
+        graph = lf_graph.lf_bar_graph(_data_set=dataset, _xaxis_name="Stations = " + str(self.num_sta),
+                                      _yaxis_name="Total iterations = " + str(self.iteration),
+                                      _xaxis_categories=x_axis_category,
                                       _label=["Pass", "Fail"], _xticks_font=8,
                                       _graph_image_name="11r roam client per iteration graph",
                                       _color=['forestgreen', 'darkorange', 'blueviolet'], _color_edge='black',
@@ -1302,7 +1301,7 @@ class HardRoam(Realm):
 
     # report generation function
     def generate_report(self, csv_list, kernel_lst, current_path=None):
-        report = lf_report_pdf.lf_report(_path= "", _results_dir_name="Hard Roam Test", _output_html="hard_roam.html",
+        report = lf_report_pdf.lf_report(_path="", _results_dir_name="Hard Roam Test", _output_html="hard_roam.html",
                                          _output_pdf="Hard_roam_test.pdf")
         if current_path is not None:
             report.current_path = os.path.dirname(os.path.abspath(current_path))
@@ -1350,13 +1349,14 @@ class HardRoam(Realm):
         for i, x in zip(range(self.num_sta), csv_list):
             # report.set_table_title("Client information  " + str(i))
             # report.build_table_title()
-            report.set_obj_html("Client " + str(i+1) + "  Information", "This Table gives detailed information  "
-                                "of client " + str(i+1) + " like the bssid it was before roam," +
+            report.set_obj_html("Client " + str(i + 1) + "  Information", "This Table gives detailed information  "
+                                                                          "of client " + str(
+                i + 1) + " like the bssid it was before roam," +
                                 " bssid it was after roam, " +
                                 "roam time, capture file name and ra_trace file name along with remarks ")
 
             report.build_objective()
-            lf_csv_obj = lf_csv. lf_csv()
+            lf_csv_obj = lf_csv.lf_csv()
             y = lf_csv_obj.read_csv(file_name=str(report_path) + "/csv_data/" + str(x), column="Iterations")
             z = lf_csv_obj.read_csv(file_name=str(report_path) + "/csv_data/" + str(x), column="bssid1")
             u = lf_csv_obj.read_csv(file_name=str(report_path) + "/csv_data/" + str(x), column="bssid2")
@@ -1426,7 +1426,7 @@ def main():
                    option="ota",
                    duration_based=False,
                    iteration_based=True,
-                   dut_name=["AP687D.B45C.1D1C","AP2C57.4152.385C"],
+                   dut_name=["AP687D.B45C.1D1C", "AP2C57.4152.385C"],
                    traffic_type="lf_udp",
                    scheme="ssh",
                    dest="localhost",
@@ -1448,7 +1448,6 @@ def main():
     kernel, message = obj.run(file_n=file)
     report_dir_name = obj.generate_report(csv_list=file, kernel_lst=kernel, current_path=str(x) + "/tests")
     print(report_dir_name)
-
 
     # file = obj.generate_csv()
     # obj.run(file_n=file)
