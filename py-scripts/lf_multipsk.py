@@ -55,6 +55,7 @@ class MultiPsk(Realm):
                  num_sta=None,
                  start_id=0,
                  resource=1,
+                 upstream_resource=1,
                  sta_prefix="sta",
                  debug_=False,
                  ):
@@ -73,6 +74,7 @@ class MultiPsk(Realm):
         self.sta_prefix = sta_prefix
         self.debug = debug_
         self.station_profile = self.new_station_profile()
+        self.upstream_resource = upstream_resource
 
     def build(self):
         station_list = []
@@ -142,7 +144,7 @@ class MultiPsk(Realm):
                 raise ValueError("Unable to find ports named '%s'+" % self.sta_prefix)
             self.cx_profile_udp.create(endp_type="lf_udp",
                                        side_a=port_list,
-                                       side_b="%d.%s" % (self.resource, input['upstream']),
+                                       side_b="%d.%s" % (int(self.upstream_resource), input['upstream']),
                                        suppress_related_commands=True)
 
             # Create TCP endpoints
@@ -154,7 +156,7 @@ class MultiPsk(Realm):
             self.l3_tcp_profile.report_timer = 1000
             self.l3_tcp_profile.create(endp_type="lf_tcp",
                                        side_a=list(self.find_ports_like("%s+" % self.sta_prefix)),
-                                       side_b="%d.%s" % (self.resource, input['upstream']),
+                                       side_b="%d.%s" % (int(self.upstream_resource), input['upstream']),
                                        suppress_related_commands=True)
 
     def start(self):
@@ -172,8 +174,8 @@ class MultiPsk(Realm):
                 data = self.json_get("ports/list?fields=IP")
                 for val in data["interfaces"]:
                     for j in val:
-                        if "1." + str(self.resource) + "." + str(i['upstream']) == j:
-                            ip_upstream = val["1." + str(self.resource) + "." + str(i['upstream'])]['ip']
+                        if "1." + str(self.upstream_resource) + "." + str(i['upstream']) == j:
+                            ip_upstream = val["1." + str(self.upstream_resource) + "." + str(i['upstream'])]['ip']
                             vlan_ips[i['upstream']] = ip_upstream
                             # print(ip_upstream)
                             # print(vlan_ips)
@@ -189,8 +191,8 @@ class MultiPsk(Realm):
                 data = self.json_get("ports/list?fields=IP")
                 for val in data["interfaces"]:
                     for j in val:
-                        if "1." + str(self.resource) + "." + str(i['upstream']) == j:
-                            ip_upstream = val["1." + str(self.resource) + "." + str(i['upstream'])]['ip']
+                        if "1." + str(self.upstream_resource) + "." + str(i['upstream']) == j:
+                            ip_upstream = val["1." + str(self.upstream_resource) + "." + str(i['upstream'])]['ip']
                             non_vlan_ips[i['upstream']] = ip_upstream
                             # print(ip_upstream)
                             # print(non_vlan_ips)
@@ -319,7 +321,7 @@ class MultiPsk(Realm):
     def compare_nonvlan_ip_bridge(self):
         upstream_ip = self.monitor_non_vlan_ip()
         non_vlan_sta_ip = self.get_non_vlan_sta_ip()
-
+        result1 = "Fail"
         for i, j in zip(upstream_ip, non_vlan_sta_ip):
             # print(i)
             if i == j:
