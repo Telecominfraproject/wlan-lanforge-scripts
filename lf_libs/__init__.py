@@ -4,9 +4,15 @@ import logging
 import os
 import sys
 import time
+
+import allure
 import click
+import paramiko
+import pytest
 import requests
 import urllib3
+from scp import SCPClient
+from tabulate import tabulate
 
 sys.path.append(os.path.join(os.path.abspath(__file__ + "../../../")))
 lfcli_base = importlib.import_module("py-json.LANforge.lfcli_base")
@@ -18,6 +24,10 @@ lf_cv_base = importlib.import_module("py-json.lf_cv_base")
 ChamberViewBase = lf_cv_base.ChamberViewBase
 create_chamberview_dut = importlib.import_module("py-scripts.create_chamberview_dut")
 DUT = create_chamberview_dut.DUT
+create_chamberview = importlib.import_module("py-scripts.create_chamberview")
+CreateChamberview = create_chamberview.CreateChamberview
+sta_connect2 = importlib.import_module("py-scripts.sta_connect2")
+StaConnect2 = sta_connect2.StaConnect2
 
 
 class lf_libs:
@@ -49,6 +59,7 @@ class lf_libs:
     default_scenario_name = None
     default_scenario_test = None
     default_scenario_raw_lines = []
+    chamberview_object = None
     """
     Scenario : dhcp-bridge / dhcp-external
     dhcp-bridge -   wan_ports will act as dhcp server for AP's and it will use uplink_nat_ports for uplink NAT
@@ -139,6 +150,7 @@ class lf_libs:
             self.wan_ports = self.lanforge_data.get("wan_ports")
             self.lan_ports = self.lanforge_data.get("lan_ports")
             self.local_realm = realm.Realm(lfclient_host=self.manager_ip, lfclient_port=self.manager_http_port)
+            self.chamberview_object = CreateChamberview(self.manager_ip, self.manager_http_port)
         except Exception as e:
             logging.error("lf_data has bad values: " + str(self.lanforge_data))
             logging.error(e)
@@ -269,6 +281,17 @@ class lf_libs:
                 self.default_scenario_raw_lines.append([d])
         logging.info("Saved default CV Scenario details: " + str(self.default_scenario_raw_lines))
 
+    def setup_relevent_profiles(self):
+        """ TODO
+             Read all Profiles
+             Create upstream-dhcp and uplink-nat profile if they don't exists
+             Create VLAN Based profiles
+             Create 2 Profiles for vlan
+             vlan profile with dhcp server
+             vlan profile without dhcp server
+        """
+        pass
+
 
 class lf_tests(lf_libs):
 
@@ -276,8 +299,147 @@ class lf_tests(lf_libs):
         super().__init__(lf_data, dut_data, log_level)
         pass
 
-    def client_connectivity_test(self):
-        pass
+    def client_connectivity_test(self, ssid="[BLANK]", passkey="[BLANK]", security="open", extra_securities=[],
+                                 station_name=[], mode="BRIDGE", vlan_id=1, band="twog", ssid_channel=None):
+        self.staConnect = StaConnect2(self.manager_ip, self.manager_http_port, debug_=self.debug)
+
+        self.staConnect.sta_mode = 0
+        self.staConnect.upstream_resource = self.upstream_resource
+        if mode == "BRIDGE":
+            self.staConnect.upstream_port = self.upstream_port
+        elif mode == "NAT":
+            self.staConnect.upstream_port = self.upstream_port
+        else:
+            self.staConnect.upstream_port = self.upstream_port + "." + str(vlan_id)
+        if band == "twog":
+            if self.run_lf:
+                ssid = self.ssid_data["2g-ssid"]
+                passkey = self.ssid_data["2g-password"]
+                security = self.ssid_data["2g-encryption"].lower()
+                print(ssid)
+            self.staConnect.radio = self.twog_radios[0]
+            self.staConnect.admin_down(self.staConnect.radio)
+            self.staConnect.admin_up(self.staConnect.radio)
+            self.staConnect.sta_prefix = self.twog_prefix
+        if band == "fiveg":
+            if self.run_lf:
+                ssid = self.ssid_data["5g-ssid"]
+                passkey = self.ssid_data["5g-password"]
+                security = self.ssid_data["5g-encryption"].lower()
+            self.staConnect.radio = self.fiveg_radios[0]
+            self.staConnect.reset_port(self.staConnect.radio)
+            self.staConnect.sta_prefix = self.fiveg_prefix
+        self.set_radio_channel(radio=self.staConnect.radio, channel=ssid_channel)
+        print("scan ssid radio", self.staConnect.radio.split(".")[2])
+        self.data_scan_ssid = self.scan_ssid(radio=self.staConnect.radio.split(".")[2])
+        print("ssid scan data :- ", self.data_scan_ssid)
+        result = self.check_ssid_available_scan_result(scan_ssid_data=self.data_scan_ssid, ssid=ssid)
+        print("ssid available:-", result)
+        if not result and ssid_channel:
+            if not self.skip_pcap:
+                print("sniff radio", self.ax_radios[0].split(".")[2])
+                self.start_sniffer(radio_channel=ssid_channel, radio=self.ax_radios[0].split(".")[2], duration=30)
+                time.sleep(30)
+                self.stop_sniffer()
+            print("ssid not available in scan result")
+            return "FAIL", "ssid not available in scan result"
+        self.staConnect.resource = 1
+        self.staConnect.dut_ssid = ssid
+        self.staConnect.dut_passwd = passkey
+        self.staConnect.dut_security = security
+        self.staConnect.station_names = station_name
+        self.staConnect.runtime_secs = 40
+        self.staConnect.bringup_time_sec = 80
+        self.staConnect.cleanup_on_exit = True
+        data_table = ""
+        dict_table = {}
+        self.staConnect.setup(extra_securities=extra_securities)
+        for sta_name in self.staConnect.station_names:
+            try:
+                sta_url = self.staConnect.get_station_url(sta_name)
+                station_info = self.staConnect.json_get(sta_url)
+                dict_data = station_info["interface"]
+                dict_table[""] = list(dict_data.keys())
+                dict_table["Before"] = list(dict_data.values())
+            except Exception as e:
+                print(e)
+        if ssid_channel:
+            if not self.skip_pcap:
+                print("sniff radio", self.ax_radios[0].split(".")[2])
+                self.start_sniffer(radio_channel=ssid_channel, radio=self.ax_radios[0].split(".")[2], duration=30)
+        self.staConnect.start()
+        print("napping %f sec" % self.staConnect.runtime_secs)
+        time.sleep(self.staConnect.runtime_secs)
+        report_obj = Report()
+        for sta_name in self.staConnect.station_names:
+            try:
+                sta_url = self.staConnect.get_station_url(sta_name)
+                station_info = self.staConnect.json_get(sta_url)
+                self.station_ip = station_info["interface"]["ip"]
+                dict_data = station_info["interface"]
+                dict_table["After"] = list(dict_data.values())
+                try:
+                    data_table = report_obj.table2(table=dict_table, headers='keys')
+                except Exception as e:
+                    print(e)
+                allure.attach(name=str(sta_name), body=data_table)
+            except Exception as e:
+                print(e)
+        self.staConnect.stop()
+        run_results = self.staConnect.get_result_list()
+        if not self.staConnect.passes():
+            if self.debug:
+                for result in run_results:
+                    print("test result: " + result)
+                pytest.exit("Test Failed: Debug True")
+        self.staConnect.cleanup()
+        try:
+            supplicant = "/home/lanforge/wifi/wpa_supplicant_log_" + self.staConnect.radio.split(".")[2] + ".txt"
+            obj = SCP_File(ip=self.manager_ip, port=self.manager_ssh_port, username="root", password="lanforge",
+                           remote_path=supplicant,
+                           local_path=".")
+            obj.pull_file()
+            allure.attach.file(source="wpa_supplicant_log_" + self.staConnect.radio.split(".")[2] + ".txt",
+                               name="supplicant_log")
+        except Exception as e:
+            print(e)
+
+        for result in run_results:
+            print("test result: " + result)
+        result = "PASS"
+        description = "Unknown error"
+        dict_table = {}
+        print("Client Connectivity :", self.staConnect.passes)
+        endp_data = []
+        for i in self.staConnect.resulting_endpoints:
+            endp_data.append(self.staConnect.resulting_endpoints[i]["endpoint"])
+        dict_table["key"] = [i for s in [d.keys() for d in endp_data] for i in s]
+        dict_table["value"] = [i for s in [d.values() for d in endp_data] for i in s]
+        data_table = report_obj.table2(table=dict_table, headers='keys')
+        allure.attach(name="cx_data", body=data_table)
+        for i in range(len(run_results)):
+            if i == 0:
+                if "FAILED" in run_results[i]:
+                    result = "FAIL"
+                    description = "Station did not get an ip"
+                    break
+            else:
+                if "FAILED" in run_results[i]:
+                    result = "FAIL"
+                    description = "did not report traffic"
+
+        if self.staConnect.passes():
+            print("client connection to", self.staConnect.dut_ssid, "successful. Test Passed")
+            result = "PASS"
+        else:
+            print("client connection to", self.staConnect.dut_ssid, "unsuccessful. Test Failed")
+            result = "FAIL"
+        time.sleep(3)
+        if ssid_channel:
+            if not self.skip_pcap:
+                self.stop_sniffer()
+        self.set_radio_channel(radio=self.staConnect.radio, channel="AUTO")
+        return result, description
 
     def enterprise_client_connectivity_test(self):
         pass
@@ -296,6 +458,50 @@ class lf_tests(lf_libs):
 
     def multi_psk_test(self):
         pass
+
+
+class Report:
+    def __init__(self, key1=None,
+                 key2=None,
+                 val1=None,
+                 val2=None):
+        self.key1 = key1
+        self.key2 = key2
+        self.val1 = val1
+        self.val2 = val2
+
+    def table1(self):
+        table = {str(self.key1): self.val1, str(self.key2): self.val2}
+        x = tabulate(table, headers="keys", tablefmt="fancy_grid")
+        return x
+
+    def table2(self, table=None, headers='firstrow', tablefmt='fancy_grid'):
+        self.table = table
+        x = tabulate(self.table, headers=headers, tablefmt=tablefmt)
+        return x
+
+
+class SCP_File:
+    def __init__(self, ip="localhost", port=22, username="lanforge", password="lanforge", remote_path="/home/lanforge/",
+                 local_path="."):
+        self.ip = ip
+        self.port = port
+        self.remote_path = remote_path
+        self.local_path = local_path
+        self.username = username
+        self.password = password
+
+    def pull_file(self):
+        ssh = paramiko.SSHClient()
+        ssh.load_system_host_keys()
+        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        ssh.connect(hostname=self.ip, username=self.username, password=self.password, port=self.port, allow_agent=False,
+                    look_for_keys=False)
+        # ssh.close()
+
+        with SCPClient(ssh.get_transport()) as scp:
+            scp.get(remote_path=self.remote_path, local_path=self.local_path, recursive=True)
+            scp.close()
 
 
 class lf_tools(lf_libs):
@@ -352,6 +558,37 @@ class lf_tools(lf_libs):
     def clean_layer3cx(self):
         pass
 
+    def add_vlan(self, vlan_ids=[]):
+        data = self.json_get("/port/all")
+        flag = 0
+        temp_raw_lines = self.default_scenario_raw_lines
+        for port in self.wan_ports:
+            for vlans in vlan_ids:
+                for i in data["interfaces"]:
+                    if list(i.keys())[0] != port + "." + str(vlans):
+                        flag = 1
+            if flag == 1:
+                for vlans in vlan_ids:
+                    temp_raw_lines.append(["profile_link " + port + " vlan-100 1 " + port
+                                           + " NA " + port.split(".")[2] + ",AUTO -1 " + str(vlans)])
+                print(temp_raw_lines)
+                exit()
+                self.chamber_view(raw_lines=temp_raw_lines)
+
+    def chamber_view(self, delete_old_scenario=True, raw_lines=[]):
+        print(self.chamberview_object)
+        if delete_old_scenario:
+            self.chamberview_object.clean_cv_scenario(scenario_name=self.default_scenario_name)
+        self.chamberview_object.setup(create_scenario=self.default_scenario_name,
+                                      raw_line=self.default_scenario_raw_lines
+                                      )
+        self.chamberview_object.build(self.default_scenario_name)
+        self.chamberview_object.sync_cv()
+        time.sleep(2)
+        self.chamberview_object.show_text_blob(None, None, True)  # Show changes on GUI
+        self.chamberview_object.sync_cv()
+        return self.chamberview_object, self.default_scenario_name
+
 
 if __name__ == '__main__':
     basic_02 = {
@@ -395,4 +632,3 @@ if __name__ == '__main__':
     obj.load_scenario()
     obj.read_cv_scenario()
     obj.setup_dut()
-
