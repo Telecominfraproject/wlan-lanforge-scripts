@@ -1,12 +1,23 @@
 import importlib
+import json
 import logging
 import os
 import sys
+import time
+import click
+import requests
+import urllib3
 
 sys.path.append(os.path.join(os.path.abspath(__file__ + "../../../")))
 lfcli_base = importlib.import_module("py-json.LANforge.lfcli_base")
 LFCliBase = lfcli_base.LFCliBase
 realm = importlib.import_module("py-json.realm")
+cv_test_manager = importlib.import_module("py-json.cv_test_manager")
+cv_test = cv_test_manager.cv_test
+lf_cv_base = importlib.import_module("py-json.lf_cv_base")
+ChamberViewBase = lf_cv_base.ChamberViewBase
+create_chamberview_dut = importlib.import_module("py-scripts.create_chamberview_dut")
+DUT = create_chamberview_dut.DUT
 
 
 class lf_libs:
@@ -26,12 +37,18 @@ class lf_libs:
     """
     lanforge_data = dict()
     manager_ip = None
+    testbed = None
     manager_http_port = None
     manager_ssh_port = None
     manager_default_db = None
     wan_ports = None
     lan_ports = None
     uplink_nat_ports = None
+    dut_data = None
+    dut_objects = []
+    default_scenario_name = None
+    default_scenario_test = None
+    default_scenario_raw_lines = []
     """
     Scenario : dhcp-bridge / dhcp-external
     dhcp-bridge -   wan_ports will act as dhcp server for AP's and it will use uplink_nat_ports for uplink NAT
@@ -43,6 +60,11 @@ class lf_libs:
                     from VLANS that are outside LANforge
     """
     scenario = None
+    """
+    Scenario in chamberview which will be read by read_cv_scenario() and stored here
+    This will be used to add additional stuff on scenario along with this
+    """
+    cv_scenario = None
     """
     Number of Resources available
     """
@@ -96,11 +118,13 @@ class lf_libs:
     """
     local_realm = None
 
-    def __init__(self, lf_data, log_level=logging.DEBUG):
+    def __init__(self, lf_data={}, dut_data=[], log_level=logging.DEBUG):
         logging.basicConfig(format='%(asctime)s - %(message)s', level=log_level)
         lf_data = dict(lf_data)
+        self.dut_data = dut_data
         try:
             self.lanforge_data = lf_data.get("details")
+            self.testbed = lf_data.get("testbed")
             self.setup_lf_data()
         except Exception as e:
             logging.error("lf_data has bad values: " + str(lf_data))
@@ -118,6 +142,20 @@ class lf_libs:
         except Exception as e:
             logging.error("lf_data has bad values: " + str(self.lanforge_data))
             logging.error(e)
+
+    def setup_dut(self):
+        for index in range(0, len(self.dut_data)):
+            dut_obj = DUT(lfmgr=self.manager_ip,
+                          port=self.manager_http_port,
+                          dut_name=self.testbed + "-" + str(index),
+                          sw_version=self.dut_data[index]["version"],
+                          hw_version=self.dut_data[index]["mode"],
+                          model_num=self.dut_data[index]["model"],
+                          serial_num=self.dut_data[index]["serial"])
+            dut_obj.setup()
+            dut_obj.add_ssids()
+            time.sleep(5)
+            self.dut_objects.append(dut_obj)
 
     def setup_metadata(self):
         data = self.json_get("/port/all")
@@ -208,11 +246,34 @@ class lf_libs:
         json_response = cli_base.json_get(_req_url=_req_url)
         return json_response
 
+    def json_post(self, _req_url="/"):
+        cli_base = LFCliBase(_lfjson_host=self.manager_ip, _lfjson_port=self.manager_http_port)
+        json_response = cli_base.json_post(_req_url=_req_url)
+        return json_response
+
+    def read_cv_scenario(self):
+        cv_obj = cv_test(lfclient_host=self.manager_ip, lfclient_port=self.manager_http_port)
+        cv_obj.show_text_blob(type="Last-Built-Scenario")
+        data = self.json_get("/text/Last-Built-Scenario.last_built")
+        data = data['record']['text'].split("\n")
+        for d in data:
+            if "scenario-name" in d:
+                self.default_scenario_name = d.split(":")[1][1:]
+        cv_obj.apply_cv_scenario(self.default_scenario_name)
+        time.sleep(2)
+        cv_obj.show_text_blob(type="Network-Connectivity")
+        data = self.json_get("/text/Network-Connectivity." + str(self.default_scenario_name))
+        data = data["record"]["text"].split("\n")
+        for d in data:
+            if "profile_link" in d:
+                self.default_scenario_raw_lines.append([d])
+        logging.info("Saved default CV Scenario details: " + str(self.default_scenario_raw_lines))
+
 
 class lf_tests(lf_libs):
 
-    def __init__(self, lf_data, log_level=logging.DEBUG):
-        super().__init__(lf_data, log_level)
+    def __init__(self, lf_data={}, dut_data={}, log_level=logging.DEBUG):
+        super().__init__(lf_data, dut_data, log_level)
         pass
 
     def client_connectivity_test(self):
@@ -239,8 +300,8 @@ class lf_tests(lf_libs):
 
 class lf_tools(lf_libs):
 
-    def __init__(self, lf_data, log_level=logging.DEBUG):
-        super().__init__(lf_data, log_level)
+    def __init__(self, lf_data={}, dut_data={}, log_level=logging.DEBUG):
+        super().__init__(lf_data, dut_data, log_level)
         pass
 
     def create_stations(self):
@@ -268,12 +329,6 @@ class lf_tools(lf_libs):
         pass
 
     def load_scenario_db(self):
-        pass
-
-    def read_cv_scenario(self):
-        pass
-
-    def add_dut(self):
         pass
 
     def delete_dut(self):
@@ -321,6 +376,7 @@ if __name__ == '__main__':
         ],
         "traffic_generator": {
             "name": "lanforge",
+            "testbed": "basic",
             "scenario": "dhcp-bridge",  # dhcp-bridge / dhcp-external
             "details": {
                 "manager_ip": "192.168.52.89",
@@ -334,8 +390,9 @@ if __name__ == '__main__':
         }
     }
 
-    obj = lf_tools(lf_data=basic_02["traffic_generator"])
+    obj = lf_tools(lf_data=dict(basic_02["traffic_generator"]), dut_data=list(basic_02["access_point"]))
     obj.setup_metadata()
-    # obj.load_scenario()
-    # obj = lf_tests(lf_data="")
-    # obj.json_get(_req_url="/port/all")
+    obj.load_scenario()
+    obj.read_cv_scenario()
+    obj.setup_dut()
+

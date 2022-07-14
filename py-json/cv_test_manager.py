@@ -214,16 +214,17 @@ class cv_test(Realm):
         response = self.json_get(url)
         return response
 
-    def show_text_blob(self, config_name, blob_test_name, brief):
+    def show_text_blob(self, config_name=None, blob_test_name=None, brief=False, type="Plugin-Settings"):
         req_url = "/cli-json/show_text_blob"
         response_json = []
-        data = {"type": "Plugin-Settings"}
+        data = {"type": type}
         if config_name and blob_test_name:
             data["name"] = "%s%s" % (blob_test_name, config_name)  # config name
         else:
             data["name"] = "ALL"
         if brief:
             data["brief"] = "brief"
+        print(req_url, data)
         self.json_post(req_url, data, response_json_list_=response_json)
         return response_json
 
@@ -366,6 +367,9 @@ class cv_test(Realm):
                         logger.critical("SCP failed, user %s, password %s, dest %s" % (lf_user, lf_password, lf_host))
                         raise e  # Exception("Could not find Reports")
                     break
+            else:
+                logger.info('Not reporting to kpi file')
+
 
             # Of if test stopped for some reason and could not generate report.
             if not self.get_is_running(instance_name):

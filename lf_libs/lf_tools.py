@@ -42,7 +42,8 @@ LOGGER.addHandler(stdout_handler)
 
 
 class ChamberView:
-    def __init__(self, lanforge_data=None, access_point_data=None, run_lf=False, debug=True, testbed=None,  cc_1=False, ap_version=None):
+    def __init__(self, lanforge_data=None, access_point_data=None, run_lf=False, debug=True, testbed=None, cc_1=False,
+                 ap_version=None):
         print("lanforge data", lanforge_data)
         print("access point data", access_point_data)
         self.access_point_data = access_point_data
@@ -337,7 +338,6 @@ class ChamberView:
             if band == "5G":
                 idx = 1
 
-
         for i in self.dut_idx_mapping:
             if self.dut_idx_mapping[i][0] == ssid_name and self.dut_idx_mapping[i][3] == band:
                 idx = i
@@ -563,7 +563,8 @@ class ChamberView:
                 result = df[column_name].values.tolist()
                 return result
 
-    def read_csv_individual_station_throughput(self, dir_name, option, individual_station_throughput=True, kpi_csv=False,
+    def read_csv_individual_station_throughput(self, dir_name, option, individual_station_throughput=True,
+                                               kpi_csv=False,
                                                file_name="/csv-data/data-Combined_bps__60_second_running_average-1.csv",
                                                batch_size="0"):
         try:
@@ -578,8 +579,8 @@ class ChamberView:
         if kpi_csv:
             count = 0
             dict_data = {"Down": {}, "Up": {}, "Both": {}}
-            csv_short_dis = df.loc[:,"short-description"]
-            csv_num_score = df.loc[:,"numeric-score"]
+            csv_short_dis = df.loc[:, "short-description"]
+            csv_num_score = df.loc[:, "numeric-score"]
             for i in range(len(batch_size.split(","))):
                 dict_data["Down"][csv_short_dis[count + 0]] = csv_num_score[count + 0]
                 dict_data["Up"][csv_short_dis[count + 1]] = csv_num_score[count + 1]
@@ -727,7 +728,6 @@ class ChamberView:
             # [['ssid_idx=0 ssid=Default-SSID-2g security=WPA|WEP| password=12345678 bssid=90:3c:b3:94:48:58']]
             self.update_ssid(ssid_data=ssid_data[ssid])
 
-
     def create_non_meh_dut(self, ssid_data=[]):
         # print("hi")
         for ap, ssid in zip(self.access_point_data, range(len(ssid_data))):
@@ -749,8 +749,6 @@ class ChamberView:
             self.Create_Dut()
             # [['ssid_idx=0 ssid=Default-SSID-2g security=WPA|WEP| password=12345678 bssid=90:3c:b3:94:48:58']]
             self.update_ssid(ssid_data=ssid_data[ssid])
-
-
 
     def set_radio_antenna(self, req_url, shelf, resources, radio, antenna):
         data = {
