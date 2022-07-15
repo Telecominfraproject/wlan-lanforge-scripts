@@ -510,8 +510,179 @@ class lf_tools(lf_libs):
         super().__init__(lf_data, dut_data, log_level)
         pass
 
-    def create_stations(self):
-        pass
+    def create_stations(self, band="2G", num_stations="max", dut="NA", ssid_name=[], idx=0):
+        LOGGER.info("Adding Stations:" + band + " band, Number of Stations: " + str(num_stations) +
+                    " DUT: " + str(dut) + " SSID: " + str(ssid_name) + " idx: " + str(idx))
+        if num_stations == 0:
+            LOGGER.warning("0 Stations")
+            return
+        idx = idx
+        if self.run_lf or self.cc_1:
+            if band == "2G":
+                idx = 0
+            if band == "5G":
+                idx = 1
+
+        for i in self.dut_idx_mapping:
+            if self.dut_idx_mapping[i][0] == ssid_name and self.dut_idx_mapping[i][3] == band:
+                idx = i
+        if band == "2G":
+            if num_stations != "max":
+                LOGGER.info("Total 2G Radios Available in Testbed: " + str(len(self.twog_radios)))
+                total_sta = num_stations
+                max_possible = 0
+                for radio in self.twog_radios:
+                    max_possible = max_possible + int(self.get_max_sta(radio))
+                if total_sta <= max_possible:
+                    per_radio_sta = int(total_sta / len(self.twog_radios))
+                    rem = total_sta % len(self.twog_radios)
+                else:
+                    total_sta = max_possible
+                    per_radio_sta = int(total_sta / len(self.twog_radios))
+                    rem = total_sta % len(self.twog_radios)
+                if rem != 0 and per_radio_sta == 0:
+                    per_radio_sta = rem / len(self.twog_radios)
+                LOGGER.info("Total stations per radio: " + str(per_radio_sta))
+                for radio in self.twog_radios:
+                    max_possible = int(self.get_max_sta(radio))
+                    if total_sta == 0:
+                        return
+                    num_stations = per_radio_sta
+                    if rem == 0 and num_stations == 0:
+                        return
+                    if max_possible - num_stations >= rem:
+                        num_stations = num_stations + rem
+                        rem = 0
+                    elif max_possible - rem >= num_stations:
+                        num_stations = num_stations + rem
+                        rem = 0
+                    elif total_sta <= max_possible:
+                        num_stations = total_sta
+                    if per_radio_sta < 1:
+                        num_stations = 1
+                        total_sta = total_sta - num_stations
+                    LOGGER.info("Adding " + str(num_stations) + " Stations on " + str(radio))
+                    station_data = ["profile_link " + radio.split(".")[0] + "." + radio.split(".")[1] +
+                                    " STA-AUTO " + str(num_stations) + " 'DUT: " + dut + " Radio-" +
+                                    str(int(idx) + 1) + "'" + " NA " + radio.split(".")[2]]
+                    self.raw_line.append(station_data)
+                    LOGGER.debug("Raw Line : " + str(station_data))
+
+            if num_stations == "max":
+                LOGGER.info("Total 2G Radios Available in Testbed: " + str(len(self.twog_radios)))
+                for radio in self.twog_radios:
+                    num_stations = self.get_max_sta(radio)
+                    LOGGER.info("Total stations: " + str(num_stations) + " On Radio: " + str(radio))
+                    station_data = ["profile_link " + radio.split(".")[0] + "." + radio.split(".")[1] +
+                                    " STA-AUTO " + str(num_stations) + " 'DUT: " + dut + " Radio-" +
+                                    str(int(idx) + 1) + "'" + " NA " + radio.split(".")[2]]
+                    self.raw_line.append(station_data)
+                    LOGGER.debug("Raw Line : " + str(station_data))
+
+        if band == "5G":
+            if num_stations != "max":
+                LOGGER.info("Total 2G Radios Available in Testbed: " + str(len(self.fiveg_radios)))
+                total_sta = num_stations
+                max_possible = 0
+                for radio in self.fiveg_radios:
+                    max_possible = max_possible + int(self.get_max_sta(radio))
+                if total_sta <= max_possible:
+                    per_radio_sta = int(total_sta / len(self.fiveg_radios))
+                    rem = total_sta % len(self.fiveg_radios)
+                else:
+                    total_sta = max_possible
+                    per_radio_sta = int(total_sta / len(self.fiveg_radios))
+                    rem = total_sta % len(self.fiveg_radios)
+                if rem != 0 and per_radio_sta == 0:
+                    per_radio_sta = rem / len(self.fiveg_radios)
+                LOGGER.info("Total stations per radio: " + str(per_radio_sta))
+                for radio in self.fiveg_radios:
+                    max_possible = int(self.get_max_sta(radio))
+                    if total_sta == 0:
+                        return
+                    num_stations = per_radio_sta
+                    if rem == 0 and num_stations == 0:
+                        return
+                    if max_possible - num_stations >= rem:
+                        num_stations = num_stations + rem
+                        rem = 0
+                    elif max_possible - rem >= num_stations:
+                        num_stations = num_stations + rem
+                        rem = 0
+                    elif total_sta <= max_possible:
+                        num_stations = total_sta
+                    if per_radio_sta < 1:
+                        num_stations = 1
+                        total_sta = total_sta - num_stations
+                    LOGGER.info("Adding " + str(num_stations) + " Stations on " + str(radio))
+                    station_data = ["profile_link " + radio.split(".")[0] + "." + radio.split(".")[1] +
+                                    " STA-AUTO " + str(num_stations) + " 'DUT: " + dut + " Radio-" +
+                                    str(int(idx) + 1) + "'" + " NA " + radio.split(".")[2]]
+                    self.raw_line.append(station_data)
+                    LOGGER.debug("Raw Line : " + str(station_data))
+
+            if num_stations == "max":
+                LOGGER.info("Total 5G Radios Available in Testbed: " + str(len(self.fiveg_radios)))
+                for radio in self.fiveg_radios:
+                    num_stations = self.get_max_sta(radio)
+                    LOGGER.info("Total stations: " + str(num_stations) + " On Radio: " + str(radio))
+                    station_data = ["profile_link " + radio.split(".")[0] + "." + radio.split(".")[1] +
+                                    " STA-AUTO " + str(num_stations) + " 'DUT: " + dut + " Radio-" +
+                                    str(int(idx) + 1) + "'" + " NA " + radio.split(".")[2]]
+                    self.raw_line.append(station_data)
+                    LOGGER.debug("Raw Line : " + str(station_data))
+        if band == "ax":
+            if num_stations != "max":
+                LOGGER.info("Total 2G Radios Available in Testbed: " + str(len(self.ax_radios)))
+                total_sta = num_stations
+                max_possible = 0
+                for radio in self.ax_radios:
+                    max_possible = max_possible + int(self.get_max_sta(radio))
+                if total_sta <= max_possible:
+                    per_radio_sta = int(total_sta / len(self.ax_radios))
+                    rem = total_sta % len(self.ax_radios)
+                else:
+                    total_sta = max_possible
+                    per_radio_sta = int(total_sta / len(self.ax_radios))
+                    rem = total_sta % len(self.ax_radios)
+                if rem != 0 and per_radio_sta == 0:
+                    per_radio_sta = rem / len(self.ax_radios)
+                LOGGER.info("Total stations per radio: " + str(per_radio_sta))
+                for radio in self.ax_radios:
+                    max_possible = int(self.get_max_sta(radio))
+                    if total_sta == 0:
+                        return
+                    num_stations = per_radio_sta
+                    if rem == 0 and num_stations == 0:
+                        return
+                    if max_possible - num_stations >= rem:
+                        num_stations = num_stations + rem
+                        rem = 0
+                    elif max_possible - rem >= num_stations:
+                        num_stations = num_stations + rem
+                        rem = 0
+                    elif total_sta <= max_possible:
+                        num_stations = total_sta
+                    if per_radio_sta < 1:
+                        num_stations = 1
+                        total_sta = total_sta - num_stations
+                    LOGGER.info("Adding " + str(num_stations) + " Stations on " + str(radio))
+                    station_data = ["profile_link " + radio.split(".")[0] + "." + radio.split(".")[1] +
+                                    " STA-AUTO " + str(num_stations) + " 'DUT: " + dut + " Radio-" +
+                                    str(int(idx) + 1) + "'" + " NA " + radio.split(".")[2]]
+                    self.raw_line.append(station_data)
+                    LOGGER.debug("Raw Line : " + str(station_data))
+            if num_stations == "max":
+                LOGGER.info("Total AX Radios Available in Testbed: " + str(len(self.ax_radios)))
+                for radio in self.ax_radios:
+                    num_stations = self.get_max_sta(radio)
+                    LOGGER.info("Total stations: " + str(num_stations) + " On Radio: " + str(radio))
+                    station_data = ["profile_link " + radio.split(".")[0] + "." + radio.split(".")[1] +
+                                    " STA-AUTO " + str(num_stations) + " 'DUT: " + dut + " Radio-" +
+                                    str(int(idx) + 1) + "'" + " NA " + radio.split(".")[2]]
+                    self.raw_line.append(station_data)
+                    LOGGER.debug("Raw Line : " + str(station_data))
+
 
     def delete_stations(self):
         pass
