@@ -27,7 +27,7 @@ class ProfileUtility(Realm):
         self.host = lfclient_host
         self.port = lfclient_port
 
-    def add_profile(self, profile_name=None, profile_type=None, profile_flags=None):
+    def add_profile(self, profile_name=None, profile_type=None, profile_flags=None, vlan_id=100):
         """Add profile"""
         profile_type_data = {"as_is": 0, "sta": 1, "bridged_ap": 2, "routed_ap": 3, "upstream": 4, "monitor": 5,
                              "mobile_sta": 6, "rdd": 7, "client": 8, "bond": 9, "peer": 10, "uplink": 11, "vlan": 12}
@@ -42,7 +42,10 @@ class ProfileUtility(Realm):
         if profile_type is not None:
             if profile_type in profile_type_data:
                 data["profile_type"] = profile_type_data[profile_type]
-        if profile_type is not None:
+            # vlan id valid for valn profile
+            if profile_type.lower() == "vlan":
+                data["vid"] = vlan_id
+        if profile_flags is not None:
             if profile_flags in profile_flags_data:
                 data["profile_flags"] = profile_flags_data[profile_flags]
         print(data)
@@ -59,17 +62,19 @@ class ProfileUtility(Realm):
 
     def show_profile(self):
         """Show All Profiles"""
-        response = self.json_post("/cli-json/show_profile", {"name": "ALL"})
-        return response
+        response = self.json_post("/cli-json/show_profile", {"name": "all"})
+        return True
+
+    def check_profile(self, profile_name):
+        return True
+
 
 
 def main():
     obj = ProfileUtility(lfclient_host="10.28.3.32", lfclient_port=8080)
-    #x = obj.add_profile(profile_name="Jitu", profile_type="upstream", profile_flags="DHCP-SERVER")
-    #x = obj.remove_profile("Jitu")
     y = obj.show_profile()
     print(y)
-    #print(x)
+
 
 if __name__ == "__main__":
     main()
