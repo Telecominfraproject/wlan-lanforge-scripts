@@ -114,7 +114,7 @@ class lf_libs:
     """
     wave2_radios = []
 
-    """
+    """lf_tests
         ax radio - supports (2.4G and 5gHz Band)
         Maximum 64 Station per radio
         """
@@ -433,3 +433,5 @@ class SCP_File:
         with SCPClient(ssh.get_transport()) as scp:
             scp.get(remote_path=self.remote_path, local_path=self.local_path, recursive=True)
             scp.close()
+
+

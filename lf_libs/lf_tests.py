@@ -24,10 +24,10 @@ create_chamberview = importlib.import_module("py-scripts.create_chamberview")
 CreateChamberview = create_chamberview.CreateChamberview
 sta_connect2 = importlib.import_module("py-scripts.sta_connect2")
 StaConnect2 = sta_connect2.StaConnect2
-lf_libs_module = importlib.import_module("lf_libs")
-lf_libs = lf_libs_module.lf_libs
-Report = lf_libs.Report
-SCP_File = lf_libs.SCP_File
+lf_library = importlib.import_module("lf_libs")
+lf_libs = lf_library.lf_libs
+Report = lf_library.Report
+SCP_File = lf_library.SCP_File
 
 
 class lf_tests(lf_libs):
@@ -208,7 +208,7 @@ if __name__ == '__main__':
             "username": "tip@ucentral.com",
             "password": "OpenWifi%123"
         },
-        "access_point": [
+        "device_under_tests": [
             {
                 "model": "hfcl_ion4",
                 "mode": "wifi5",
@@ -238,7 +238,7 @@ if __name__ == '__main__':
         }
     }
 
-    obj = lf_tests(lf_data=dict(basic_02["traffic_generator"]), dut_data=list(basic_02["access_point"]),
+    obj = lf_tests(lf_data=dict(basic_02["traffic_generator"]), dut_data=list(basic_02["device_under_tests"]),
                    log_level=logging.DEBUG)
     # obj.read_cv_scenario()
     # obj.setup_dut()

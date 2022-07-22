@@ -86,7 +86,16 @@ __license__ = ''" > __init__.py
 sed -i -- 's/from LANforge/from py_json.LANforge/g' *.py
 sed -i -- 's/from py_json/from .py_json/g' *.py
 
-cd py_scripts || exit 1
+sed -i -- 's/py-scripts/py_scripts/g' *.py
+cd lf_libs || exit 1
+sed -i -- 's/py-scripts/py_scripts/g' *.py
+sed -i -- 's/py-json/py_json/g' *.py
+echo "from .lf_libs import lf_libs
+from .lf_tests import lf_tests
+from .lf_libs import Report
+from .lf_libs import SCP_File
+" > __init__.py
+cd ../py_scripts || exit 1
 
 echo "#from .connection_test import ConnectionTest
 from .create_bond import CreateBond
@@ -98,7 +107,6 @@ from .create_macvlan import CreateMacVlan
 from .create_qvlan import CreateQVlan
 from .create_station import CreateStation
 from .create_vap import CreateVAP
-from .csv_convert import CSVParcer
 from .csv_to_influx import CSVtoInflux
 from .csv_to_grafana import UseGrafana
 from .example_security_connection import IPv4Test
@@ -154,7 +162,6 @@ from .wlan_capacity_calculator import main as WlanCapacityCalculator
 from .ws_generic_monitor_test import WS_Listener" > __init__.py
 
 # Fix files in py_scripts
-sed -i -- 's/import importlib/ /g' *.py
 sed -i -- 's/import realm/ /g' create_vap.py lf_dut_sta_vap_test.py lf_sniff_radio.py run_cv_scenario.py sta_connect.py station_layer3.py test_client_admission.py
 sed -i -- 's/import realm/from realm import Realm/g' lf_atten_mod_test.py lf_multipsk.py test_fileio.py test_ip_connection.py test_ipv4_ttls.py test_l3_WAN_LAN.py test_l3_unicast_traffic_gen.py test_l4.py testgroup.py
 sed -i -- 's/realm.Realm/Realm/g' lf_atten_mod_test.py lf_multipsk.py lf_sniff_radio.py station_layer3.py test_client_admission.py test_fileio.py test_ip_connection.py
@@ -168,7 +175,7 @@ sed -i -- 's/import wlan_theoretical_sta/from wlan_theoretical_sta import abg11_
 sed -i -- 's/sys.path.append(os.path.join(os.path.abspath(__file__ + "..\/..\/..\/")))/ /g' *.py
 
 #Change importlib to pip compliant method
-sed -i -- 's/import importlib/ /g' *.py
+sed -i -- 's/lf_logger_config = importlib.import_module("py-scripts.lf_logger_config")/from lanforge_scripts.py_scripts.lf_logger_config import lf_logger_config/g' *.py
 sed -i -- 's/influx = importlib.import_module("py-scripts.influx_utils")/from lanforge_scripts.py_scripts.influx_utils import RecordInflux/g' *.py
 sed -i -- 's/RecordInflux = influx.RecordInflux/ /g' *.py
 sed -i -- 's/create_chamberview_dut = importlib.import_module("py-scripts.create_chamberview_dut")/import create_chamberview_dut/g' *.py
@@ -459,6 +466,7 @@ if [[ $ARCHIVE -eq 1 ]]; then
   mv py_json lanforge_scripts
   mv py_dashboard lanforge_scripts
   mv py_scripts lanforge_scripts
+  mv lf_libs lanforge_scripts
   mv label-printer lanforge_scripts/label_printer
   mv "auto-install-gui.py" "auto_install_gui.py"
   for i in "${py_modules[@]}"; do
