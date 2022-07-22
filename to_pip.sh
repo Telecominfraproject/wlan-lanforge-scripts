@@ -91,9 +91,9 @@ cd lf_libs || exit 1
 sed -i -- 's/py-scripts/py_scripts/g' *.py
 sed -i -- 's/py-json/py_json/g' *.py
 echo "from .lf_libs import lf_libs
-from .lf_tests import lf_tests
 from .lf_libs import Report
 from .lf_libs import SCP_File
+from .lf_tests import lf_tests
 " > __init__.py
 cd ../py_scripts || exit 1
 
