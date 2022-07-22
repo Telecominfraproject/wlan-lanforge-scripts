@@ -63,7 +63,7 @@ class ProfileUtility(Realm):
     def show_profile(self):
         """Show All Profiles"""
         response = self.json_post("/cli-json/show_profile", {"name": "all"})
-        return True
+        return ""
 
     def check_profile(self, profile_name):
         return True
