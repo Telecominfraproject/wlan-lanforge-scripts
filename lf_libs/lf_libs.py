@@ -24,6 +24,8 @@ create_chamberview = importlib.import_module("py-scripts.create_chamberview")
 CreateChamberview = create_chamberview.CreateChamberview
 sta_connect2 = importlib.import_module("py-scripts.sta_connect2")
 StaConnect2 = sta_connect2.StaConnect2
+profile_utility = importlib.import_module("py-json.profile_utility")
+ProfileUtility = profile_utility.ProfileUtility
 
 
 class lf_libs:
@@ -56,6 +58,7 @@ class lf_libs:
     default_scenario_test = None
     default_scenario_raw_lines = []
     chamberview_object = None
+    raw_line = None
     """
     Scenario : dhcp-bridge / dhcp-external
     dhcp-bridge -   wan_ports will act as dhcp server for AP's and it will use uplink_nat_ports for uplink NAT
@@ -132,6 +135,7 @@ class lf_libs:
         try:
             self.lanforge_data = lf_data.get("details")
             self.testbed = lf_data.get("testbed")
+            self.scenario = lf_data.get("scenario")
             self.setup_lf_data()
             self.load_scenario()
             self.setup_metadata()
@@ -154,6 +158,7 @@ class lf_libs:
             self.manager_default_db = self.lanforge_data.get("default_setup_DB")
             self.wan_ports = self.lanforge_data.get("wan_ports")
             self.lan_ports = self.lanforge_data.get("lan_ports")
+            self.uplink_nat_ports = self.lanforge_data.get("uplink_nat_ports")
             self.local_realm = realm.Realm(lfclient_host=self.manager_ip, lfclient_port=self.manager_http_port)
             self.chamberview_object = CreateChamberview(self.manager_ip, self.manager_http_port)
         except Exception as e:
@@ -262,6 +267,25 @@ class lf_libs:
     def load_scenario(self):
         self.local_realm.load(self.manager_default_db)
 
+    def create_dhcp_bridge(self):
+        """ create chamber view scenario"""
+        #testing is pending
+        upstream_port = self.uplink_nat_ports
+        upstream_resources = upstream_port.split(".")[0] + "." + upstream_port.split(".")[1]
+        uplink_port = self.wan_ports
+        uplink_resources = uplink_port.split(".")[0] + "." + uplink_port.split(".")[1]
+        self.raw_line = [
+            ["profile_link " + upstream_resources + " upstream-dhcp 1 NA NA " + upstream_port.split(".")[2]
+             + ",AUTO -1 NA"],
+            ["profile_link " + uplink_resources + " uplink-nat 1 'DUT: upstream LAN " + upstream_subnet
+             + "' NA " + uplink_port.split(".")[2] + "," + upstream_port.split(".")[2] + " -1 NA"]
+        ]
+        self.chamber_view(delete_old_scenario=True, raw_lines=self.raw_line)
+        pass
+
+    def create_dhcp_external(self):
+        pass
+
     def json_get(self, _req_url="/"):
         cli_base = LFCliBase(_lfjson_host=self.manager_ip, _lfjson_port=self.manager_http_port)
         json_response = cli_base.json_get(_req_url=_req_url)
@@ -299,7 +323,49 @@ class lf_libs:
              vlan profile with dhcp server
              vlan profile without dhcp server
         """
-        pass
+        profile_utility_obj = ProfileUtility(lfclient_host=self.manager_ip, lfclient_port=self.manager_http_port)
+        # Read all Profiles
+        all_profiles = profile_utility_obj.show_profile()
+        print(all_profiles)
+        logging.info("Profiles: " + str(all_profiles))
+
+        # Create upstream-dhcp and uplink-nat profile if they don't exists
+        # Checking availability of upstream-dhcp profile
+        upstream_dhcp = profile_utility_obj.check_profile(profile_name="upstream-dhcp")
+        # Checking availability of uplink-nat profile
+        uplink_nat = profile_utility_obj.check_profile(profile_name="uplink-nat")
+        if upstream_dhcp:
+            logging.info("upstream_dhcp profile: Available")
+            profile_utility_obj.remove_profile(name="upstream-dhcp")
+            profile_utility_obj.add_profile(profile_name="upstream-dhcp", profile_type="upstream",
+                                            profile_flags="DHCP-SERVER")
+        else:
+            profile_utility_obj.add_profile(profile_name="upstream-dhcp", profile_type="upstream",
+                                            profile_flags="DHCP-SERVER")
+        if uplink_nat:
+            profile_utility_obj.remove_profile(name="uplink-nat")
+            profile_utility_obj.add_profile(profile_name="uplink-nat", profile_type="uplink", profile_flags=None)
+        else:
+            profile_utility_obj.add_profile(profile_name="uplink-nat", profile_type="uplink", profile_flags=None)
+
+        # Create VLAN Based profiles
+        if self.scenario == "dhcp-bridge":
+            vlan_dhcp_profile = profile_utility_obj.check_profile(profile_name="vlan_dhcp_profile")
+            if vlan_dhcp_profile:
+                profile_utility_obj.remove_profile(name="vlan_dhcp_profile")
+                profile_utility_obj.add_profile(profile_name="vlan_dhcp_profile", profile_type="vlan",
+                                                profile_flags="DHCP-SERVER")
+            else:
+                profile_utility_obj.add_profile(profile_name="vlan_dhcp_profile", profile_type="vlan",
+                                                profile_flags="DHCP-SERVER")
+
+        elif self.scenario == "dhcp-external":
+            vlan_profile = profile_utility_obj.check_profile(profile_name="vlan_profile")
+            if vlan_profile:
+                profile_utility_obj.remove_profile(name="vlan_profile")
+                profile_utility_obj.add_profile(profile_name="vlan_profile", profile_type="vlan", profile_flags=None)
+            else:
+                profile_utility_obj.add_profile(profile_name="vlan_profile", profile_type="vlan", profile_flags=None)
 
     def create_stations(self):
         pass
@@ -352,18 +418,23 @@ class lf_libs:
     def add_vlan(self, vlan_ids=[]):
         data = self.json_get("/port/all")
         flag = 0
+        profile_name = ""
         temp_raw_lines = self.default_scenario_raw_lines
         for port in self.wan_ports:
             for vlans in vlan_ids:
                 for i in data["interfaces"]:
+                    print(i)
                     if list(i.keys())[0] != port + "." + str(vlans):
                         flag = 1
             if flag == 1:
                 for vlans in vlan_ids:
-                    temp_raw_lines.append(["profile_link " + port + " vlan-100 1 " + port
+                    if self.scenario == "dhcp-bridge":
+                        profile_name = "vlan_dhcp_profile"
+                    elif self.scenario == "dhcp-external":
+                        profile_name = "vlan_profile"
+                    temp_raw_lines.append(["profile_link " + port + " " + profile_name + " 1 " + port
                                            + " NA " + port.split(".")[2] + ",AUTO -1 " + str(vlans)])
                 print(temp_raw_lines)
-                exit()
                 self.chamber_view(raw_lines=temp_raw_lines)
 
     def chamber_view(self, delete_old_scenario=True, raw_lines=[]):
@@ -433,3 +504,51 @@ class SCP_File:
         with SCPClient(ssh.get_transport()) as scp:
             scp.get(remote_path=self.remote_path, local_path=self.local_path, recursive=True)
             scp.close()
+
+
+if __name__ == '__main__':
+    basic_02 = {
+        "controller": {
+            "url": "https://sec-qa01.cicd.lab.wlan.tip.build:16001",
+            "username": "tip@ucentral.com",
+            "password": "OpenWifi%123"
+        },
+        "access_point": [
+            {
+                "model": "hfcl_ion4",
+                "mode": "wifi5",
+                "serial": "0006aee53b84",
+                "jumphost": True,
+                "ip": "10.28.3.100",
+                "username": "lanforge",
+                "password": "pumpkin77",
+                "port": 22,
+                "jumphost_tty": "/dev/ttyAP2",
+                "version": "next-latest"
+            }
+        ],
+        "traffic_generator": {
+            "name": "lanforge",
+            "testbed": "basic",
+            "scenario": "dhcp-bridge",  # dhcp-bridge / dhcp-external
+            "details": {
+                "manager_ip": "10.28.3.12",
+                "http_port": 8080,
+                "ssh_port": 22,
+                "default_setup_DB": "Test_Scenario",
+                "wan_ports": ["1.1.eth3"],
+                "lan_ports": ["1.1.eth1"],
+                "uplink_nat_ports": ["1.1.eth2"]
+            }
+        }
+    }
+
+    obj = lf_libs(lf_data=dict(basic_02["traffic_generator"]), dut_data=list(basic_02["access_point"]),
+                  log_level=logging.DEBUG)
+    # x = obj.chamber_view()
+    # print(x)
+    # obj.add_vlan(vlan_ids=[100,200])
+    # # obj.setup_dut()
+    # obj.setup_relevent_profiles()
+    # obj.add_vlan(vlan_ids=[200])
+    # obj.chamber_view()
