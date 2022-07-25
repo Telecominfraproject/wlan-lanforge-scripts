@@ -117,7 +117,7 @@ class lf_libs:
     """
     wave2_radios = []
 
-    """
+    """lf_tests
         ax radio - supports (2.4G and 5gHz Band)
         Maximum 64 Station per radio
         """
@@ -505,50 +505,3 @@ class SCP_File:
             scp.get(remote_path=self.remote_path, local_path=self.local_path, recursive=True)
             scp.close()
 
-
-if __name__ == '__main__':
-    basic_02 = {
-        "controller": {
-            "url": "https://sec-qa01.cicd.lab.wlan.tip.build:16001",
-            "username": "tip@ucentral.com",
-            "password": "OpenWifi%123"
-        },
-        "access_point": [
-            {
-                "model": "hfcl_ion4",
-                "mode": "wifi5",
-                "serial": "0006aee53b84",
-                "jumphost": True,
-                "ip": "10.28.3.100",
-                "username": "lanforge",
-                "password": "pumpkin77",
-                "port": 22,
-                "jumphost_tty": "/dev/ttyAP2",
-                "version": "next-latest"
-            }
-        ],
-        "traffic_generator": {
-            "name": "lanforge",
-            "testbed": "basic",
-            "scenario": "dhcp-bridge",  # dhcp-bridge / dhcp-external
-            "details": {
-                "manager_ip": "10.28.3.12",
-                "http_port": 8080,
-                "ssh_port": 22,
-                "default_setup_DB": "Test_Scenario",
-                "wan_ports": ["1.1.eth3"],
-                "lan_ports": ["1.1.eth1"],
-                "uplink_nat_ports": ["1.1.eth2"]
-            }
-        }
-    }
-
-    obj = lf_libs(lf_data=dict(basic_02["traffic_generator"]), dut_data=list(basic_02["access_point"]),
-                  log_level=logging.DEBUG)
-    # x = obj.chamber_view()
-    # print(x)
-    # obj.add_vlan(vlan_ids=[100,200])
-    # # obj.setup_dut()
-    # obj.setup_relevent_profiles()
-    # obj.add_vlan(vlan_ids=[200])
-    # obj.chamber_view()
