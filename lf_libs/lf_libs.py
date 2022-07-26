@@ -58,7 +58,6 @@ class lf_libs:
     default_scenario_test = None
     default_scenario_raw_lines = []
     chamberview_object = None
-    raw_line = None
     """
     Scenario : dhcp-bridge / dhcp-external
     dhcp-bridge -   wan_ports will act as dhcp server for AP's and it will use uplink_nat_ports for uplink NAT
@@ -268,23 +267,29 @@ class lf_libs:
         self.local_realm.load(self.manager_default_db)
 
     def create_dhcp_bridge(self):
-        """ create chamber view scenario"""
-        #testing is pending
-        upstream_port = self.uplink_nat_ports
+        """ create chamber view scenario for DHCP-Bridge"""
+        upstream_port = self.uplink_nat_ports[0]
         upstream_resources = upstream_port.split(".")[0] + "." + upstream_port.split(".")[1]
-        uplink_port = self.wan_ports
+        uplink_port = self.wan_ports[0]
         uplink_resources = uplink_port.split(".")[0] + "." + uplink_port.split(".")[1]
-        self.raw_line = [
+        # Hard coded value
+        upstream_subnet = "10.28.2.1/24"
+        self.default_scenario_raw_lines = [
             ["profile_link " + upstream_resources + " upstream-dhcp 1 NA NA " + upstream_port.split(".")[2]
              + ",AUTO -1 NA"],
             ["profile_link " + uplink_resources + " uplink-nat 1 'DUT: upstream LAN " + upstream_subnet
              + "' NA " + uplink_port.split(".")[2] + "," + upstream_port.split(".")[2] + " -1 NA"]
         ]
-        self.chamber_view(delete_old_scenario=True, raw_lines=self.raw_line)
-        pass
 
     def create_dhcp_external(self):
-        pass
+        upstream_port = self.uplink_nat_ports[0]
+        uplink_port = self.wan_ports[0]
+        uplink_resources = uplink_port.split(".")[0] + "." + uplink_port.split(".")[1]
+        # Hard coded value
+        upstream_subnet = "10.28.2.1/24"
+        self.default_scenario_raw_lines = [
+            "profile_link " + uplink_resources + " uplink-nat 1 'DUT: upstream LAN " + upstream_subnet
+            + "' NA " + uplink_port.split(".")[2] + "," + upstream_port.split(".")[2] + " -1 NA"]
 
     def json_get(self, _req_url="/"):
         cli_base = LFCliBase(_lfjson_host=self.manager_ip, _lfjson_port=self.manager_http_port)
@@ -440,16 +445,23 @@ class lf_libs:
     def chamber_view(self, delete_old_scenario=True, raw_lines=[]):
         print(self.chamberview_object)
         if delete_old_scenario:
-            self.chamberview_object.clean_cv_scenario(scenario_name=self.default_scenario_name)
-        self.chamberview_object.setup(create_scenario=self.default_scenario_name,
+            self.chamberview_object.clean_cv_scenario(scenario_name=self.scenario)
+        if self.scenario == "dhcp-bridge":
+            self.create_dhcp_bridge()
+            print("Scenario name", self.scenario)
+        elif self.scenario == "dhcp-external":
+            self.create_dhcp_external()
+            print("Scenario name", self.scenario)
+        self.chamberview_object.setup(create_scenario=self.scenario,
                                       raw_line=self.default_scenario_raw_lines
                                       )
-        self.chamberview_object.build(self.default_scenario_name)
+        print("Raw Lines", self.default_scenario_raw_lines)
+        self.chamberview_object.build(self.scenario)
         self.chamberview_object.sync_cv()
         time.sleep(2)
         self.chamberview_object.show_text_blob(None, None, True)  # Show changes on GUI
         self.chamberview_object.sync_cv()
-        return self.chamberview_object, self.default_scenario_name
+        return self.chamberview_object, self.scenario
 
     def setup_radius_server(self, user=""):
         """
@@ -505,3 +517,49 @@ class SCP_File:
             scp.get(remote_path=self.remote_path, local_path=self.local_path, recursive=True)
             scp.close()
 
+if __name__ == '__main__':
+    basic_02 = {
+        "controller": {
+            "url": "https://sec-qa01.cicd.lab.wlan.tip.build:16001",
+            "username": "tip@ucentral.com",
+            "password": "OpenWifi%123"
+        },
+        "access_point": [
+            {
+                "model": "hfcl_ion4",
+                "mode": "wifi5",
+                "serial": "0006aee53b84",
+                "jumphost": True,
+                "ip": "10.28.3.100",
+                "username": "lanforge",
+                "password": "pumpkin77",
+                "port": 22,
+                "jumphost_tty": "/dev/ttyAP2",
+                "version": "next-latest"
+            }
+        ],
+        "traffic_generator": {
+            "name": "lanforge",
+            "testbed": "basic",
+            "scenario": "dhcp-bridge",  # dhcp-bridge / dhcp-external
+            "details": {
+                "manager_ip": "10.28.3.12",
+                "http_port": 8080,
+                "ssh_port": 22,
+                "default_setup_DB": "Test_Scenario",
+                "wan_ports": ["1.1.eth3"],
+                "lan_ports": ["1.1.eth1"],
+                "uplink_nat_ports": ["1.1.eth2"]
+            }
+        }
+    }
+
+    obj = lf_libs(lf_data=dict(basic_02["traffic_generator"]), dut_data=list(basic_02["access_point"]),
+                  log_level=logging.DEBUG)
+    # x = obj.chamber_view()
+    # print(x)
+    # obj.add_vlan(vlan_ids=[100,200])
+    # # obj.setup_dut()
+    # obj.setup_relevent_profiles()
+    # obj.add_vlan(vlan_ids=[200])
+    obj.chamber_view()
