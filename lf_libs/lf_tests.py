@@ -36,13 +36,20 @@ class lf_tests(lf_libs):
     """
     lf_tools_obj = None
 
-    def __init__(self, lf_data={}, dut_data={}, log_level=logging.DEBUG):
+    def __init__(self, lf_data={}, dut_data={}, log_level=logging.DEBUG, run_lf=False, influx_params=None):
         super().__init__(lf_data, dut_data, log_level)
+        # Work is going on
+        self.staConnect = StaConnect2(self.manager_ip, self.manager_http_port, debug_=self.debug)
+        self.upstream_port = self.uplink_nat_ports[0].split(".")[2]
+        self.upstream_resource = self.uplink_nat_ports[0].split(".")[1]
+        if self.run_lf:
+            self.ssid_data =
+
         pass
 
     def client_connectivity_test(self, ssid="[BLANK]", passkey="[BLANK]", security="open", extra_securities=[],
                                  station_name=[], mode="BRIDGE", vlan_id=1, band="twog", ssid_channel=None):
-        self.staConnect = StaConnect2(self.manager_ip, self.manager_http_port, debug_=self.debug)
+        # self.staConnect = StaConnect2(self.manager_ip, self.manager_http_port, debug_=self.debug)
 
         self.staConnect.sta_mode = 0
         self.staConnect.upstream_resource = self.upstream_resource
