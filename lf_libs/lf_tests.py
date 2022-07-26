@@ -209,26 +209,27 @@ class lf_tests(lf_libs):
 
 
 if __name__ == '__main__':
-    basic_02 = {
+    basic_1 = {
+        "target": "tip_2x",
         "controller": {
             "url": "https://sec-qa01.cicd.lab.wlan.tip.build:16001",
             "username": "tip@ucentral.com",
             "password": "OpenWifi%123"
         },
-        "device_under_tests": [
-            {
-                "model": "hfcl_ion4",
-                "mode": "wifi5",
-                "serial": "0006aee53b84",
-                "jumphost": True,
-                "ip": "10.28.3.100",
-                "username": "lanforge",
-                "password": "pumpkin77",
-                "port": 22,
-                "jumphost_tty": "/dev/ttyAP2",
-                "version": "next-latest"
-            }
-        ],
+        "device_under_tests": [{
+            "model": "edgecore_eap101",
+            "supported_bands": ["2G", "5G"],
+            "supported_modes": ["BRIDGE", "NAT", "VLAN"],
+            "mode": "wifi6",
+            "identifier": "c44bd1005b30",
+            "serial_port": True,
+            "host_ip": "10.28.3.100",
+            "host_username": "lanforge",
+            "host_password": "pumpkin77",
+            "host_ssh_port": 22,
+            "serial_tty": "/dev/ttyAP8",
+            "firmware_version": "next-latest"
+        }],
         "traffic_generator": {
             "name": "lanforge",
             "testbed": "basic",
@@ -237,15 +238,28 @@ if __name__ == '__main__':
                 "manager_ip": "192.168.52.89",
                 "http_port": 8080,
                 "ssh_port": 22,
-                "default_setup_DB": "Test_Scenario",
-                "wan_ports": ["1.1.eth3"],
-                "lan_ports": ["1.1.eth1"],
-                "uplink_nat_ports": ["1.1.eth2"]
+                "setup": {"method": "build" , "DB": "Test_Scenario_Automation"},    # method: build/load,
+                                                                                    # DB : Default database name
+                "wan_ports": {
+                    "1.1.eth3": {"addressing": "dhcp-server", "subnet": "172.16.0.1/16", "dhcp": {
+                                    "lease-first": 10,
+                                    "lease-count": 10000,
+                                    "lease-time": "6h"
+                                  }}
+                },
+                "lan_ports": {
+                    "1.1.eth1": {"addressing": "dynamic"}  # dhcp-server/{"addressing": "dynamic"}/{"addressing":
+                    # "static", "subnet": "10.28.2.6/16"}
+                },
+                "uplink_nat_ports": {
+                    "1.1.eth2": {"addressing": "static", "subnet": "10.28.2.6/16"}   # dhcp-server/{"addressing":
+                    # "dynamic"} /{"addressing": "static", "subnet": "10.28.2.6/16"}
+                },
             }
         }
     }
 
-    obj = lf_tests(lf_data=dict(basic_02["traffic_generator"]), dut_data=list(basic_02["device_under_tests"]),
+    obj = lf_tests(lf_data=dict(basic_1["traffic_generator"]), dut_data=list(basic_1["device_under_tests"]),
                    log_level=logging.DEBUG)
     # obj.read_cv_scenario()
     # obj.setup_dut()
