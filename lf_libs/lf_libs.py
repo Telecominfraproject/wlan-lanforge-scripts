@@ -58,6 +58,12 @@ class lf_libs:
     default_scenario_test = None
     default_scenario_raw_lines = []
     chamberview_object = None
+    max_possible_stations = None
+    max_2g_stations = None
+    max_5g_stations = None
+    max_6g_stations = None
+    max_ax_stations = None
+    max_ac_stations = None
     """
     Scenario : dhcp-bridge / dhcp-external
     dhcp-bridge -   wan_ports will act as dhcp server for AP's and it will use uplink_nat_ports for uplink NAT
@@ -102,19 +108,19 @@ class lf_libs:
     ax radio - supports (2.4G Band)
     Maximum 64 Station per radio
     """
-    wave1_2g_radios = []
+    wave2_2g_radios = []
 
     """
     ax radio - supports (5gHz Band)
     Maximum 64 Station per radio
     """
-    wave1_5g_radios = []
+    wave2_5g_radios = []
 
     """
     ax radio - supports (2.4G and 5gHz Band)
     Maximum 64 Station per radio
     """
-    wave2_radios = []
+    wave1_radios = []
 
     """lf_tests
         ax radio - supports (2.4G and 5gHz Band)
@@ -136,7 +142,7 @@ class lf_libs:
             self.testbed = lf_data.get("testbed")
             self.scenario = lf_data.get("scenario")
             self.setup_lf_data()
-            self.load_scenario()
+            #self.load_scenario()
             self.setup_metadata()
             self.setup_dut()
         except Exception as e:
@@ -160,8 +166,9 @@ class lf_libs:
             self.uplink_nat_ports = self.lanforge_data.get("uplink_nat_ports")
             self.local_realm = realm.Realm(lfclient_host=self.manager_ip, lfclient_port=self.manager_http_port)
             self.chamberview_object = CreateChamberview(self.manager_ip, self.manager_http_port)
+            self.default_scenario_raw_lines = []
         except Exception as e:
-            logging.error("lf_data has bad values: " + str(self.lanforge_data))
+
             logging.error(e)
 
     """
@@ -202,12 +209,12 @@ class lf_libs:
         data = self.json_get("/radiostatus/all")
         all_radios = []
         all_radio_eid = []
-        max_possible_stations = 0
-        max_2g_stations = 0
-        max_5g_stations = 0
-        max_6g_stations = 0
-        max_ax_stations = 0
-        max_ac_stations = 0
+        self.max_possible_stations = 0
+        self.max_2g_stations = 0
+        self.max_5g_stations = 0
+        self.max_6g_stations = 0
+        self.max_ax_stations = 0
+        self.max_ac_stations = 0
         phantom_radios = []
         for info in data:
             if info == "handler" or info == "uri" or info == "warnings":
@@ -219,77 +226,76 @@ class lf_libs:
                 logging.error("Radio is in phantom state: " + str(data[info]["entity id"]) +
                               " ,Please Contact: support@candelatech.com")
             if str(data[info]["driver"]).__contains__("AX210"):
-                max_possible_stations += 1
-                max_2g_stations += 1 * int(str(data[info]["max_vifs"]))
-                max_5g_stations += 1 * int(str(data[info]["max_vifs"]))
-                max_6g_stations += 1 * int(str(data[info]["max_vifs"]))
-                max_ax_stations += 1 * int(str(data[info]["max_vifs"]))
+                self.max_possible_stations += 1
+                self.max_2g_stations += 1 * int(str(data[info]["max_vifs"]))
+                self.max_5g_stations += 1 * int(str(data[info]["max_vifs"]))
+                self.max_6g_stations += 1 * int(str(data[info]["max_vifs"]))
+                self.max_ax_stations += 1 * int(str(data[info]["max_vifs"]))
                 self.ax210_radios.append(info)
             if str(data[info]["driver"]).__contains__("AX200"):
-                max_possible_stations += 1 * int(str(data[info]["max_vifs"]))
-                max_2g_stations += 1 * int(str(data[info]["max_vifs"]))
-                max_5g_stations += 1 * int(str(data[info]["max_vifs"]))
-                max_ax_stations += 1 * int(str(data[info]["max_vifs"]))
+                self.max_possible_stations += 1 * int(str(data[info]["max_vifs"]))
+                self.max_2g_stations += 1 * int(str(data[info]["max_vifs"]))
+                self.max_5g_stations += 1 * int(str(data[info]["max_vifs"]))
+                self.max_ax_stations += 1 * int(str(data[info]["max_vifs"]))
                 self.ax200_radios.append(info)
             if str(data[info]["driver"]).__contains__("ath10k(988x)"):
-                max_possible_stations += 1 * int(str(data[info]["max_vifs"]))
-                max_2g_stations += 1 * int(str(data[info]["max_vifs"]))
-                max_5g_stations += 1 * int(str(data[info]["max_vifs"]))
-                max_ac_stations += 1 * int(str(data[info]["max_vifs"]))
-                self.wave2_radios.append(info)
+                self.max_possible_stations += 1 * int(str(data[info]["max_vifs"]))
+                self.max_2g_stations += 1 * int(str(data[info]["max_vifs"]))
+                self.max_5g_stations += 1 * int(str(data[info]["max_vifs"]))
+                self.max_ac_stations += 1 * int(str(data[info]["max_vifs"]))
+                self.wave1_radios.append(info)
             if str(data[info]["driver"]).__contains__("ath10k(9984)"):
                 if str(data[info]["capabilities"]).__contains__("802.11bgn-AC"):
-                    max_possible_stations += 1 * int(str(data[info]["max_vifs"]))
-                    max_2g_stations += 1 * int(str(data[info]["max_vifs"]))
-                    max_ac_stations += 1 * int(str(data[info]["max_vifs"]))
-                    self.wave1_2g_radios.append(info)
+                    self.max_possible_stations += 1 * int(str(data[info]["max_vifs"]))
+                    self.max_2g_stations += 1 * int(str(data[info]["max_vifs"]))
+                    self.max_ac_stations += 1 * int(str(data[info]["max_vifs"]))
+                    self.wave2_2g_radios.append(info)
                 if str(data[info]["capabilities"]).__contains__("802.11an-AC"):
-                    max_possible_stations += 1 * int(str(data[info]["max_vifs"]))
-                    max_5g_stations += 1 * int(str(data[info]["max_vifs"]))
-                    max_ac_stations += 1 * int(str(data[info]["max_vifs"]))
-                    self.wave1_5g_radios.append(info)
+                    self.max_possible_stations += 1 * int(str(data[info]["max_vifs"]))
+                    self.max_5g_stations += 1 * int(str(data[info]["max_vifs"]))
+                    self.max_ac_stations += 1 * int(str(data[info]["max_vifs"]))
+                    self.wave2_5g_radios.append(info)
             if str(data[info]["driver"]).__contains__("mt7915e"):
-                max_possible_stations += 1 * int(str(data[info]["max_vifs"]))
-                max_2g_stations += 1 * int(str(data[info]["max_vifs"]))
-                max_5g_stations += 1 * int(str(data[info]["max_vifs"]))
-                max_ax_stations += 1 * int(str(data[info]["max_vifs"]))
+                self.max_possible_stations += 1 * int(str(data[info]["max_vifs"]))
+                self.max_2g_stations += 1 * int(str(data[info]["max_vifs"]))
+                self.max_5g_stations += 1 * int(str(data[info]["max_vifs"]))
+                self.max_ax_stations += 1 * int(str(data[info]["max_vifs"]))
                 self.mtk_radios.append(info)
         logging.info("Radio Information is Extracted")
         logging.info("Available Radios: " + str(all_radio_eid) + "  -  Phantom Radios: " + str(phantom_radios))
-        logging.info("max_possible_stations: " + str(max_possible_stations))
-        logging.info("max_2g_stations: " + str(max_2g_stations))
-        logging.info("max_5g_stations: " + str(max_5g_stations))
-        logging.info("max_6g_stations: " + str(max_6g_stations))
-        logging.info("max_ax_stations: " + str(max_ax_stations))
-        logging.info("max_ac_stations: " + str(max_ac_stations))
+        logging.info("max_possible_stations: " + str(self.max_possible_stations))
+        logging.info("max_2g_stations: " + str(self.max_2g_stations))
+        logging.info("max_5g_stations: " + str(self.max_5g_stations))
+        logging.info("max_6g_stations: " + str(self.max_6g_stations))
+        logging.info("max_ax_stations: " + str(self.max_ax_stations))
+        logging.info("max_ac_stations: " + str(self.max_ac_stations))
 
     def load_scenario(self):
         self.local_realm.load(self.manager_default_db)
 
     def create_dhcp_bridge(self):
         """ create chamber view scenario for DHCP-Bridge"""
-        upstream_port = self.uplink_nat_ports[0]
-        upstream_resources = upstream_port.split(".")[0] + "." + upstream_port.split(".")[1]
-        uplink_port = self.wan_ports[0]
-        uplink_resources = uplink_port.split(".")[0] + "." + uplink_port.split(".")[1]
-        # Hard coded value
-        upstream_subnet = "10.28.2.1/24"
-        self.default_scenario_raw_lines = [
-            ["profile_link " + upstream_resources + " upstream-dhcp 1 NA NA " + upstream_port.split(".")[2]
-             + ",AUTO -1 NA"],
-            ["profile_link " + uplink_resources + " uplink-nat 1 'DUT: upstream LAN " + upstream_subnet
-             + "' NA " + uplink_port.split(".")[2] + "," + upstream_port.split(".")[2] + " -1 NA"]
-        ]
+        for uplink_nat_ports, wan_ports in zip(self.uplink_nat_ports, self.wan_ports):
+            upstream_port = uplink_nat_ports
+            upstream_resources = upstream_port.split(".")[0] + "." + upstream_port.split(".")[1]
+            uplink_port = wan_ports
+            uplink_resources = uplink_port.split(".")[0] + "." + uplink_port.split(".")[1]
+            print(uplink_nat_ports)
+            upstream_subnet = self.uplink_nat_ports[uplink_nat_ports]["subnet"]
+            print(upstream_subnet)
+            self.default_scenario_raw_lines.append(["profile_link " + upstream_resources + " upstream-dhcp 1 NA NA " +
+                                                    upstream_port.split(".")[2] + ",AUTO -1 NA"])
+            self.default_scenario_raw_lines.append(
+                ["profile_link " + uplink_resources + " uplink-nat 1 'DUT: upstream LAN "
+                 + upstream_subnet
+                 + "' NA " + uplink_port.split(".")[2] + "," + upstream_port.split(".")[2] + " -1 NA"])
 
     def create_dhcp_external(self):
-        upstream_port = self.uplink_nat_ports[0]
-        uplink_port = self.wan_ports[0]
-        uplink_resources = uplink_port.split(".")[0] + "." + uplink_port.split(".")[1]
-        # Hard coded value
-        upstream_subnet = "10.28.2.1/24"
-        self.default_scenario_raw_lines = [
-            "profile_link " + uplink_resources + " uplink-nat 1 'DUT: upstream LAN " + upstream_subnet
-            + "' NA " + uplink_port.split(".")[2] + "," + upstream_port.split(".")[2] + " -1 NA"]
+        for uplink_nat_ports in self.uplink_nat_ports:
+            upstream_port = uplink_nat_ports
+            upstream_resources = upstream_port.split(".")[0] + "." + upstream_port.split(".")[1]
+            self.default_scenario_raw_lines.append(["profile_link " + upstream_resources + " upstream 1 NA NA " +
+                                                    upstream_port.split(".")[2] + ",AUTO -1 NA"])
 
     def json_get(self, _req_url="/"):
         cli_base = LFCliBase(_lfjson_host=self.manager_ip, _lfjson_port=self.manager_http_port)
@@ -448,10 +454,10 @@ class lf_libs:
             self.chamberview_object.clean_cv_scenario(scenario_name=self.scenario)
         if self.scenario == "dhcp-bridge":
             self.create_dhcp_bridge()
-            print("Scenario name", self.scenario)
+            logging.info("Scenario name: " + str(self.scenario))
         elif self.scenario == "dhcp-external":
             self.create_dhcp_external()
-            print("Scenario name", self.scenario)
+            logging.info("Scenario name: " + str(self.scenario))
         self.chamberview_object.setup(create_scenario=self.scenario,
                                       raw_line=self.default_scenario_raw_lines
                                       )
@@ -517,49 +523,6 @@ class SCP_File:
             scp.get(remote_path=self.remote_path, local_path=self.local_path, recursive=True)
             scp.close()
 
-if __name__ == '__main__':
-    basic_02 = {
-        "controller": {
-            "url": "https://sec-qa01.cicd.lab.wlan.tip.build:16001",
-            "username": "tip@ucentral.com",
-            "password": "OpenWifi%123"
-        },
-        "access_point": [
-            {
-                "model": "hfcl_ion4",
-                "mode": "wifi5",
-                "serial": "0006aee53b84",
-                "jumphost": True,
-                "ip": "10.28.3.100",
-                "username": "lanforge",
-                "password": "pumpkin77",
-                "port": 22,
-                "jumphost_tty": "/dev/ttyAP2",
-                "version": "next-latest"
-            }
-        ],
-        "traffic_generator": {
-            "name": "lanforge",
-            "testbed": "basic",
-            "scenario": "dhcp-bridge",  # dhcp-bridge / dhcp-external
-            "details": {
-                "manager_ip": "10.28.3.12",
-                "http_port": 8080,
-                "ssh_port": 22,
-                "default_setup_DB": "Test_Scenario",
-                "wan_ports": ["1.1.eth3"],
-                "lan_ports": ["1.1.eth1"],
-                "uplink_nat_ports": ["1.1.eth2"]
-            }
-        }
-    }
+    def save_current_scenario(self):
+        pass
 
-    obj = lf_libs(lf_data=dict(basic_02["traffic_generator"]), dut_data=list(basic_02["access_point"]),
-                  log_level=logging.DEBUG)
-    # x = obj.chamber_view()
-    # print(x)
-    # obj.add_vlan(vlan_ids=[100,200])
-    # # obj.setup_dut()
-    # obj.setup_relevent_profiles()
-    # obj.add_vlan(vlan_ids=[200])
-    obj.chamber_view()
