@@ -246,7 +246,7 @@ class lf_tests(lf_libs):
 
 
     def client_connectivity_test(self, ssid="[BLANK]", passkey="[BLANK]", security="open", extra_securities=[],
-                                 station_name=[], mode="BRIDGE", vlan_id=1, band="twog", ssid_channel=None):
+                                 station_name=[], mode="BRIDGE", vlan_id=1, band="twog", ssid_channel=None, outfile="shivam"):
         # self.staConnect = StaConnect2(self.manager_ip, self.manager_http_port, debug_=self.debug)
         # setup_interfaces() interface selection return radio name along no of station on each radio, upstream port
         #
@@ -277,7 +277,8 @@ class lf_tests(lf_libs):
             pytest.exit()
         print("dict_radio_sta_list", dict_radio_sta_list)
         for radio in data["radios"]:
-
+            self.enable_verbose_debug(radio=radio, enable=False)
+            exit(1)
             self.staConnect.radio = radio
             self.staConnect.admin_down(self.staConnect.radio)
             self.staConnect.admin_up(self.staConnect.radio)

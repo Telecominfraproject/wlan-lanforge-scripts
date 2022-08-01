@@ -302,9 +302,9 @@ class lf_libs:
         json_response = cli_base.json_get(_req_url=_req_url)
         return json_response
 
-    def json_post(self, _req_url="/"):
+    def json_post(self, _req_url="/", data=None):
         cli_base = LFCliBase(_lfjson_host=self.manager_ip, _lfjson_port=self.manager_http_port)
-        json_response = cli_base.json_post(_req_url=_req_url)
+        json_response = cli_base.json_post(_req_url=_req_url, _data=data)
         return json_response
 
     def read_cv_scenario(self):
@@ -478,6 +478,28 @@ class lf_libs:
             Radius server should be working properly on WAN Interface of AP
         """
         pass
+
+    def enable_verbose_debug(self, radio=None, enable=True):
+        """Increase debug info in wpa-supplicant and hostapd logs"""
+        # radio e.g 1.1wiphy0
+        if radio is not None:
+            shelf = radio.split(".")[0]
+            resource = radio.split(".")[1]
+            radio_name = radio.split(".")[2]
+            if enable:
+                flag_value = "0x10000"
+            else:
+                flag_value = "0x00000"
+            data = {
+                "shelf": shelf,
+                "resource": resource,
+                "radio": radio_name,
+                "flags": flag_value
+            }
+            self.json_post("/cli-json/set_wifi_radio", data=data)
+        else:
+            logging.error("Radio name is wrong")
+
 
 
 class Report:
