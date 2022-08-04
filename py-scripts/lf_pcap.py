@@ -415,6 +415,49 @@ class LfPcap(Realm):
         except ValueError:
             raise "pcap file is required"
 
+    def check_rsn(self, pcap_file):
+        global akms_count, group_cipher_suite, mfpr, mfpc, ptksa, gtksa
+        try:
+            if pcap_file is not None:
+                cap = self.read_pcap(pcap_file=pcap_file, apply_filter='wlan.fc.type == 0 && wlan.fc.type_subtype == 8')
+                packet_count = 0
+                value = "Packet Not Found"
+                for pkt in cap:
+                    if 'wlan.mgt' in pkt:
+                        if 'wlan_rsn_pcs_list' in pkt['wlan.mgt'].field_names:
+                            group_cipher_suite = pkt['wlan.mgt'].get_field_value('wlan_rsn_pcs_list')
+                        else:
+                            group_cipher_suite = "Value not Found"
+                        if 'wlan_rsn_akms_count' in pkt['wlan.mgt'].field_names:
+                            akms_count = pkt['wlan.mgt'].get_field_value('wlan_rsn_akms_count')
+                        else:
+                            akms_count = "Value not Found"
+                        if 'wlan_rsn_capabilities_mfpr' in pkt['wlan.mgt'].field_names:
+                            mfpr = pkt['wlan.mgt'].get_field_value('wlan_rsn_capabilities_mfpr')
+                        else:
+                            mfpr = "Value not Found"
+                        if 'wlan_rsn_capabilities_mfpc' in pkt['wlan.mgt'].field_names:
+                            mfpc = pkt['wlan.mgt'].get_field_value('wlan_rsn_capabilities_mfpc')
+                        else:
+                            mfpc = "Value not Found"
+                        if 'wlan_rsn_capabilities_ptksa_replay_counter' in pkt['wlan.mgt'].field_names:
+                            ptksa = pkt['wlan.mgt'].get_field_value('wlan_rsn_capabilities_ptksa_replay_counter')
+                        else:
+                            ptksa = "Value not Found"
+                        if 'wlan_rsn_capabilities_gtksa_replay_counter' in pkt['wlan.mgt'].field_names:
+                            gtksa = pkt['wlan.mgt'].get_field_value('wlan_rsn_capabilities_gtksa_replay_counter')
+                        else:
+                            gtksa = "Value not Found"
+                        packet_count += 1
+                    if packet_count == 1:
+                        break
+                if packet_count >= 1:
+                    return [akms_count, group_cipher_suite, mfpr, mfpc, ptksa, gtksa]
+                else:
+                    return None
+        except ValueError:
+            raise "pcap file is required"
+
     def sniff_packets(self, interface_name="wiphy1", test_name="mu-mimo", channel=-1, sniff_duration=180):
         if test_name is not None:
             self.pcap_name = test_name + ".pcap"
@@ -468,7 +511,7 @@ see: /py-scritps/lf_pcap.py
     parser.add_argument('--apply_filter', '-f', help='apply the filter you want to', dest='apply_filter', default=None)
     args = parser.parse_args()
     pcap_obj = LfPcap(
-        host="192.168.200.229",
+        host="192.168.200.202",
         port=8080,
         _read_pcap_file=args.pcap_file,
         _apply_filter=args.apply_filter,
@@ -485,6 +528,7 @@ see: /py-scritps/lf_pcap.py
     # pcap_obj.get_wlan_mgt_status_code(pcap_file=pcap_obj.pcap_file)
     # pcap_obj.get_packet_info(pcap_obj.pcap_file)
     # pcap_obj.check_he_capability_beacon_frame(pcap_file=pcap_obj.pcap_file)
+    #pcap_obj.check_rsn(pcap_file=pcap_obj.pcap_file)
 
 
 if __name__ == "__main__":
