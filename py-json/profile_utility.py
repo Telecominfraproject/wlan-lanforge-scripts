@@ -62,17 +62,24 @@ class ProfileUtility(Realm):
 
     def show_profile(self):
         """Show All Profiles"""
-        response = self.json_post("/cli-json/show_profile", {"name": "all"})
-        return ""
+        # response = self.json_post("/cli-json/show_profile", {"name": "all"})
+        response = self.json_get("/profile/all")
+        return response
 
     def check_profile(self, profile_name):
-        return True
-
+        response = self.show_profile()
+        available_profiles = []
+        for i in response["profiles"]:
+            available_profiles.append(list(i.keys()))
+        if profile_name.split(" ") in available_profiles:
+            return True
+        else:
+            return False
 
 
 def main():
-    obj = ProfileUtility(lfclient_host="10.28.3.32", lfclient_port=8080)
-    y = obj.show_profile()
+    obj = ProfileUtility(lfclient_host="192.168.200.101", lfclient_port=8080)
+    y = obj.check_profile("jk")
     print(y)
 
 

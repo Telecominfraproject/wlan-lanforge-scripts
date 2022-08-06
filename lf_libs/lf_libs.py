@@ -275,24 +275,24 @@ class lf_libs:
 
     def create_dhcp_bridge(self):
         """ create chamber view scenario for DHCP-Bridge"""
-        for uplink_nat_ports, wan_ports in zip(self.uplink_nat_ports, self.wan_ports):
-            upstream_port = uplink_nat_ports
+        for wan_ports, uplink_nat_ports in zip(self.wan_ports, self.uplink_nat_ports):
+            upstream_port = wan_ports
             upstream_resources = upstream_port.split(".")[0] + "." + upstream_port.split(".")[1]
-            uplink_port = wan_ports
+            uplink_port = uplink_nat_ports
             uplink_resources = uplink_port.split(".")[0] + "." + uplink_port.split(".")[1]
             print(uplink_nat_ports)
-            upstream_subnet = self.uplink_nat_ports[uplink_nat_ports]["subnet"]
-            print(upstream_subnet)
+            uplink_subnet = self.uplink_nat_ports[uplink_nat_ports]["subnet"]
+            print(uplink_subnet)
             self.default_scenario_raw_lines.append(["profile_link " + upstream_resources + " upstream-dhcp 1 NA NA " +
                                                     upstream_port.split(".")[2] + ",AUTO -1 NA"])
             self.default_scenario_raw_lines.append(
                 ["profile_link " + uplink_resources + " uplink-nat 1 'DUT: upstream LAN "
-                 + upstream_subnet
+                 + uplink_subnet
                  + "' NA " + uplink_port.split(".")[2] + "," + upstream_port.split(".")[2] + " -1 NA"])
 
     def create_dhcp_external(self):
-        for uplink_nat_ports in self.uplink_nat_ports:
-            upstream_port = uplink_nat_ports
+        for wan_port in self.wan_ports:
+            upstream_port = wan_port
             upstream_resources = upstream_port.split(".")[0] + "." + upstream_port.split(".")[1]
             self.default_scenario_raw_lines.append(["profile_link " + upstream_resources + " upstream 1 NA NA " +
                                                     upstream_port.split(".")[2] + ",AUTO -1 NA"])
@@ -337,7 +337,6 @@ class lf_libs:
         profile_utility_obj = ProfileUtility(lfclient_host=self.manager_ip, lfclient_port=self.manager_http_port)
         # Read all Profiles
         all_profiles = profile_utility_obj.show_profile()
-        print(all_profiles)
         logging.info("Profiles: " + str(all_profiles))
 
         # Create upstream-dhcp and uplink-nat profile if they don't exists
