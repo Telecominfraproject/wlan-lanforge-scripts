@@ -36,6 +36,8 @@ stascan = importlib.import_module("py-scripts.sta_scan_test")
 StaScan = stascan.StaScan
 cv_test_reports = importlib.import_module("py-json.cv_test_reports")
 lf_report = cv_test_reports.lanforge_reports
+createstation = importlib.import_module("py-scripts.create_station")
+CreateStation = createstation.CreateStation
 
 
 class lf_tests(lf_libs):
@@ -470,6 +472,36 @@ class lf_tests(lf_libs):
     def multi_psk_test(self):
         pass
 
+    def Client_Connect(self, ssid="[BLANK]", passkey="[BLANK]", security="wpa2", mode="BRIDGE", band="twog",
+                       vlan_id=100,
+                       num_sta=None, scan_ssid=True):
+        data = self.setup_interfaces(band=band, vlan_id=vlan_id, mode=mode, num_sta=len(station_name))
+        logging.info("Setup interface data" + str(data))
+        station_name = self.get_station_list(num_sta=num_sta, band=band)
+        if self.run_lf:
+            ssid = data["ssid"]
+            passkey = data["passkey"]
+            security = data["security"]
+        self.client_connect = CreateStation(_host=self.manager_ip, _port=self.manager_http_port,
+                                            _sta_list=station_name, _password=passkey, _ssid=ssid, _security=security)
+        self.client_connect.station_profile.sta_mode = 0
+        self.client_connect.upstream_resource = data["upstream_port"].split(".")[1]
+        self.client_connect.upstream_port = data["upstream_port"].split(".")[2]
+        self.client_connect.radio = data["radios"].keys()[0]
+        print("scan ssid radio", self.client_connect.radio.split(".")[2])
+        if scan_ssid:
+            self.data_scan_ssid = self.scan_ssid(radio=self.client_connect.radio.split(".")[2], ssid=ssid)
+        print("ssid scan data :- ", self.data_scan_ssid)
+        self.client_connect.build()
+        result = self.client_connect.wait_for_ip(station_list=station_name, timeout_sec=100)
+        #print(self.client_connect.wait_for_ip(station_name))
+        print(result)
+        if result:
+            self.client_connect._pass("ALL Stations got IP's", print_=True)
+            return self.client_connect
+        else:
+            return False
+
     def scan_ssid(self, radio="", retry=1, allure_attach=True, scan_time=15, ssid=None, ssid_channel=None):
         '''This method for scan ssid data'''
         count = 0
@@ -645,6 +677,7 @@ class lf_tests(lf_libs):
                 sta_list.append(self.sixg_prefix + str(i))
             else:
                 logging.error("band is wrong")
+        return sta_list
 
     def attach_table_allure(self, data=None, allure_name=None):
         """Attach table to allure.data should be dict."""
