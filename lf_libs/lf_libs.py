@@ -180,10 +180,10 @@ class lf_libs:
             dut_obj = DUT(lfmgr=self.manager_ip,
                           port=self.manager_http_port,
                           dut_name=self.testbed + "-" + str(index),
-                          sw_version=self.dut_data[index]["version"],
+                          sw_version=self.dut_data[index]["firmware_version"],
                           hw_version=self.dut_data[index]["mode"],
                           model_num=self.dut_data[index]["model"],
-                          serial_num=self.dut_data[index]["serial"])
+                          serial_num=self.dut_data[index]["identifier"])
             dut_obj.setup()
             dut_obj.add_ssids()
             time.sleep(5)
