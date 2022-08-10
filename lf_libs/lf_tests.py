@@ -209,9 +209,30 @@ class lf_tests(lf_libs):
                                 diff = max_station - stations
 
         sniff_radio = self.setup_sniffer(band=band, station_radio_data=radio_data)
+
+        # creating dict of radio and station_list
+        dict_radio_sta_list = {}
+        # list of per radio station
+        length_to_split = list(radio_data.values())
+        print(length_to_split)
+        # station list of per radio
+        sta_list = self.get_station_list(num_sta=num_sta, band=band)
+        sta_list = iter(sta_list)
+        sta_list_ = [list(islice(sta_list, elem))
+                     for elem in length_to_split]
+        # Checking station lists according to radios
+        if len(sta_list_) == len(length_to_split):
+            dict_radio_sta_list = dict(zip(list(radio_data.keys()), sta_list_))
+        for i in dict_radio_sta_list:
+            temp_list = []
+            shelf_resource = str(i.split(".")[0] + "." + i.split(".")[1] + ".")
+            for j in dict_radio_sta_list[i]:
+                temp_list.append(shelf_resource + j)
+            dict_radio_sta_list[i] = temp_list
+
         data_dict = {}
         if self.run_lf:
-            data_dict["radios"] = radio_data
+            data_dict["radios"] = dict_radio_sta_list
             data_dict["upstream_port"] = upstream_port
             data_dict["ssid"] = ssid
             data_dict["passkey"] = passkey
@@ -220,7 +241,7 @@ class lf_tests(lf_libs):
             data_dict["sniff_radio"] = sniff_radio
             return data_dict
         else:
-            data_dict["radios"] = radio_data
+            data_dict["radios"] = dict_radio_sta_list
             data_dict["upstream_port"] = upstream_port
             data_dict["sta_prefix"] = sta_prefix
             data_dict["sniff_radio"] = sniff_radio
@@ -298,88 +319,77 @@ class lf_tests(lf_libs):
 
     def client_connectivity_test(self, ssid="[BLANK]", passkey="[BLANK]", security="open", extra_securities=[],
                                  num_sta=1, mode="BRIDGE", vlan_id=1, band="twog", ssid_channel=None,
-                                 allure_attch=True):
+                                 allure_attch=True, runtime_secs=40):
         # self.staConnect = StaConnect2(self.manager_ip, self.manager_http_port, debug_=self.debug)
         # setup_interfaces() interface selection return radio name along no of station on each radio, upstream port
         #
         data = self.setup_interfaces(band=band, vlan_id=vlan_id, mode=mode, num_sta=num_sta)
-        sta_list = self.get_station_list(num_sta=num_sta, band=band)
         logging.info("Setup interface data" + str(data))
         if self.run_lf:
             ssid = data["ssid"]
             passkey = data["passkey"]
             security = data["security"]
-
-        self.staConnect.sta_mode = 0
-        self.staConnect.upstream_resource = data["upstream_port"].split(".")[1]
-        self.staConnect.upstream_port = data["upstream_port"].split(".")[2]
-        # creating dict of radio and station_list
-        dict_radio_sta_list = {}
-        # list of per radio station
-        length_to_split = list(data["radios"].values())
-        print(length_to_split)
-        # station list of per radio
-        sta_list = iter(sta_list)
-        sta_list_ = [list(islice(sta_list, elem))
-                     for elem in length_to_split]
-        # Checking station lists according to radios
-        if len(sta_list_) == len(length_to_split):
-            dict_radio_sta_list = dict(zip(list(data["radios"].keys()), sta_list_))
-        else:
-            logging.error("Stations per radios are wrong")
-            pytest.exit()
-        print("dict_radio_sta_list", dict_radio_sta_list)
+        sta_connect_obj = []
         for radio in data["radios"]:
+            obj_sta_connect = StaConnect2(self.manager_ip, self.manager_http_port, outfile="shivam",
+                                          _cleanup_on_exit=False)
+            obj_sta_connect.sta_mode = 0
+            obj_sta_connect.upstream_resource = data["upstream_port"].split(".")[1]
+            obj_sta_connect.upstream_port = data["upstream_port"].split(".")[2]
             self.enable_verbose_debug(radio=radio, enable=False)
-            self.staConnect.radio = radio
-            self.staConnect.admin_down(self.staConnect.radio)
-            self.staConnect.admin_up(self.staConnect.radio)
-            self.staConnect.sta_prefix = data["sta_prefix"]
+            obj_sta_connect.radio = radio
+            obj_sta_connect.admin_down(obj_sta_connect.radio)
+            obj_sta_connect.admin_up(obj_sta_connect.radio)
+            obj_sta_connect.sta_prefix = data["sta_prefix"]
             # changed to auto channel
             self.set_radio_channel(radio=radio, channel="AUTO")
             print("scan ssid radio", radio.split(".")[2])
-            result = self.scan_ssid(radio=radio.split(".")[2], ssid=ssid, ssid_channel=ssid_channel)
+            result = self.scan_ssid(radio=radio, ssid=ssid, ssid_channel=ssid_channel)
             print("ssid scan data :- ", result)
             if not result and ssid_channel:
                 # Sniffer required
-                print("sniff radio", data["sniff_radio"].split(".")[2])
-                self.start_sniffer(radio_channel=ssid_channel, radio=data["sniff_radio"].split(".")[2], duration=30)
-                time.sleep(30)
-                self.stop_sniffer()
-                print("ssid not available in scan result")
-                return "FAIL", "ssid not available in scan result"
-            self.staConnect.resource = radio.split(".")[1]
-            self.staConnect.dut_ssid = ssid
-            self.staConnect.dut_passwd = passkey
-            self.staConnect.dut_security = security
-            self.staConnect.station_names = dict_radio_sta_list[radio]
-            self.staConnect.runtime_secs = 40
-            self.staConnect.bringup_time_sec = 80
-            self.staConnect.cleanup_on_exit = True
-            self.staConnect.download_bps = 128000
-            self.staConnect.upload_bps = 128000
-            self.staConnect.side_a_pdu = 1200
-            self.staConnect.side_b_pdu = 1500
-            data_table = ""
-            dict_table = {}
-            self.staConnect.setup(extra_securities=extra_securities)
+                # print("sniff radio", data["sniff_radio"].split(".")[2])
+                # self.start_sniffer(radio_channel=ssid_channel, radio=data["sniff_radio"].split(".")[2], duration=30)
+                # time.sleep(30)
+                # self.stop_sniffer()
+                # print("ssid not available in scan result")
+                # return "FAIL", "ssid not available in scan result"
+                pass
+            obj_sta_connect.resource = radio.split(".")[1]
+            obj_sta_connect.dut_ssid = ssid
+            obj_sta_connect.dut_passwd = passkey
+            obj_sta_connect.dut_security = security
+            obj_sta_connect.station_names = data["radios"][radio]
+            obj_sta_connect.runtime_secs = runtime_secs
+            obj_sta_connect.bringup_time_sec = 80
+            obj_sta_connect.cleanup_on_exit = True
+            obj_sta_connect.download_bps = 128000
+            obj_sta_connect.upload_bps = 128000
+            obj_sta_connect.side_a_pdu = 1200
+            obj_sta_connect.side_b_pdu = 1500
+            obj_sta_connect.setup(extra_securities=extra_securities)
             if ssid_channel:
                 pass
                 # Need to start sniffer
                 # print("sniff radio", data["sniff_radio"].split(".")[2])
                 # self.start_sniffer(radio_channel=ssid_channel, radio=data["sniff_radio"].split(".")[2], duration=30)
-            self.staConnect.start()
-            print("napping %f sec" % self.staConnect.runtime_secs)
-            time.sleep(self.staConnect.runtime_secs)
-            print(self.staConnect.station_names)
+            sta_connect_obj.append(obj_sta_connect)
+        for obj in sta_connect_obj:
+            print(obj)
+            obj.start()
+        print("napping %f sec" % runtime_secs)
+        time.sleep(runtime_secs)
+        pass_fail_result = []
+        for obj in sta_connect_obj:
+            print(obj.station_names)
             sta_rows = ["4way time (us)", "channel", "cx time (us)", "dhcp (ms)", "ip", "signal"]
-            station_data = self.get_station_data(sta_name=self.staConnect.station_names, rows=sta_rows,
+            station_data = self.get_station_data(sta_name=obj.station_names, rows=sta_rows,
                                                  allure_attach=False)
             sta_table_dict = {}
             sta_table_dict["station name"] = list(station_data.keys())
             for i in sta_rows:
                 temp_list = []
-                for j in self.staConnect.station_names:
+                for j in obj.station_names:
                     temp_list.append(station_data[j][i])
                 sta_table_dict[i] = temp_list
             # pass fail
@@ -392,26 +402,26 @@ class lf_tests(lf_libs):
             sta_table_dict["Pass/Fail"] = pass_fail_sta
             if allure_attch:
                 self.attach_table_allure(data=sta_table_dict, allure_name="station data")
-            self.staConnect.stop()
-            cx_name = list(self.staConnect.l3_udp_profile.get_cx_names()) + list(
-                self.staConnect.l3_tcp_profile.get_cx_names())
+            obj.stop()
+            cx_name = list(obj.l3_udp_profile.get_cx_names()) + list(
+                obj.l3_tcp_profile.get_cx_names())
             cx_row = ["type", "bps rx a", "bps rx b"]
             print(cx_name)
-            print(self.staConnect.get_result_list())
-            print(self.staConnect.l3_udp_profile.get_cx_names())
+            print(obj.get_result_list())
+            print(obj.l3_udp_profile.get_cx_names())
             cx_data = self.get_cx_data(cx_name=cx_name, cx_data=cx_row, allure_attach=False)
             print(cx_data)
             cx_table_dict = {}
             upstream = []
-            for i in range(len(self.staConnect.station_names)):
+            for i in range(len(obj.station_names)):
                 upstream.append(data["upstream_port"])
             cx_table_dict["Upstream"] = upstream
-            cx_table_dict["Downstream"] = self.staConnect.station_names
+            cx_table_dict["Downstream"] = obj.station_names
             cx_tcp_ul = []
             cx_tcp_dl = []
             cx_udp_ul = []
             cx_udp_dl = []
-            for sta in self.staConnect.station_names:
+            for sta in obj.station_names:
                 for i in cx_data:
                     if sta.split(".")[2] in i:
                         if cx_data[i]["type"] == "LF/UDP":
@@ -433,29 +443,44 @@ class lf_tests(lf_libs):
             cx_table_dict["Pass/Fail"] = pass_fail_cx
             if allure_attch:
                 self.attach_table_allure(data=cx_table_dict, allure_name="cx data")
-            self.staConnect.cleanup()
+            obj.cleanup()
             result = "PASS"
             description = "Unknown error"
             count = 0
+            temp_dict = {}
             if "Fail" in pass_fail_sta:
                 count = count + 1
                 result = "FAIL"
                 description = "Station did not get an ip"
+                temp_dict[result] = description
+                pass_fail_result.append(temp_dict)
             if count == 0:
                 if "Fail" in pass_fail_cx:
                     result = "FAIL"
                     description = "did not report traffic"
-            if self.staConnect.passes():
-                print("client connection to", self.staConnect.dut_ssid, "successful. Test Passed")
+                    temp_dict[result] = description
+                    pass_fail_result.append(temp_dict)
+            if obj.passes():
+                print("client connection to", obj.dut_ssid, "successful. Test Passed")
                 result = "PASS"
+                temp_dict[result] = ""
+                pass_fail_result.append(temp_dict)
             else:
-                print("client connection to", self.staConnect.dut_ssid, "unsuccessful. Test Failed")
+                print("client connection to", obj.dut_ssid, "unsuccessful. Test Failed")
                 result = "FAIL"
 
             if ssid_channel:
                 # need to stop sniffer
                 pass
-            return result, description
+        result = "PASS"
+        description = ""
+        for i in pass_fail_result:
+            if i == "FAIL":
+                result = "FAIL"
+                description = pass_fail_result[i]
+                break
+
+        return result, description
 
     def enterprise_client_connectivity_test(self):
         pass
@@ -476,42 +501,53 @@ class lf_tests(lf_libs):
         pass
 
     def Client_Connect(self, ssid="[BLANK]", passkey="[BLANK]", security="wpa2", mode="BRIDGE", band="twog",
-                       vlan_id=100,
-                       num_sta=None, scan_ssid=True):
-        data = self.setup_interfaces(band=band, vlan_id=vlan_id, mode=mode, num_sta=len(station_name))
+                       vlan_id=100, num_sta=None, scan_ssid=True,
+                       station_data=["4way time (us)", "channel", "cx time (us)", "dhcp (ms)", "ip", "signal"]):
+        data = self.setup_interfaces(band=band, vlan_id=vlan_id, mode=mode, num_sta=num_sta)
         logging.info("Setup interface data" + str(data))
-        station_name = self.get_station_list(num_sta=num_sta, band=band)
         if self.run_lf:
             ssid = data["ssid"]
             passkey = data["passkey"]
             security = data["security"]
-        self.client_connect = CreateStation(_host=self.manager_ip, _port=self.manager_http_port,
-                                            _sta_list=station_name, _password=passkey, _ssid=ssid, _security=security)
-        self.client_connect.station_profile.sta_mode = 0
-        self.client_connect.upstream_resource = data["upstream_port"].split(".")[1]
-        self.client_connect.upstream_port = data["upstream_port"].split(".")[2]
-        self.client_connect.radio = data["radios"].keys()[0]
-        print("scan ssid radio", self.client_connect.radio.split(".")[2])
+        client_connect_obj = []
+        for radio in data["radios"]:
+            client_connect = CreateStation(_host=self.manager_ip, _port=self.manager_http_port,
+                                           _sta_list=data["radios"][radio], _password=passkey, _ssid=ssid,
+                                           _security=security)
+            client_connect.station_profile.sta_mode = 0
+            client_connect.upstream_resource = data["upstream_port"].split(".")[1]
+            client_connect.upstream_port = data["upstream_port"].split(".")[2]
+            client_connect.radio = radio
+        print("scan ssid radio", client_connect.radio)
         if scan_ssid:
-            self.data_scan_ssid = self.scan_ssid(radio=self.client_connect.radio.split(".")[2], ssid=ssid)
+            self.data_scan_ssid = self.scan_ssid(radio=client_connect.radio, ssid=ssid)
         print("ssid scan data :- ", self.data_scan_ssid)
-        self.client_connect.build()
-        result = self.client_connect.wait_for_ip(station_list=station_name, timeout_sec=100)
-        #print(self.client_connect.wait_for_ip(station_name))
-        print(result)
-        if result:
-            self.client_connect._pass("ALL Stations got IP's", print_=True)
-            return self.client_connect
+        client_connect_obj.append(client_connect)
+        pass_fail = []
+        for obj in client_connect_obj:
+            obj.build()
+            result = obj.wait_for_ip(station_list=obj.sta_list, timeout_sec=100)
+            # print(self.client_connect.wait_for_ip(station_name))
+            pass_fail.append(result)
+        logging.info("pass_fail result: " + str(pass_fail))
+        if False in pass_fail:
+            logging.info("Station did not get an ip")
+            return "FAIL", "Station did not get an ip"
         else:
-            return False
+            logging.info("ALL Stations got IP's")
+            return "PASS", ""
 
     def scan_ssid(self, radio="", retry=1, allure_attach=True, scan_time=15, ssid=None, ssid_channel=None):
         '''This method for scan ssid data'''
         count = 0
+        sta_list = []
+        sta_name = str(radio.split(".")[0]) + "." + str(radio.split(".")[1]) + "." + "sta00100"
+        sta_list.append(sta_name)
+        print("scan station", sta_list)
         for i in range(retry + 1):
             list_data = []
             obj_scan = StaScan(host=self.manager_ip, port=self.manager_http_port, ssid="fake ssid", security="open",
-                               password="[BLANK]", radio=radio, sta_list=["sta00100"], csv_output="scan_ssid.csv",
+                               password="[BLANK]", radio=radio, sta_list=sta_list, csv_output="scan_ssid.csv",
                                scan_time=scan_time)
             # obj_scan.pre_cleanup()
             time1 = datetime.now()
@@ -708,7 +744,7 @@ if __name__ == '__main__':
                 "2g-ssid": "OpenWifi",
                 "5g-ssid": "OpenWifi",
                 "6g-ssid": "candela6ghz",
-                "2g-password": "OpenWifii",
+                "2g-password": "OpenWifi",
                 "5g-password": "OpenWifi",
                 "6g-password": "hello123",
                 "2g-encryption": "WPA2",
@@ -733,7 +769,7 @@ if __name__ == '__main__':
             "testbed": "basic",
             "scenario": "dhcp-bridge",  # dhcp-bridge / dhcp-external
             "details": {
-                "manager_ip": "10.28.3.28",
+                "manager_ip": "10.28.3.6",
                 "http_port": 8080,
                 "ssh_port": 22,
                 "setup": {"method": "build", "DB": "Test_Scenario_Automation"},  # method: build/load,
@@ -765,7 +801,7 @@ if __name__ == '__main__':
     # obj.get_cx_data()
     # obj.chamber_view()
     obj.client_connectivity_test(ssid="OpenWifi", passkey="OpenWifi", security="wpa2", extra_securities=[],
-                                 station_name=["1.1.ath10k_2g000", "1.1.ath10k_2g001"], mode="BRIDGE", vlan_id=1,
+                                 num_sta=10, mode="BRIDGE", vlan_id=1,
                                  band="twog", ssid_channel=11)
     # obj.chamber_view()
     # obj.setup_relevent_profiles()
