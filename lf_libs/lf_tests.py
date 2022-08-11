@@ -541,11 +541,10 @@ class lf_tests(lf_libs):
                 pass
         result = "PASS"
         description = ""
-        print(pass_fail_sta)
         for i in pass_fail_result:
-            if i == "FAIL":
+            if list(i.keys())[0] == "FAIL":
                 result = "FAIL"
-                description = pass_fail_result[i]
+                description = i["FAIL"]
                 break
 
         print(result)
