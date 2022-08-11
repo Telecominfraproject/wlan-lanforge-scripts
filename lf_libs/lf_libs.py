@@ -142,7 +142,7 @@ class lf_libs:
             self.testbed = lf_data.get("testbed")
             self.scenario = lf_data.get("scenario")
             self.setup_lf_data()
-            #self.load_scenario()
+            # self.load_scenario()
             self.setup_metadata()
             self.setup_dut()
         except Exception as e:
@@ -273,8 +273,54 @@ class lf_libs:
     def load_scenario(self):
         self.local_realm.load(self.manager_default_db)
 
+    def setup_connectivity_port(self, data=None):
+        """setting up ethernet port"""
+        if len(data) == 0:
+            return
+        for eth_port in data:
+            print(eth_port)
+            if data[eth_port]["addressing"] == "dhcp-server":
+                return
+            elif data[eth_port]["addressing"] == "static":
+                # request = self.local_realm.LFUtils.port_down_request(resource_id=eth_port.split(".")[1],
+                #                                                      port_name=eth_port.split(".")[2])
+                # self.json_post("/cli-json/set_port", request)
+                time.sleep(1)
+                data = {
+                    "shelf": eth_port.split(".")[0],
+                    "resource": eth_port.split(".")[1],
+                    "port": eth_port.split(".")[2],
+                    "ip_addr": data[eth_port]["subnet"],
+                    "netmask": data[eth_port]["ip_mask"],
+                    "gateway": data[eth_port]["gateway_ip"],
+                    "dns_servers": data[eth_port]["dns_servers"],
+                    "current_flags": 562949953421312,
+                    "interest": 0x401e
+
+                }
+                print(data)
+                self.json_post("/cli-json/set_port", data)
+            elif data[eth_port]["addressing"] == "dynamic":
+                # request = self.local_realm.LFUtils.port_down_request(resource_id=eth_port.split(".")[1], port_name=eth_port.split(".")[2])
+                # self.json_post("/cli-json/set_port", request)
+
+                time.sleep(1)
+                data = {
+                    "shelf": eth_port.split(".")[0],
+                    "resource": eth_port.split(".")[1],
+                    "port": eth_port.split(".")[2],
+                    "current_flags": 2147483648,
+                    "interest": 16384
+                }
+                print(data)
+                self.json_post("/cli-json/set_port", data)
+                time.sleep(2)
+                print("done")
+
     def create_dhcp_bridge(self):
         """ create chamber view scenario for DHCP-Bridge"""
+        self.setup_connectivity_port(data=self.wan_ports)
+        self.setup_connectivity_port(data=self.uplink_nat_ports)
         for wan_ports, uplink_nat_ports in zip(self.wan_ports, self.uplink_nat_ports):
             upstream_port = wan_ports
             upstream_resources = upstream_port.split(".")[0] + "." + upstream_port.split(".")[1]
@@ -291,6 +337,8 @@ class lf_libs:
                  + "' NA " + uplink_port.split(".")[2] + "," + upstream_port.split(".")[2] + " -1 NA"])
 
     def create_dhcp_external(self):
+        self.setup_connectivity_port(data=self.wan_ports)
+        exit(1)
         for wan_port in self.wan_ports:
             upstream_port = wan_port
             upstream_resources = upstream_port.split(".")[0] + "." + upstream_port.split(".")[1]
@@ -500,7 +548,6 @@ class lf_libs:
             logging.error("Radio name is wrong")
 
 
-
 class Report:
     def __init__(self, key1=None,
                  key2=None,
@@ -546,4 +593,3 @@ class SCP_File:
 
     def save_current_scenario(self):
         pass
-
