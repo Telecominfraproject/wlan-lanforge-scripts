@@ -319,7 +319,7 @@ class lf_tests(lf_libs):
 
     def client_connectivity_test(self, ssid="[BLANK]", passkey="[BLANK]", security="open", extra_securities=[],
                                  num_sta=1, mode="BRIDGE", vlan_id=1, band="twog", ssid_channel=None,
-                                 allure_attch=True, runtime_secs=40):
+                                 allure_attach=True, runtime_secs=40):
         # self.staConnect = StaConnect2(self.manager_ip, self.manager_http_port, debug_=self.debug)
         # setup_interfaces() interface selection return radio name along no of station on each radio, upstream port
         #
@@ -400,7 +400,7 @@ class lf_tests(lf_libs):
                 else:
                     pass_fail_sta.append("Pass")
             sta_table_dict["Pass/Fail"] = pass_fail_sta
-            if allure_attch:
+            if allure_attach:
                 self.attach_table_allure(data=sta_table_dict, allure_name="station data")
             obj.stop()
             cx_name = list(obj.l3_udp_profile.get_cx_names()) + list(
@@ -441,7 +441,7 @@ class lf_tests(lf_libs):
                 else:
                     pass_fail_cx.append("Pass")
             cx_table_dict["Pass/Fail"] = pass_fail_cx
-            if allure_attch:
+            if allure_attach:
                 self.attach_table_allure(data=cx_table_dict, allure_name="cx data")
             obj.cleanup()
             result = "PASS"
@@ -502,7 +502,8 @@ class lf_tests(lf_libs):
 
     def Client_Connect(self, ssid="[BLANK]", passkey="[BLANK]", security="wpa2", mode="BRIDGE", band="twog",
                        vlan_id=100, num_sta=None, scan_ssid=True,
-                       station_data=["4way time (us)", "channel", "cx time (us)", "dhcp (ms)", "ip", "signal"]):
+                       station_data=["4way time (us)", "channel", "cx time (us)", "dhcp (ms)", "ip", "signal"],
+                       allure_attach=True):
         data = self.setup_interfaces(band=band, vlan_id=vlan_id, mode=mode, num_sta=num_sta)
         logging.info("Setup interface data" + str(data))
         if self.run_lf:
@@ -510,6 +511,7 @@ class lf_tests(lf_libs):
             passkey = data["passkey"]
             security = data["security"]
         client_connect_obj = []
+        station_data_all = {}
         for radio in data["radios"]:
             client_connect = CreateStation(_host=self.manager_ip, _port=self.manager_http_port,
                                            _sta_list=data["radios"][radio], _password=passkey, _ssid=ssid,
@@ -529,13 +531,34 @@ class lf_tests(lf_libs):
             result = obj.wait_for_ip(station_list=obj.sta_list, timeout_sec=100)
             # print(self.client_connect.wait_for_ip(station_name))
             pass_fail.append(result)
+            station_data_ = self.get_station_data(sta_name=obj.sta_list, rows=sta_rows,
+                                                  allure_attach=False)
+            station_data_all.append(station_data_)
+            sta_table_dict = {}
+            sta_table_dict["station name"] = list(station_data_.keys())
+            for i in station_data:
+                temp_list = []
+                for j in obj.sta_list:
+                    temp_list.append(station_data[j][i])
+                sta_table_dict[i] = temp_list
+            # pass fail
+            pass_fail_sta = []
+            for i in sta_table_dict["ip"]:
+                if i == "0.0.0.0":
+                    pass_fail_sta.append("Fail")
+                else:
+                    pass_fail_sta.append("Pass")
+            sta_table_dict["Pass/Fail"] = pass_fail_sta
+            if allure_attach:
+                self.attach_table_allure(data=sta_table_dict, allure_name="station data")
+
         logging.info("pass_fail result: " + str(pass_fail))
         if False in pass_fail:
             logging.info("Station did not get an ip")
-            return "FAIL", "Station did not get an ip"
+            pytest.fail("Station did not get an ip")
         else:
             logging.info("ALL Stations got IP's")
-            return "PASS", ""
+            return station_data_all
 
     def scan_ssid(self, radio="", retry=1, allure_attach=True, scan_time=15, ssid=None, ssid_channel=None):
         '''This method for scan ssid data'''
@@ -738,7 +761,7 @@ if __name__ == '__main__':
         "device_under_tests": [{
             "model": "edgecore_eap101",
             "supported_bands": ["2G", "5G"],
-            "wan_port": "1.1.eth2",
+            "wan_port": "1.1.eth1",
             "supported_modes": ["BRIDGE", "NAT", "VLAN"],
             "ssid": {
                 "2g-ssid": "OpenWifi",
@@ -767,41 +790,44 @@ if __name__ == '__main__':
         "traffic_generator": {
             "name": "lanforge",
             "testbed": "basic",
-            "scenario": "dhcp-bridge",  # dhcp-bridge / dhcp-external
+            "scenario": "dhcp-external",  # dhcp-bridge / dhcp-external
             "details": {
-                "manager_ip": "10.28.3.6",
+                "manager_ip": "192.168.200.101",
                 "http_port": 8080,
                 "ssh_port": 22,
                 "setup": {"method": "build", "DB": "Test_Scenario_Automation"},  # method: build/load,
-                # "wan_ports": {
-                #         "1.1.eth1": {"addressing": "dhcp-server", "subnet": "172.16.0.1/16", "dhcp": {
-                #             "lease-first": 10,
-                #             "lease-count": 10000,
-                #             "lease-time": "6h"
-                #         }}},
-                # DB : Default database name
                 "wan_ports": {
-                    "1.1.eth2": {"addressing": "dhcp-server", "subnet": "172.16.0.1/16", "dhcp": {
-                        "lease-first": 10,
-                        "lease-count": 10000,
-                        "lease-time": "6h"
-                    }}},
-                "lan_ports": {},
-                "uplink_nat_ports": {
-                    "1.1.eth3": {"addressing": "static", "subnet": "10.28.2.1/24", "gateway_ip": "10.28.2.1"}
-                    # dhcp-server/{"addressing":
-                    # "dynamic"} /{"addressing": "static", "subnet": "10.28.2.6/16"}
-                }
+                    "1.1.eth1": {"addressing": "static", "subnet": "10.28.2.1", "gateway_ip": "10.28.2.1",
+                                 "dns_servers": "8.8.8.9", "ip_mask": "255.255.255.0", "dhcp": {
+                                     "lease-first": 10,
+                                     "lease-count": 10000,
+                                     "lease-time": "6h"
+                                 }}},
+                # # DB : Default database name
+                # "wan_ports": {
+                #     "1.1.eth2": {"addressing": "dhcp-server", "subnet": "172.16.0.1/16", "dhcp": {
+                #         "lease-first": 10,
+                #         "lease-count": 10000,
+                #         "lease-time": "6h"
+                #     }}},
+                # "lan_ports": {},
+                # "uplink_nat_ports": {
+                #     "1.1.eth3": {"addressing": "static", "subnet": "10.28.2.1/24", "gateway_ip": "10.28.2.1",
+                #                  "dns_servers": "8.8.8.8", "ip_mask": "255.255.255.0"}
+                #     # dhcp-server/{"addressing":
+                #     # "dynamic"} /{"addressing": "static", "subnet": "10.28.2.6/16"}
+                # }
             }
         }
     }
 
     obj = lf_tests(lf_data=dict(basic_1["traffic_generator"]), dut_data=list(basic_1["device_under_tests"]),
                    log_level=logging.DEBUG, run_lf=True)
+    obj.create_dhcp_external()
     # obj.get_cx_data()
     # obj.chamber_view()
-    obj.client_connectivity_test(ssid="OpenWifi", passkey="OpenWifi", security="wpa2", extra_securities=[],
-                                 num_sta=10, mode="BRIDGE", vlan_id=1,
-                                 band="twog", ssid_channel=11)
+    # obj.client_connectivity_test(ssid="OpenWifi", passkey="OpenWifi", security="wpa2", extra_securities=[],
+    #                              num_sta=10, mode="BRIDGE", vlan_id=1,
+    #                              band="twog", ssid_channel=11)
     # obj.chamber_view()
     # obj.setup_relevent_profiles()
