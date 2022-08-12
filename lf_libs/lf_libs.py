@@ -320,6 +320,7 @@ class lf_libs:
     def create_dhcp_bridge(self):
         """ create chamber view scenario for DHCP-Bridge"""
         self.setup_connectivity_port(data=self.wan_ports)
+        self.setup_connectivity_port(data=self.lan_ports)
         self.setup_connectivity_port(data=self.uplink_nat_ports)
         for wan_ports, uplink_nat_ports in zip(self.wan_ports, self.uplink_nat_ports):
             upstream_port = wan_ports
@@ -338,6 +339,7 @@ class lf_libs:
 
     def create_dhcp_external(self):
         self.setup_connectivity_port(data=self.wan_ports)
+        self.setup_connectivity_port(data=self.lan_ports)
         for wan_port in self.wan_ports:
             upstream_port = wan_port
             upstream_resources = upstream_port.split(".")[0] + "." + upstream_port.split(".")[1]
@@ -608,3 +610,4 @@ class SCP_File:
 
     def save_current_scenario(self):
         pass
+
