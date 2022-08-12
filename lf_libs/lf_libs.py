@@ -286,33 +286,37 @@ class lf_libs:
                 #                                                      port_name=eth_port.split(".")[2])
                 # self.json_post("/cli-json/set_port", request)
                 time.sleep(1)
-                data = {
-                    "shelf": eth_port.split(".")[0],
-                    "resource": eth_port.split(".")[1],
-                    "port": eth_port.split(".")[2],
-                    "ip_addr": data[eth_port]["subnet"],
-                    "netmask": data[eth_port]["ip_mask"],
-                    "gateway": data[eth_port]["gateway_ip"],
-                    "dns_servers": data[eth_port]["dns_servers"],
-                    "current_flags": 562949953421312,
-                    "interest": 0x401e
+                try:
+                    data = {
+                        "shelf": eth_port.split(".")[0],
+                        "resource": eth_port.split(".")[1],
+                        "port": eth_port.split(".")[2],
+                        "ip_addr": data[eth_port]["ip"].split("/")[0],
+                        "netmask": data[eth_port]["ip_mask"],
+                        "gateway": data[eth_port]["gateway_ip"],
+                        "dns_servers": data[eth_port]["dns_servers"],
+                        "current_flags": 562949953421312,
+                        "interest": 0x401e
 
-                }
-                print(data)
+                    }
+                except Exception as e:
+                    logging.error(e)
                 self.json_post("/cli-json/set_port", data)
             elif data[eth_port]["addressing"] == "dynamic":
                 # request = self.local_realm.LFUtils.port_down_request(resource_id=eth_port.split(".")[1], port_name=eth_port.split(".")[2])
                 # self.json_post("/cli-json/set_port", request)
 
                 time.sleep(1)
-                data = {
-                    "shelf": eth_port.split(".")[0],
-                    "resource": eth_port.split(".")[1],
-                    "port": eth_port.split(".")[2],
-                    "current_flags": 2147483648,
-                    "interest": 16384
-                }
-                print(data)
+                try:
+                    data = {
+                        "shelf": eth_port.split(".")[0],
+                        "resource": eth_port.split(".")[1],
+                        "port": eth_port.split(".")[2],
+                        "current_flags": 2147483648,
+                        "interest": 16384
+                    }
+                except Exception as e:
+                    logging.error(e)
                 self.json_post("/cli-json/set_port", data)
                 time.sleep(2)
                 print("done")
