@@ -282,10 +282,6 @@ class lf_libs:
             if data[eth_port]["addressing"] == "dhcp-server":
                 return
             elif data[eth_port]["addressing"] == "static":
-                # request = self.local_realm.LFUtils.port_down_request(resource_id=eth_port.split(".")[1],
-                #                                                      port_name=eth_port.split(".")[2])
-                # self.json_post("/cli-json/set_port", request)
-                time.sleep(1)
                 try:
                     data = {
                         "shelf": eth_port.split(".")[0],
@@ -299,14 +295,11 @@ class lf_libs:
                         "interest": 0x401e
 
                     }
+                    self.json_post("/cli-json/set_port", data)
+                    time.sleep(1)
                 except Exception as e:
                     logging.error(e)
-                self.json_post("/cli-json/set_port", data)
             elif data[eth_port]["addressing"] == "dynamic":
-                # request = self.local_realm.LFUtils.port_down_request(resource_id=eth_port.split(".")[1], port_name=eth_port.split(".")[2])
-                # self.json_post("/cli-json/set_port", request)
-
-                time.sleep(1)
                 try:
                     data = {
                         "shelf": eth_port.split(".")[0],
@@ -315,11 +308,10 @@ class lf_libs:
                         "current_flags": 2147483648,
                         "interest": 16384
                     }
+                    self.json_post("/cli-json/set_port", data)
+                    time.sleep(1)
                 except Exception as e:
                     logging.error(e)
-                self.json_post("/cli-json/set_port", data)
-                time.sleep(2)
-                print("done")
 
     def create_dhcp_bridge(self):
         """ create chamber view scenario for DHCP-Bridge"""
