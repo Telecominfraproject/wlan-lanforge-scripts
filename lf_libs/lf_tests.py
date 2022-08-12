@@ -88,6 +88,7 @@ class lf_tests(lf_libs):
         radio_data = {}
         sta_prefix = ""
         sniff_radio = ""
+        data_dict = {}
         print(self.dut_data)
         # deleting existing stations and layer 3
         self.pre_cleanup()
@@ -134,6 +135,7 @@ class lf_tests(lf_libs):
                                 diff = max_station - stations
             # setup sniffer
             sniff_radio = self.setup_sniffer(band=band, station_radio_data=radio_data)
+            data_dict["sniff_radio_2g"] = sniff_radio
         if band == "fiveg":
             if self.run_lf:
                 for i in self.dut_data:
@@ -173,7 +175,9 @@ class lf_tests(lf_libs):
                                 radio_data[i] = max_station
                                 stations = stations - max_station
                                 diff = max_station - stations
-
+            # setup sniffer
+            sniff_radio = self.setup_sniffer(band=band, station_radio_data=radio_data)
+            data_dict["sniff_radio_5g"] = sniff_radio
         if band == "sixg":
             if self.run_lf:
                 for i in self.dut_data:
@@ -210,8 +214,8 @@ class lf_tests(lf_libs):
                                 stations = stations - max_station
                                 diff = max_station - stations
 
-        sniff_radio = self.setup_sniffer(band=band, station_radio_data=radio_data)
-
+            sniff_radio = self.setup_sniffer(band=band, station_radio_data=radio_data)
+            data_dict["sniff_radio_6g"] = sniff_radio
         # creating dict of radio and station_list
         dict_radio_sta_list = {}
         # list of per radio station
@@ -232,7 +236,6 @@ class lf_tests(lf_libs):
                 temp_list.append(shelf_resource + j)
             dict_radio_sta_list[i] = temp_list
 
-        data_dict = {}
         if self.run_lf:
             data_dict["radios"] = dict_radio_sta_list
             data_dict["upstream_port"] = upstream_port
@@ -240,13 +243,13 @@ class lf_tests(lf_libs):
             data_dict["passkey"] = passkey
             data_dict["security"] = security
             data_dict["sta_prefix"] = sta_prefix
-            data_dict["sniff_radio"] = sniff_radio
+            # data_dict["sniff_radio"] = sniff_radio
             return data_dict
         else:
             data_dict["radios"] = dict_radio_sta_list
             data_dict["upstream_port"] = upstream_port
             data_dict["sta_prefix"] = sta_prefix
-            data_dict["sniff_radio"] = sniff_radio
+            # data_dict["sniff_radio"] = sniff_radio
             return data_dict
 
     def pre_cleanup(self):
@@ -304,6 +307,7 @@ class lf_tests(lf_libs):
             logging.info("All 2g radios" + str(all_radio_2g))
             left_radio = list(set(all_radio_2g) - set(list(station_radio_data.keys())))
             if len(left_radio) == 0:
+                sniff_radio = None
                 logging.error("Radios are not available for sniffing")
             else:
                 sniff_radio = left_radio[0]
@@ -312,6 +316,16 @@ class lf_tests(lf_libs):
             logging.info("All 5g radios" + str(all_radio_5g))
             left_radio = list(set(all_radio_5g) - set(list(station_radio_data.keys())))
             if len(left_radio) == 0:
+                sniff_radio = None
+                logging.error("Radios are not available for sniffing")
+            else:
+                sniff_radio = left_radio[0]
+        elif band == "sixg":
+            all_radio_6g = self.ax210_radios
+            logging.info("All 6g radios" + str(all_radio_6g))
+            left_radio = list(set(all_radio_6g) - set(list(station_radio_data.keys())))
+            if len(left_radio) == 0:
+                sniff_radio = None
                 logging.error("Radios are not available for sniffing")
             else:
                 sniff_radio = left_radio[0]
