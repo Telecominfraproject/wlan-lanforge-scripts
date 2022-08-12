@@ -831,7 +831,6 @@ if __name__ == '__main__':
             "supported_bands": ["2G", "5G"],
             "wan_port": "1.1.eth1",
             "supported_modes": ["BRIDGE", "NAT", "VLAN"],
-            "wan_port": "1.1.eth2",
             "ssid": {
                 "2g-ssid": "OpenWifi",
                 "5g-ssid": "OpenWifi",
@@ -861,7 +860,7 @@ if __name__ == '__main__':
             "testbed": "basic",
             "scenario": "dhcp-external",  # dhcp-bridge / dhcp-external
             "details": {
-                "manager_ip": "10.28.3.32",
+                "manager_ip": "192.168.200.101",
                 "http_port": 8080,
                 "ssh_port": 22,
                 "setup": {"method": "build", "DB": "Test_Scenario_Automation"},  # method: build/load,
@@ -874,18 +873,18 @@ if __name__ == '__main__':
                 #                  }}},
                 # # DB : Default database name
                 "wan_ports": {
-                    "1.1.eth2": {"addressing": "dhcp-server", "subnet": "172.16.0.1/16", "dhcp": {
+                    "1.1.eth1": {"addressing": "dhcp-server", "subnet": "172.16.0.1/16", "dhcp": {
                         "lease-first": 10,
                         "lease-count": 10000,
                         "lease-time": "6h"
                     }}},
                 "lan_ports": {},
-                "uplink_nat_ports": {
-                    "1.1.eth3": {"addressing": "static", "subnet": "10.28.2.1/24", "gateway_ip": "10.28.2.1",
-                                 "dns_servers": "8.8.8.8", "ip_mask": "255.255.255.0"}
-                    # dhcp-server/{"addressing":
-                    # "dynamic"} /{"addressing": "static", "subnet": "10.28.2.6/16"}
-                }
+                # "uplink_nat_ports": {
+                #     "1.1.eth3": {"addressing": "static", "subnet": "10.28.2.1/24", "gateway_ip": "10.28.2.1",
+                #                  "dns_servers": "8.8.8.8", "ip_mask": "255.255.255.0"}
+                #     # dhcp-server/{"addressing":
+                #     # "dynamic"} /{"addressing": "static", "subnet": "10.28.2.6/16"}
+                # }
 
             }
         }
@@ -896,10 +895,9 @@ if __name__ == '__main__':
     #obj.create_dhcp_external()
     # obj.get_cx_data()
     # obj.chamber_view()
-    c = obj.client_connectivity_test(ssid="OpenWifi", passkey="OpenWifi", security="wpa2", extra_securities=[],
-                                 num_sta=1, mode="BRIDGE", vlan_id=1,
-                                 band="twog", ssid_channel=11)
-    print(c)
+    # c = obj.client_connectivity_test(ssid="OpenWifi", passkey="OpenWifi", security="wpa2", extra_securities=[],
+    #                              num_sta=1, mode="BRIDGE", vlan_id=1,
+    #                              band="twog", ssid_channel=11)
     # obj.start_sniffer(radio_channel=1, radio="wiphy7", test_name="sniff_radio", duration=30)
     # print("started")
     # time.sleep(30)
@@ -915,5 +913,7 @@ if __name__ == '__main__':
     # obj.client_connectivity_test(ssid="wpa2_5g", passkey="something", security="wpa2", extra_securities=[],
     #                              num_sta=1, mode="BRIDGE", vlan_id=1,
     #                              band="fiveg", ssid_channel=36)
-    # obj.chamber_view()
-    # obj.setup_relevent_profiles()
+    obj.chamber_view()
+    obj.setup_relevent_profiles()
+    obj.add_vlan(vlan_ids=[100, 200, 300])
+

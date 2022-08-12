@@ -338,7 +338,6 @@ class lf_libs:
 
     def create_dhcp_external(self):
         self.setup_connectivity_port(data=self.wan_ports)
-        exit(1)
         for wan_port in self.wan_ports:
             upstream_port = wan_port
             upstream_resources = upstream_port.split(".")[0] + "." + upstream_port.split(".")[1]
@@ -477,6 +476,7 @@ class lf_libs:
         data = self.json_get("/port/all")
         flag = 0
         profile_name = ""
+        port_list = []
         temp_raw_lines = self.default_scenario_raw_lines
         for port in self.wan_ports:
             for vlans in vlan_ids:
@@ -490,10 +490,25 @@ class lf_libs:
                         profile_name = "vlan_dhcp_profile"
                     elif self.scenario == "dhcp-external":
                         profile_name = "vlan_profile"
+                    port_list.append(str(port) + "." + str(vlans))
                     temp_raw_lines.append(["profile_link " + port + " " + profile_name + " 1 " + port
                                            + " NA " + port.split(".")[2] + ",AUTO -1 " + str(vlans)])
                 print(temp_raw_lines)
                 self.chamber_view(raw_lines=temp_raw_lines)
+        if self.scenario == "dhcp-external":
+            print(port_list)
+            for port in port_list:
+                data = {
+                    "shelf": port.split(".")[0],
+                    "resource": port.split(".")[1],
+                    "port": port.split(".")[2] + "." + port.split(".")[3],
+                    "current_flags": 2147483648,
+                    "interest": 16384
+                }
+                self.json_post("/cli-json/set_port", data)
+                time.sleep(2)
+
+
 
     def chamber_view(self, delete_old_scenario=True, raw_lines=[]):
         print(self.chamberview_object)
