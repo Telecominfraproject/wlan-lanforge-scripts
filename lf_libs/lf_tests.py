@@ -884,7 +884,7 @@ if __name__ == '__main__':
                 "ssh_port": 22,
                 "setup": {"method": "build", "DB": "Test_Scenario_Automation"},  # method: build/load,
                 "wan_ports": {
-                    "1.1.eth1": {"addressing": "dhcp-server", "subnet": "172.16.0.1/16", "dhcp": {
+                    "1.1.eth1": {"addressing": "dhcp-server", "ip": "172.16.0.1/16", "dhcp": {
                         "lease-first": 10,
                         "lease-count": 10000,
                         "lease-time": "6h"
@@ -896,7 +896,7 @@ if __name__ == '__main__':
             "uplink_nat_ports": {
 
                 # dhcp-server/{"addressing":
-                # "dynamic"} /{"addressing": "static", "subnet": "10.28.2.6/16"}
+                # "dynamic"} /{"addressing": "static", "ip": "10.28.2.6/16"}
             }
 
         }
