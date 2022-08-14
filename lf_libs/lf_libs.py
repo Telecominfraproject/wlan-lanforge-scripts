@@ -144,6 +144,15 @@ class lf_libs:
             self.setup_lf_data()
             # self.load_scenario()
             self.setup_metadata()
+            if self.scenario == "dhcp-bridge":
+                logging.info("Scenario name: " + str(self.scenario))
+                # creating default  raw lines for chamberview
+                self.create_dhcp_bridge()
+            elif self.scenario == "dhcp-external":
+                logging.info("Scenario name: " + str(self.scenario))
+                self.create_dhcp_external()
+            self.chamber_view(raw_lines=self.default_scenario_raw_lines)
+            self.setup_relevent_profiles()
             self.setup_dut()
         except Exception as e:
             logging.error("lf_data has bad values: " + str(lf_data))
@@ -324,7 +333,7 @@ class lf_libs:
             uplink_port = uplink_nat_ports
             uplink_resources = uplink_port.split(".")[0] + "." + uplink_port.split(".")[1]
             print(uplink_nat_ports)
-            uplink_subnet = self.uplink_nat_ports[uplink_nat_ports]["subnet"]
+            uplink_subnet = self.uplink_nat_ports[uplink_nat_ports]["ip"]
             print(uplink_subnet)
             self.default_scenario_raw_lines.append(["profile_link " + upstream_resources + " upstream-dhcp 1 NA NA " +
                                                     upstream_port.split(".")[2] + ",AUTO -1 NA"])
@@ -332,7 +341,7 @@ class lf_libs:
                 ["profile_link " + uplink_resources + " uplink-nat 1 'DUT: upstream LAN "
                  + uplink_subnet
                  + "' NA " + uplink_port.split(".")[2] + "," + upstream_port.split(".")[2] + " -1 NA"])
-
+        return self.default_scenario_raw_lines
     def create_dhcp_external(self):
         self.setup_connectivity_port(data=self.wan_ports)
         self.setup_connectivity_port(data=self.lan_ports)
@@ -341,7 +350,7 @@ class lf_libs:
             upstream_resources = upstream_port.split(".")[0] + "." + upstream_port.split(".")[1]
             self.default_scenario_raw_lines.append(["profile_link " + upstream_resources + " upstream 1 NA NA " +
                                                     upstream_port.split(".")[2] + ",AUTO -1 NA"])
-
+        return self.default_scenario_raw_lines
     def json_get(self, _req_url="/"):
         cli_base = LFCliBase(_lfjson_host=self.manager_ip, _lfjson_port=self.manager_http_port)
         json_response = cli_base.json_get(_req_url=_req_url)
@@ -366,9 +375,10 @@ class lf_libs:
         data = self.json_get("/text/Network-Connectivity." + str(self.default_scenario_name))
         data = data["record"]["text"].split("\n")
         for d in data:
+            temp_raw_lines = self.default_scenario_raw_lines.copy()
             if "profile_link" in d:
-                self.default_scenario_raw_lines.append([d])
-        logging.info("Saved default CV Scenario details: " + str(self.default_scenario_raw_lines))
+                temp_raw_lines.append([d])
+        logging.info("Saved default CV Scenario details: " + str(temp_raw_lines))
 
     def setup_relevent_profiles(self):
         """ TODO
@@ -475,7 +485,7 @@ class lf_libs:
         flag = 0
         profile_name = ""
         port_list = []
-        temp_raw_lines = self.default_scenario_raw_lines
+        temp_raw_lines = self.default_scenario_raw_lines.copy()
         for port in self.wan_ports:
             for vlans in vlan_ids:
                 for i in data["interfaces"]:
@@ -491,8 +501,9 @@ class lf_libs:
                     port_list.append(str(port) + "." + str(vlans))
                     temp_raw_lines.append(["profile_link " + port + " " + profile_name + " 1 " + port
                                            + " NA " + port.split(".")[2] + ",AUTO -1 " + str(vlans)])
-                print(temp_raw_lines)
-                self.chamber_view(raw_lines=temp_raw_lines)
+
+        print(temp_raw_lines)
+        self.chamber_view(raw_lines=temp_raw_lines)
         if self.scenario == "dhcp-external":
             print(port_list)
             for port in port_list:
@@ -512,16 +523,16 @@ class lf_libs:
         print(self.chamberview_object)
         if delete_old_scenario:
             self.chamberview_object.clean_cv_scenario(scenario_name=self.scenario)
-        if self.scenario == "dhcp-bridge":
-            self.create_dhcp_bridge()
-            logging.info("Scenario name: " + str(self.scenario))
-        elif self.scenario == "dhcp-external":
-            self.create_dhcp_external()
-            logging.info("Scenario name: " + str(self.scenario))
+        # if self.scenario == "dhcp-bridge":
+        #     self.create_dhcp_bridge()
+        #     logging.info("Scenario name: " + str(self.scenario))
+        # elif self.scenario == "dhcp-external":
+        #     self.create_dhcp_external()
+        #     logging.info("Scenario name: " + str(self.scenario))
         self.chamberview_object.setup(create_scenario=self.scenario,
-                                      raw_line=self.default_scenario_raw_lines
+                                      raw_line=raw_lines
                                       )
-        print("Raw Lines", self.default_scenario_raw_lines)
+        logging.info("Raw Lines: " + str(raw_lines))
         self.chamberview_object.build(self.scenario)
         self.chamberview_object.sync_cv()
         time.sleep(2)
