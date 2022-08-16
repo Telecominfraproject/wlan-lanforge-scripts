@@ -31,7 +31,7 @@ class ProfileUtility(Realm):
         """Add profile"""
         profile_type_data = {"as_is": 0, "sta": 1, "bridged_ap": 2, "routed_ap": 3, "upstream": 4, "monitor": 5,
                              "mobile_sta": 6, "rdd": 7, "client": 8, "bond": 9, "peer": 10, "uplink": 11, "vlan": 12}
-        profile_flags_data = {"DHCP-SERVER": "0x1", "NAT": "0x100"}
+        profile_flags_data = {"DHCP-SERVER": "0x1", "NAT": "0x100", }
         data = {
             "name": None,
             "profile_type": None,

@@ -26,6 +26,7 @@ class cv_dut(LFCliBase):
                  hw_version="NA",
                  serial_num="NA",
                  model_num="NA",
+                 lan_port="BLANK",
                  desired_dut_flags=None,
                  desired_dut_flags_mask=None
                  ):
@@ -39,7 +40,7 @@ class cv_dut(LFCliBase):
         self.serial_num = serial_num
         self.serial_port = "[BLANK]"
         self.wan_port = "[BLANK]"
-        self.lan_port = "[BLANK]"
+        self.lan_port = lan_port
         self.api_id = "0"
         self.flags_mask = "NA"
         if desired_dut_flags:

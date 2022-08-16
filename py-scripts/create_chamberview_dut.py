@@ -103,7 +103,6 @@ class DUT(dut):
         self.dut_name = dut_name
         self.ssid = ssid
         self.lan_port = lan_port
-        print("JITT")
 
     def setup(self):
         self.create_dut()
