@@ -185,7 +185,9 @@ class lf_libs:
     """
 
     def setup_dut(self):
+        print(self.dut_data)
         for index in range(0, len(self.dut_data)):
+            print(self.testbed)
             dut_obj = DUT(lfmgr=self.manager_ip,
                           port=self.manager_http_port,
                           dut_name=self.testbed + "-" + str(index),
@@ -195,8 +197,11 @@ class lf_libs:
                           serial_num=self.dut_data[index]["identifier"])
             dut_obj.setup()
             dut_obj.add_ssids()
-            time.sleep(5)
-            self.dut_objects.append(dut_obj)
+            dut_obj.show_text_blob(None, None, True)  # Show changes on GUI
+            dut_obj.sync_cv()
+            time.sleep(2)
+            dut_obj.sync_cv()
+            print("Creating DUT")
 
     def setup_metadata(self):
         data = self.json_get("/port/all")
@@ -298,7 +303,7 @@ class lf_libs:
                         "port": eth_port.split(".")[2],
                         "ip_addr": data[eth_port]["ip"].split("/")[0],
                         "netmask": data[eth_port]["ip_mask"],
-                        "gateway": data[eth_port]["gateway_ip"],
+                        "gateway": data[eth_port]["gateway_ip"].split("/")[0],
                         "dns_servers": data[eth_port]["dns_servers"],
                         "current_flags": 562949953421312,
                         "interest": 0x401e
@@ -332,14 +337,23 @@ class lf_libs:
             upstream_resources = upstream_port.split(".")[0] + "." + upstream_port.split(".")[1]
             uplink_port = uplink_nat_ports
             uplink_resources = uplink_port.split(".")[0] + "." + uplink_port.split(".")[1]
-            print(uplink_nat_ports)
             uplink_subnet = self.uplink_nat_ports[uplink_nat_ports]["ip"]
-            print(uplink_subnet)
+            gateway_ip = self.uplink_nat_ports[uplink_nat_ports]["gateway_ip"]
+            dut_obj = DUT(lfmgr=self.manager_ip,
+                          port=self.manager_http_port,
+                          dut_name="upstream",
+                          lan_port=gateway_ip)
+            dut_obj.setup()
+            dut_obj.add_ssids()
+            dut_obj.show_text_blob(None, None, True)  # Show changes on GUI
+            dut_obj.sync_cv()
+            time.sleep(2)
+            dut_obj.sync_cv()
             self.default_scenario_raw_lines.append(["profile_link " + upstream_resources + " upstream-dhcp 1 NA NA " +
                                                     upstream_port.split(".")[2] + ",AUTO -1 NA"])
             self.default_scenario_raw_lines.append(
                 ["profile_link " + uplink_resources + " uplink-nat 1 'DUT: upstream LAN "
-                 + uplink_subnet
+                 + gateway_ip +
                  + "' NA " + uplink_port.split(".")[2] + "," + upstream_port.split(".")[2] + " -1 NA"])
         return self.default_scenario_raw_lines
     def create_dhcp_external(self):

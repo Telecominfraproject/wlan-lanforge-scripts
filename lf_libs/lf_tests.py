@@ -899,7 +899,7 @@ if __name__ == '__main__':
                     "1.1.eth1": {
                         "addressing": "static",
                         "ip": "10.28.2.16",
-                        "gateway_ip": "10.28.2.1",
+                        "gateway_ip": "10.28.2.1/24",
                         "ip_mask": "255.255.255.0",
                         "dns_servers": "BLANK"
                     }
@@ -919,9 +919,9 @@ if __name__ == '__main__':
     # obj.create_dhcp_external()obj.add_vlan(vlan_ids=[100, 200, 300, 400, 500, 600])
     # obj.get_cx_data()
     # obj.chamber_view()
-    c = obj.client_connectivity_test(ssid="OpenWifi", passkey="OpenWifi", security="wpa2", extra_securities=[],
-                                     num_sta=1, mode="BRIDGE", vlan_id=[100],
-                                     band="twog", ssid_channel=11)
+    # c = obj.client_connectivity_test(ssid="OpenWifi", passkey="OpenWifi", security="wpa2", extra_securities=[],
+                                     # num_sta=1, mode="BRIDGE", vlan_id=[100],
+                                     # band="twog", ssid_channel=11)
     # obj.start_sniffer(radio_channel=1, radio="wiphy7", test_name="sniff_radio", duration=30)
     # print("started")
     # time.sleep(30)

@@ -72,6 +72,7 @@ cv_test_manager = importlib.import_module("py-json.cv_test_manager")
 cvtest = cv_test_manager.cv_test
 lf_logger_config = importlib.import_module("py-scripts.lf_logger_config")
 
+
 class DUT(dut):
     def __init__(self,
                  lfmgr="localhost",
@@ -82,6 +83,7 @@ class DUT(dut):
                  hw_version="NA",
                  serial_num="NA",
                  model_num="NA",
+                 lan_port="BLANK",
                  dut_flags=None,
                  ):
         super().__init__(
@@ -100,6 +102,8 @@ class DUT(dut):
         self.cv_test = cvtest(lfmgr, port)
         self.dut_name = dut_name
         self.ssid = ssid
+        self.lan_port = lan_port
+        print("JITT")
 
     def setup(self):
         self.create_dut()
@@ -118,7 +122,7 @@ class DUT(dut):
                 self.ssid[j] = shlex.split(self.ssid[j][0])
                 for k in range(len(self.ssid[j])):
                     kvp = self.ssid[j][k].split('=')
-                    #print("key -:%s:-  val -:%s:-" % (kvp[0], kvp[1]))
+                    # print("key -:%s:-  val -:%s:-" % (kvp[0], kvp[1]))
                     self.ssid[j][k] = kvp
 
                 d = dict()
@@ -131,10 +135,10 @@ class DUT(dut):
                 if 'security' in self.ssid[j].keys():
                     self.ssid[j]['security'] = self.ssid[j]['security'].split('|')
                     for security in self.ssid[j]['security']:
-                        #print("security: %s  flags: %s  keys: %s" % (security, flags, flags.keys()))
+                        # print("security: %s  flags: %s  keys: %s" % (security, flags, flags.keys()))
                         if security.lower() in flags:
                             flag |= flags[security.lower()]
-                            #print("updated flag: %s" % (flag))
+                            # print("updated flag: %s" % (flag))
                         else:
                             emsg = "ERROR:  Un-supported security flag: %s" % (security)
                             logger.critical(emsg)
@@ -219,7 +223,7 @@ def main():
     # set the logger level to requested value
     logger_config.set_level(level=args.log_level)
     logger_config.set_json(json_file=args.lf_logger_config_json)
-    
+
     new_dut = DUT(lfmgr=args.lfmgr,
                   port=args.port,
                   dut_name=args.dut_name,
