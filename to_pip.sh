@@ -481,8 +481,8 @@ if [[ $ARCHIVE -eq 1 ]]; then
   mv wifi_diag lanforge_scripts
   #tar -zcvf ${TARGET_DIR}/lanforge_scripts.tar.gz *
   #zip ${TARGET_DIR}/lanforge_scripts.zip *
-  python3 -m pip install --upgrade build
-  python3 -m build --wheel
+  $PYTHON  -m pip install --upgrade build
+  $PYTHON -m build --wheel
   echo "You can find the wheel in ../lanforge_scripts/dist/*.whl"
 else
   echo "Not saving archive"
