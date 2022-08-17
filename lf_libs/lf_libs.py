@@ -28,7 +28,14 @@ sta_connect2 = importlib.import_module("py-scripts.sta_connect2")
 StaConnect2 = sta_connect2.StaConnect2
 profile_utility = importlib.import_module("py-json.profile_utility")
 ProfileUtility = profile_utility.ProfileUtility
-
+createstation = importlib.import_module("py-scripts.create_station")
+CreateStation = createstation.CreateStation
+sniffradio = importlib.import_module("py-scripts.lf_sniff_radio")
+SniffRadio = sniffradio.SniffRadio
+stascan = importlib.import_module("py-scripts.sta_scan_test")
+StaScan = stascan.StaScan
+cv_test_reports = importlib.import_module("py-json.cv_test_reports")
+lf_report = cv_test_reports.lanforge_reports
 
 class lf_libs:
     """
