@@ -769,7 +769,10 @@ class lf_libs:
             csv_data_table = report_obj.table2(list_data)
             # allure.attach(name="scan_ssid_data", body=csv_data_table)
             if allure_attach:
-                allure.attach(name="scan_ssid_data_" + str(i + 1), body=csv_data_table)
+                if i == 0:
+                    allure.attach(name="scan_ssid_data", body=csv_data_table)
+                else:
+                    allure.attach(name="scan_ssid_data_retry", body=csv_data_table)
             obj_scan.cleanup()
             if self.check_ssid_available_scan_result(scan_ssid_data=list_data, ssid=ssid):
                 count = count + 1
