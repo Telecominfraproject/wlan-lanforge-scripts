@@ -929,9 +929,6 @@ class lf_libs:
     def read_stations(self):
         pass
 
-    def start_sniffer(self):
-        pass
-
     def pull_reports(self):
         pass
 
