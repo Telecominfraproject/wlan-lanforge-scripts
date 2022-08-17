@@ -151,27 +151,27 @@ class lf_libs:
         logging.basicConfig(format='%(asctime)s - %(message)s', level=log_level)
         lf_data = dict(lf_data)
         self.dut_data = dut_data
-        try:
-            self.lanforge_data = lf_data.get("details")
-            self.testbed = lf_data.get("testbed")
-            self.scenario = lf_data.get("scenario")
-            self.setup_lf_data()
-            self.setup_relevent_profiles()
-            # self.load_scenario()
-            self.setup_metadata()
-            if self.scenario == "dhcp-bridge":
-                logging.info("Scenario name: " + str(self.scenario))
-                # creating default  raw lines for chamberview
-                self.create_dhcp_bridge()
-            elif self.scenario == "dhcp-external":
-                logging.info("Scenario name: " + str(self.scenario))
-                self.create_dhcp_external()
-            self.chamber_view(raw_lines=self.default_scenario_raw_lines)
-            self.setup_dut()
+        # try:
+        self.lanforge_data = lf_data.get("details")
+        self.testbed = lf_data.get("testbed")
+        self.scenario = lf_data.get("scenario")
+        self.setup_lf_data()
+        self.setup_relevent_profiles()
+        # self.load_scenario()
+        self.setup_metadata()
+        if self.scenario == "dhcp-bridge":
+            logging.info("Scenario name: " + str(self.scenario))
+            # creating default  raw lines for chamberview
+            self.create_dhcp_bridge()
+        elif self.scenario == "dhcp-external":
+            logging.info("Scenario name: " + str(self.scenario))
+            self.create_dhcp_external()
+        self.chamber_view(raw_lines=self.default_scenario_raw_lines)
+        self.setup_dut()
 
-        except Exception as e:
-                logging.error("lf_data has bad values: " + str(lf_data))
-                logging.error(e)
+        # except Exception as e:
+        logging.error("lf_data has bad values: " + str(lf_data))
+        # logging.error(e)
 
     """
         setup_lf_data : used to set object variables that are passed from lab_info.json

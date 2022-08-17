@@ -57,7 +57,7 @@ class lf_tests(lf_libs):
 
     def client_connectivity_test(self, ssid="[BLANK]", passkey="[BLANK]", dut_data={},
                                  security="open", extra_securities=[],
-                                 num_sta=1, mode="BRIDGE", vlan_id=1, band="twog", ssid_channel=None,
+                                 num_sta=1, mode="BRIDGE", vlan_id=[None], band="twog", ssid_channel=None,
                                  allure_attach=True, runtime_secs=40):
         # self.staConnect = StaConnect2(self.manager_ip, self.manager_http_port, debug_=self.debug)
         # setup_interfaces() interface selection return radio name along no of station on each radio, upstream port
@@ -368,7 +368,7 @@ class lf_tests(lf_libs):
 
 
 if __name__ == '__main__':
-    basic_05 = {
+    advance_03= {
         "target": "tip_2x",
         "controller": {
             "url": "https://sec-qa01.cicd.lab.wlan.tip.build:16001",
@@ -376,10 +376,10 @@ if __name__ == '__main__':
             "password": "OpenWifi%123"
         },
         "device_under_tests": [{
-            "model": "cig_wf188n",
-            "supported_bands": ["2G", "5G"],
+            "model": "cig_wf196",
+            "supported_bands": ["2G", "5G", "6G"],
             "supported_modes": ["BRIDGE", "NAT", "VLAN"],
-            "wan_port": "1.1.eth2",
+            "wan_port": "1.3.eth2",
             "ssid": {
                 "2g-ssid": "OpenWifi",
                 "5g-ssid": "OpenWifi",
@@ -394,14 +394,14 @@ if __name__ == '__main__':
                 "5g-bssid": "68:7d:b4:5f:5c:3c",
                 "6g-bssid": "68:7d:b4:5f:5c:38"
             },
-            "mode": "wifi6",
-            "identifier": "0000c1018812",
+            "mode": "wifi6e",
+            "identifier": "824f816011e4",
             "method": "serial",
-            "host_ip": "10.28.3.103",
-            "host_username": "lanforge",
+            "host_ip": "10.28.3.115",
+            "host_username": "root",
             "host_password": "pumpkin77",
             "host_ssh_port": 22,
-            "serial_tty": "/dev/ttyAP1",
+            "serial_tty": "/dev/ttyAP0",
             "firmware_version": "next-latest"
         }],
         "traffic_generator": {
@@ -409,12 +409,12 @@ if __name__ == '__main__':
             "testbed": "basic",
             "scenario": "dhcp-bridge",
             "details": {
-                "manager_ip": "10.28.3.28",
+                "manager_ip": "10.28.3.117",
                 "http_port": 8080,
                 "ssh_port": 22,
                 "setup": {"method": "build", "DB": "Test_Scenario_Automation"},
                 "wan_ports": {
-                    "1.1.eth2": {"addressing": "dhcp-server", "subnet": "172.16.0.1/16", "dhcp": {
+                    "1.3.eth2": {"addressing": "dhcp-server", "subnet": "172.16.0.1/16", "dhcp": {
                         "lease-first": 10,
                         "lease-count": 10000,
                         "lease-time": "6h"
@@ -425,9 +425,9 @@ if __name__ == '__main__':
 
                 },
                 "uplink_nat_ports": {
-                    "1.1.eth1": {
+                    "1.3.eth3": {
                         "addressing": "static",
-                        "ip": "10.28.2.16",
+                        "ip": "10.28.2.39",
                         "gateway_ip": "10.28.2.1/24",
                         "ip_mask": "255.255.255.0",
                         "dns_servers": "BLANK"
@@ -437,7 +437,7 @@ if __name__ == '__main__':
         }
     }
 
-    obj = lf_tests(lf_data=dict(basic_05["traffic_generator"]), dut_data=list(basic_05["device_under_tests"]),
+    obj = lf_tests(lf_data=dict(advance_03["traffic_generator"]), dut_data=list(advance_03["device_under_tests"]),
                    log_level=logging.DEBUG, run_lf=True)
     # obj.setup_relevent_profiles()
     # obj.Client_Connect(ssid="OpenWifi", passkey="OpenWifi", security="wpa2", mode="BRIDGE", band="twog",
