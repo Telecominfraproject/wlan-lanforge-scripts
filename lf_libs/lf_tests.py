@@ -1,11 +1,13 @@
+import csv
 import importlib
 import logging
 import os
 import sys
 import time
-from datetime import datetime
-import allure
 import paramiko
+from datetime import datetime
+
+import allure
 import pytest
 import csv
 from scp import SCPClient
@@ -151,7 +153,7 @@ class lf_tests(lf_libs):
                     if dict(dut_data.get(identifier)[-1]).keys().__contains__("2G") and \
                             dict(dut_data.get(identifier)[-1])["2G"] is not None:
                         channel = dict(dut_data.get(identifier)[-1])["2G"][0]
-                        self.start_sniffer(radio_channel=channel, radio=data["sniff_radio"].split(".")[2],
+                        self.start_sniffer(radio_channel=channel, radio=data["sniff_radio_2g"].split(".")[2],
                                            duration=runtime_secs)
                         logging.info("started-sniffer")
                         for obj in sta_connect_obj:
@@ -164,7 +166,7 @@ class lf_tests(lf_libs):
                     if dict(dut_data.get(identifier)[-1]).keys().__contains__("5G") and \
                             dict(dut_data.get(identifier)[-1])["5G"] is not None:
                         channel = dict(dut_data.get(identifier)[-1])["5G"][0]
-                        self.start_sniffer(radio_channel=channel, radio=data["sniff_radio"].split(".")[2],
+                        self.start_sniffer(radio_channel=channel, radio=data["sniff_radio_5g"].split(".")[2],
                                            duration=runtime_secs)
                         for obj in sta_connect_obj:
                             obj.start()
@@ -175,13 +177,19 @@ class lf_tests(lf_libs):
                     if dict(dut_data.get(identifier)[-1]).keys().__contains__("6G") and \
                             dict(dut_data.get(identifier)[-1])["6G"] is not None:
                         channel = dict(dut_data.get(identifier)[-1])["6G"][0]
-                        self.start_sniffer(radio_channel=channel, radio=data["sniff_radio"].split(".")[2],
+                        self.start_sniffer(radio_channel=channel, radio=data["sniff_radio_6g"].split(".")[2],
                                            duration=runtime_secs)
                         for obj in sta_connect_obj:
                             obj.start()
                         logging.info("napping %f sec" % runtime_secs)
                         time.sleep(runtime_secs)
                         self.stop_sniffer()
+            else:
+                for obj in sta_connect_obj:
+                    print(obj)
+                    obj.start()
+                print("napping %f sec" % runtime_secs)
+                time.sleep(runtime_secs)
         pass_fail_result = []
         for obj in sta_connect_obj:
             sta_rows = ["4way time (us)", "channel", "cx time (us)", "dhcp (ms)", "ip", "signal"]
