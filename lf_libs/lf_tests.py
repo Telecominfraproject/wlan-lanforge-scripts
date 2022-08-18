@@ -53,7 +53,7 @@ class lf_tests(lf_libs):
         # self.skip_pcap = skip_pcap
         # self.wan_upstream = list(self.wan_ports.keys())
         # self.lan_upstream =
-        self.staConnect = StaConnect2(self.manager_ip, self.manager_http_port, outfile="shivam", _cleanup_on_exit=False)
+        #self.staConnect = StaConnect2(self.manager_ip, self.manager_http_port, outfile="shivam", _cleanup_on_exit=False)
 
     def client_connectivity_test(self, ssid="[BLANK]", passkey="[BLANK]", dut_data={},
                                  security="open", extra_securities=[],
