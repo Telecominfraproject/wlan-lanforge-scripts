@@ -846,7 +846,7 @@ class lf_libs:
         try:
             for sta in sta_name:
                 sta_url = "port/" + str(sta.split(".")[0]) + "/" + str(sta.split(".")[1]) + "/" + str(sta.split(".")[2])
-                station_info = self.local_realm.json_get(sta_url)
+                station_info = self.json_get(sta_url)
                 dict_data = station_info["interface"]
                 temp_dict = {}
                 for i in rows:
@@ -917,6 +917,7 @@ class lf_libs:
             report_obj = Report()
             data_table = report_obj.table2(table=data, headers='keys')
             allure.attach(name=allure_name, body=data_table)
+            logging.info(str("\n") + str(data_table))
         except Exception as e:
             logging.error(e)
 
