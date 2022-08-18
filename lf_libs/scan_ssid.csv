@@ -1,4 +1,0 @@
-,age,auth,beacon,bss,channel,entity id,frequency,info,signal,ssid
-0,4698,Open,100,00:00:c1:01:88:15,1,1.1.4,2412,2x2 MCS 0-11 AX,-17.0,Maverick-018812
-1,354731974,WPA2 WPA3,100,02:00:c1:01:88:15,1,1.1.4,2412,2x2 MCS 0-11 AX,-22.0,ssid_wpa3_p_m_2g_br
-2,354731972,WPA WPA2,100,06:00:c1:01:88:15,1,1.1.4,2412,2x2 MCS 0-11 AX,-21.0,ssid_wpa_wpa2_p_m_2g_br

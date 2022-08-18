@@ -47,153 +47,135 @@ class lf_tests(lf_libs):
     """
 
     def __init__(self, lf_data={}, dut_data={}, log_level=logging.DEBUG, run_lf=False, influx_params=None):
-        super().__init__(lf_data, dut_data, log_level)
-        self.run_lf = run_lf
-        # self.upstream_port = list(self.uplink_nat_ports.keys())[0]
-        # self.skip_pcap = skip_pcap
-        # self.wan_upstream = list(self.wan_ports.keys())
-        # self.lan_upstream =
-        #self.staConnect = StaConnect2(self.manager_ip, self.manager_http_port, outfile="shivam", _cleanup_on_exit=False)
+        super().__init__(lf_data, dut_data,  run_lf, log_level)
 
     def client_connectivity_test(self, ssid="[BLANK]", passkey="[BLANK]", dut_data={},
-                                 security="open", extra_securities=[],
-                                 num_sta=1, mode="BRIDGE", vlan_id=[None], band="twog", ssid_channel=None,
+                                 security="open", extra_securities=[], sta_mode=0,
+                                 num_sta=1, mode="BRIDGE", vlan_id=[None], band="twog",
                                  allure_attach=True, runtime_secs=40):
-        # self.staConnect = StaConnect2(self.manager_ip, self.manager_http_port, debug_=self.debug)
-        # setup_interfaces() interface selection return radio name along no of station on each radio, upstream port
-        #
-
-        data = self.setup_interfaces(band=band, vlan_id=vlan_id[0], mode=mode, num_sta=num_sta)
+        data = self.setup_interfaces(ssid=ssid, bssid=passkey, passkey=passkey, encryption=security,
+                                     band=band, vlan_id=vlan_id[0], mode=mode, num_sta=num_sta)
         self.add_vlan(vlan_ids=vlan_id)
-        logging.info("Setup interface data" + str(data))
-        if self.run_lf:
-            ssid = data["ssid"]
-            passkey = data["passkey"]
-            security = data["security"]
-        sta_connect_obj = []
-        for radio in data["radios"]:
-            obj_sta_connect = StaConnect2(self.manager_ip, self.manager_http_port, outfile="shivam",
-                                          _cleanup_on_exit=False)
-            obj_sta_connect.sta_mode = 0
-            upstream_data = list(data["upstream_port"].split("."))
-            obj_sta_connect.upstream_resource = upstream_data[1]
-            upstream_data.pop(0)
-            upstream_data.pop(0)
-            upstream_port = ".".join(upstream_data)
-            obj_sta_connect.upstream_port = upstream_port
-            self.enable_verbose_debug(radio=radio, enable=False)
-            obj_sta_connect.radio = radio
-            obj_sta_connect.admin_down(obj_sta_connect.radio)
-            obj_sta_connect.admin_up(obj_sta_connect.radio)
-            obj_sta_connect.sta_prefix = data["sta_prefix"]
-            # changed to auto channel
-            self.set_radio_channel(radio=radio, channel="AUTO")
-            logging.info("scan ssid radio: " + str(radio.split(".")[2]))
-            result = self.scan_ssid(radio=radio, ssid=ssid, ssid_channel=ssid_channel)
-            logging.info("ssid scan data : " + str(result))
-            if not result and ssid_channel:
-                # Sniffer required
-                # print("sniff radio", data["sniff_radio"].split(".")[2])
-                for dut in self.dut_data:
-                    identifier = dut["identifier"]
-                    if dut_data.keys().__contains__(identifier):
-                        if band == "twog":
-                            if dict(dut_data.get(identifier)[-1]).keys().__contains__("2G") and \
-                                    dict(dut_data.get(identifier)[-1])["2G"] is not None:
-                                channel = dict(dut_data.get(identifier)[-1])["2G"][0]
-                                if data["sniff_radio_2g"] is not None:
-                                    self.start_sniffer(radio_channel=channel,
-                                                       radio=data["sniff_radio_2g"].split(".")[2],
-                                                       duration=10)
-                                    time.sleep(10)
-                                    self.stop_sniffer()
-                        elif band == "fiveg":
-                            if dict(dut_data.get(identifier)[-1]).keys().__contains__("5G") and \
-                                    dict(dut_data.get(identifier)[-1])["5G"] is not None:
-                                channel = dict(dut_data.get(identifier)[-1])["5G"][0]
-                                if data["sniff_radio_5g"] is not None:
-                                    self.start_sniffer(radio_channel=channel,
-                                                       radio=data["sniff_radio_5g"].split(".")[2],
-                                                       duration=10)
-                                    time.sleep(10)
-                                    self.stop_sniffer()
-                        elif band == "sixg":
-                            if dict(dut_data.get(identifier)[-1]).keys().__contains__("6G") and \
-                                    dict(dut_data.get(identifier)[-1])["6G"] is not None:
-                                channel = dict(dut_data.get(identifier)[-1])["6G"][0]
-                                if data["sniff_radio_6g"] is not None:
-                                    self.start_sniffer(radio_channel=channel,
-                                                       radio=data["sniff_radio_6g"].split(".")[2],
-                                                       duration=10)
-                                    time.sleep(10)
-                                    self.stop_sniffer()
 
-                # print("ssid not available in scan result")
-                # return "FAIL", "ssid not available in scan result"
-                pass
-            obj_sta_connect.resource = radio.split(".")[1]
-            obj_sta_connect.dut_ssid = ssid
-            obj_sta_connect.dut_passwd = passkey
-            obj_sta_connect.dut_security = security
-            obj_sta_connect.station_names = data["radios"][radio]
-            obj_sta_connect.runtime_secs = runtime_secs
-            obj_sta_connect.bringup_time_sec = 80
-            obj_sta_connect.cleanup_on_exit = True
-            obj_sta_connect.download_bps = 128000
-            obj_sta_connect.upload_bps = 128000
-            obj_sta_connect.side_a_pdu = 1200
-            obj_sta_connect.side_b_pdu = 1500
-            obj_sta_connect.setup(extra_securities=extra_securities)
-            if ssid_channel:
-                pass
-                # Need to start sniffer
-                # print("sniff radio", data["sniff_radio"].split(".")[2])
-                # self.start_sniffer(radio_channel=ssid_channel, radio=data["sniff_radio"].split(".")[2], duration=30)
+        logging.info("Setup interface data" + str(data))
+        sta_connect_obj = []
+        for dut in data:
+            for radio in data[dut]["station_data"]:
+                obj_sta_connect = StaConnect2(self.manager_ip, self.manager_http_port, outfile="shivam",
+                                              _cleanup_on_exit=False)
+
+                obj_sta_connect.sta_mode = sta_mode
+                obj_sta_connect.upstream_resource = data[dut]["upstream_resource"]
+                obj_sta_connect.upstream_port = data[dut]["upstream"]
+                self.enable_verbose_debug(radio=radio, enable=True)
+                obj_sta_connect.radio = radio
+                obj_sta_connect.admin_down(obj_sta_connect.radio)
+                obj_sta_connect.admin_up(obj_sta_connect.radio)
+                obj_sta_connect.sta_prefix = data[dut]["sta_prefix"]
+                obj_sta_connect.resource = radio.split(".")[1]
+                obj_sta_connect.dut_ssid = ssid
+                obj_sta_connect.dut_ssid = ssid
+                obj_sta_connect.dut_passwd = passkey
+                obj_sta_connect.dut_security = security
+                obj_sta_connect.station_names = data[dut]["station_data"][radio]
+                obj_sta_connect.runtime_secs = runtime_secs
+                obj_sta_connect.bringup_time_sec = 80
+                obj_sta_connect.cleanup_on_exit = True
+                obj_sta_connect.download_bps = 128000
+                obj_sta_connect.upload_bps = 128000
+                obj_sta_connect.side_a_pdu = 1200
+                obj_sta_connect.side_b_pdu = 1500
+
+
+                # changed to auto channel
+                self.set_radio_channel(radio=radio, channel="AUTO")
+                logging.info("scan ssid radio: " + str(radio.split(".")[2]))
+                result = self.scan_ssid(radio=radio, ssid=ssid)
+                logging.info("ssid scan data : " + str(result))
+                if not result:
+                    # Sniffer required
+                    # print("sniff radio", data["sniff_radio"].split(".")[2])
+                    for duts in self.dut_data:
+                        identifier = duts["identifier"]
+                        if dut_data.keys().__contains__(identifier):
+                            if band == "twog":
+                                if dict(dut_data.get(identifier)[-1]).keys().__contains__("2G") and \
+                                        dict(dut_data.get(identifier)[-1])["2G"] is not None:
+                                    channel = dict(dut_data.get(identifier)[-1])["2G"][0]
+                                    if data[dut]["sniff_radio_2g"] is not None:
+                                        self.start_sniffer(radio_channel=channel,
+                                                           radio=data[dut]["sniff_radio_2g"].split(".")[2],
+                                                           duration=10)
+                                        time.sleep(10)
+                                        self.stop_sniffer()
+                            elif band == "fiveg":
+                                if dict(dut_data.get(identifier)[-1]).keys().__contains__("5G") and \
+                                        dict(dut_data.get(identifier)[-1])["5G"] is not None:
+                                    channel = dict(dut_data.get(identifier)[-1])["5G"][0]
+                                    if data[dut]["sniff_radio_5g"] is not None:
+                                        self.start_sniffer(radio_channel=channel,
+                                                           radio=data[dut]["sniff_radio_5g"].split(".")[2],
+                                                           duration=10)
+                                        time.sleep(10)
+                                        self.stop_sniffer()
+                            elif band == "sixg":
+                                if dict(dut_data.get(identifier)[-1]).keys().__contains__("6G") and \
+                                        dict(dut_data.get(identifier)[-1])["6G"] is not None:
+                                    channel = dict(dut_data.get(identifier)[-1])["6G"][0]
+                                    if data[dut]["sniff_radio_6g"] is not None:
+                                        self.start_sniffer(radio_channel=channel,
+                                                           radio=data[dut]["sniff_radio_6g"].split(".")[2],
+                                                           duration=10)
+                                        time.sleep(10)
+                                        self.stop_sniffer()
+                if not result:
+                    pytest.fail("SSID is not Available in Scan Result")
+                obj_sta_connect.setup(extra_securities=extra_securities)
             sta_connect_obj.append(obj_sta_connect)
-        for dut in self.dut_data:
-            identifier = dut["identifier"]
-            if dut_data.keys().__contains__(identifier):
-                if band == "twog":
-                    if dict(dut_data.get(identifier)[-1]).keys().__contains__("2G") and \
-                            dict(dut_data.get(identifier)[-1])["2G"] is not None:
-                        channel = dict(dut_data.get(identifier)[-1])["2G"][0]
-                        self.start_sniffer(radio_channel=channel, radio=data["sniff_radio_2g"].split(".")[2],
-                                           duration=runtime_secs)
-                        logging.info("started-sniffer")
-                        for obj in sta_connect_obj:
-                            obj.start()
-                        logging.info("napping %f sec" % runtime_secs)
-                        time.sleep(runtime_secs)
-                        logging.info("stopping-sniffer")
-                        self.stop_sniffer()
-                elif band == "fiveg":
-                    if dict(dut_data.get(identifier)[-1]).keys().__contains__("5G") and \
-                            dict(dut_data.get(identifier)[-1])["5G"] is not None:
-                        channel = dict(dut_data.get(identifier)[-1])["5G"][0]
-                        self.start_sniffer(radio_channel=channel, radio=data["sniff_radio_5g"].split(".")[2],
-                                           duration=runtime_secs)
-                        for obj in sta_connect_obj:
-                            obj.start()
-                        logging.info("napping %f sec" % runtime_secs)
-                        time.sleep(runtime_secs)
-                        self.stop_sniffer()
-                elif band == "sixg":
-                    if dict(dut_data.get(identifier)[-1]).keys().__contains__("6G") and \
-                            dict(dut_data.get(identifier)[-1])["6G"] is not None:
-                        channel = dict(dut_data.get(identifier)[-1])["6G"][0]
-                        self.start_sniffer(radio_channel=channel, radio=data["sniff_radio_6g"].split(".")[2],
-                                           duration=runtime_secs)
-                        for obj in sta_connect_obj:
-                            obj.start()
-                        logging.info("napping %f sec" % runtime_secs)
-                        time.sleep(runtime_secs)
-                        self.stop_sniffer()
-            else:
-                for obj in sta_connect_obj:
-                    print(obj)
-                    obj.start()
-                print("napping %f sec" % runtime_secs)
-                time.sleep(runtime_secs)
+            for dut_ in self.dut_data:
+                identifier = dut_["identifier"]
+                if dut_data.keys().__contains__(identifier):
+                    if band == "twog":
+                        if dict(dut_data.get(identifier)[-1]).keys().__contains__("2G") and \
+                                dict(dut_data.get(identifier)[-1])["2G"] is not None:
+                            channel = dict(dut_data.get(identifier)[-1])["2G"][0]
+                            self.start_sniffer(radio_channel=channel, radio=data[dut]["sniff_radio_2g"].split(".")[2],
+                                               duration=runtime_secs)
+                            logging.info("started-sniffer")
+                            for obj in sta_connect_obj:
+                                obj.start()
+                            logging.info("napping %f sec" % runtime_secs)
+                            time.sleep(runtime_secs)
+                            logging.info("stopping-sniffer")
+                            self.stop_sniffer()
+                    elif band == "fiveg":
+                        if dict(dut_data.get(identifier)[-1]).keys().__contains__("5G") and \
+                                dict(dut_data.get(identifier)[-1])["5G"] is not None:
+                            channel = dict(dut_data.get(identifier)[-1])["5G"][0]
+                            self.start_sniffer(radio_channel=channel, radio=data[dut]["sniff_radio_5g"].split(".")[2],
+                                               duration=runtime_secs)
+                            for obj in sta_connect_obj:
+                                obj.start()
+                            logging.info("napping %f sec" % runtime_secs)
+                            time.sleep(runtime_secs)
+                            self.stop_sniffer()
+                    elif band == "sixg":
+                        if dict(dut_data.get(identifier)[-1]).keys().__contains__("6G") and \
+                                dict(dut_data.get(identifier)[-1])["6G"] is not None:
+                            channel = dict(dut_data.get(identifier)[-1])["6G"][0]
+                            self.start_sniffer(radio_channel=channel, radio=data[dut]["sniff_radio_6g"].split(".")[2],
+                                               duration=runtime_secs)
+                            for obj in sta_connect_obj:
+                                obj.start()
+                            logging.info("napping %f sec" % runtime_secs)
+                            time.sleep(runtime_secs)
+                            self.stop_sniffer()
+                else:
+                    for obj in sta_connect_obj:
+                        print(obj)
+                        obj.start()
+                    print("napping %f sec" % runtime_secs)
+                    time.sleep(runtime_secs)
         pass_fail_result = []
         for obj in sta_connect_obj:
             sta_rows = ["4way time (us)", "channel", "cx time (us)", "dhcp (ms)", "ip", "signal"]
@@ -224,7 +206,7 @@ class lf_tests(lf_libs):
             cx_table_dict = {}
             upstream = []
             for i in range(len(obj.station_names)):
-                upstream.append(data["upstream_port"])
+                upstream.append(data[dut]["upstream_port"])
             cx_table_dict["Upstream"] = upstream
             cx_table_dict["Downstream"] = obj.station_names
             cx_tcp_ul = []
@@ -279,9 +261,6 @@ class lf_tests(lf_libs):
                 logging.info("client connection to" + str(obj.dut_ssid) + "unsuccessful. Test Failed")
                 result = "FAIL"
 
-            if ssid_channel:
-                # need to stop sniffer
-                pass
         result = "PASS"
         description = ""
         for i in pass_fail_result:
@@ -372,7 +351,7 @@ class lf_tests(lf_libs):
 
 
 if __name__ == '__main__':
-    advance_03= {
+    basic_04 = {
         "target": "tip_2x",
         "controller": {
             "url": "https://sec-qa01.cicd.lab.wlan.tip.build:16001",
@@ -380,10 +359,11 @@ if __name__ == '__main__':
             "password": "OpenWifi%123"
         },
         "device_under_tests": [{
-            "model": "cig_wf196",
-            "supported_bands": ["2G", "5G", "6G"],
+            "model": "edgecore_ecw5211",
+            "supported_bands": ["2G", "5G"],
             "supported_modes": ["BRIDGE", "NAT", "VLAN"],
-            "wan_port": "1.3.eth2",
+            "wan_port": "1.1.eth2",
+            "lan_port": "1.1.eth1",
             "ssid": {
                 "2g-ssid": "OpenWifi",
                 "5g-ssid": "OpenWifi",
@@ -391,21 +371,21 @@ if __name__ == '__main__':
                 "2g-password": "OpenWifi",
                 "5g-password": "OpenWifi",
                 "6g-password": "OpenWifi",
-                "2g-encryption": "WPA2",
-                "5g-encryption": "WPA2",
-                "6g-encryption": "WPA3",
+                "2g-encryption": "OPEN",
+                "5g-encryption": "OPEN",
+                "6g-encryption": "OPEN",
                 "2g-bssid": "68:7d:b4:5f:5c:31",
                 "5g-bssid": "68:7d:b4:5f:5c:3c",
                 "6g-bssid": "68:7d:b4:5f:5c:38"
             },
-            "mode": "wifi6e",
-            "identifier": "824f816011e4",
+            "mode": "wifi5",
+            "identifier": "68215fda456d",
             "method": "serial",
-            "host_ip": "10.28.3.115",
-            "host_username": "root",
+            "host_ip": "localhost",
+            "host_username": "lanforge",
             "host_password": "pumpkin77",
-            "host_ssh_port": 22,
-            "serial_tty": "/dev/ttyAP0",
+            "host_ssh_port": 8832,
+            "serial_tty": "/dev/ttyAP5",
             "firmware_version": "next-latest"
         }],
         "traffic_generator": {
@@ -413,12 +393,12 @@ if __name__ == '__main__':
             "testbed": "basic",
             "scenario": "dhcp-bridge",
             "details": {
-                "manager_ip": "10.28.3.117",
-                "http_port": 8080,
-                "ssh_port": 22,
+                "manager_ip": "localhost",
+                "http_port": 8830,
+                "ssh_port": 8831,
                 "setup": {"method": "build", "DB": "Test_Scenario_Automation"},
                 "wan_ports": {
-                    "1.3.eth2": {"addressing": "dhcp-server", "subnet": "172.16.0.1/16", "dhcp": {
+                    "1.1.eth2": {"addressing": "dhcp-server", "subnet": "172.16.0.1/16", "dhcp": {
                         "lease-first": 10,
                         "lease-count": 10000,
                         "lease-time": "6h"
@@ -426,12 +406,14 @@ if __name__ == '__main__':
                                  }
                 },
                 "lan_ports": {
-
+                    "1.1.eth1": {
+                        "addressing": "dynamic"
+                    }
                 },
                 "uplink_nat_ports": {
-                    "1.3.eth3": {
+                    "1.1.eth3": {
                         "addressing": "static",
-                        "ip": "10.28.2.39",
+                        "ip": "10.28.2.9",
                         "gateway_ip": "10.28.2.1/24",
                         "ip_mask": "255.255.255.0",
                         "dns_servers": "BLANK"
@@ -441,8 +423,10 @@ if __name__ == '__main__':
         }
     }
 
-    obj = lf_tests(lf_data=dict(advance_03["traffic_generator"]), dut_data=list(advance_03["device_under_tests"]),
+    obj = lf_tests(lf_data=dict(basic_04["traffic_generator"]), dut_data=list(basic_04["device_under_tests"]),
                    log_level=logging.DEBUG, run_lf=True)
+    # A =obj.setup_interfaces(band="fiveg", vlan_id=100, mode="NAT-WAN", num_sta=1)
+    # print(A)
     # obj.setup_relevent_profiles()
     # obj.Client_Connect(ssid="OpenWifi", passkey="OpenWifi", security="wpa2", mode="BRIDGE", band="twog",
     #                    vlan_id=100, num_sta=5, scan_ssid=True,
@@ -452,9 +436,12 @@ if __name__ == '__main__':
     # obj.create_dhcp_external()obj.add_vlan(vlan_ids=[100, 200, 300, 400, 500, 600])
     # obj.get_cx_data()
     # obj.chamber_view()
-    # c = obj.client_connectivity_test(ssid="OpenWifi", passkey="OpenWifi", security="wpa2", extra_securities=[],
-                                     # num_sta=1, mode="BRIDGE", vlan_id=[100],
-                                     # band="twog", ssid_channel=11)
+    dut = {'0000c1018812': [['OpenWifi', 'wpa2', 'OpenWifi', '2G', '6A:21:5F:DA:45:6F'],
+                      {'2G': [6, 40, 2437], '5G': None, '6G': None}]}
+
+    c = obj.client_connectivity_test(ssid="OpenWifi", passkey="OpenWifi", security="wpa2", extra_securities=[],
+                                     num_sta=1, mode="BRIDGE", dut_data=dut,
+                                     band="twog")
     # obj.start_sniffer(radio_channel=1, radio="wiphy7", test_name="sniff_radio", duration=30)
     # print("started")
     # time.sleep(30)
