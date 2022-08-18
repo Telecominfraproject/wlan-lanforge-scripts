@@ -669,7 +669,7 @@ class lf_libs:
             logging.info("Existing stations are not available")
         else:
             for port_eid in exist_sta:
-                self.staConnect.rm_port(port_eid, check_exists=True)
+                self.local_realm.rm_port(port_eid, check_exists=True)
                 time.sleep(0.3)
             logging.warning("Deleting existing stations")
             logging.info("Deleted %s Stations" % exist_sta)
@@ -681,8 +681,8 @@ class lf_libs:
             if len(exist_l3) == 0 or exist_l3[0] == "empty":
                 logging.info("Existing layer3 and endp  are not available")
             else:
-                list(map(lambda i: self.staConnect.rm_cx(cx_name=i), exist_l3))
-                list(map(lambda cx_name: [self.staConnect.rm_endp(ename=i) for i in [f"{cx_name}-A", f"{cx_name}-B"]],
+                list(map(lambda i: self.local_realm.rm_cx(cx_name=i), exist_l3))
+                list(map(lambda cx_name: [self.local_realm.rm_endp(ename=i) for i in [f"{cx_name}-A", f"{cx_name}-B"]],
                          exist_l3))
         except Exception as e:
             logging.error(e)
@@ -846,7 +846,7 @@ class lf_libs:
         try:
             for sta in sta_name:
                 sta_url = "port/" + str(sta.split(".")[0]) + "/" + str(sta.split(".")[1]) + "/" + str(sta.split(".")[2])
-                station_info = self.staConnect.json_get(sta_url)
+                station_info = self.local_realm.json_get(sta_url)
                 dict_data = station_info["interface"]
                 temp_dict = {}
                 for i in rows:
