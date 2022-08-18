@@ -75,8 +75,12 @@ class lf_tests(lf_libs):
             obj_sta_connect = StaConnect2(self.manager_ip, self.manager_http_port, outfile="shivam",
                                           _cleanup_on_exit=False)
             obj_sta_connect.sta_mode = 0
-            obj_sta_connect.upstream_resource = data["upstream_port"].split(".")[1]
-            obj_sta_connect.upstream_port = data["upstream_port"].split(".")[2]
+            upstream_data = list(data["upstream_port"].split("."))
+            obj_sta_connect.upstream_resource = upstream_data[1]
+            upstream_data.pop(0)
+            upstream_data.pop(0)
+            upstream_port = ".".join(upstream_data)
+            obj_sta_connect.upstream_port = upstream_port
             self.enable_verbose_debug(radio=radio, enable=False)
             obj_sta_connect.radio = radio
             obj_sta_connect.admin_down(obj_sta_connect.radio)

@@ -415,15 +415,15 @@ class lf_libs:
             logging.error("Number of stations are not available")
             pytest.exit("Number of stations are not available")
         if mode == "BRIDGE":
-            upstream_port = self.upstream_port()
+            upstream_port = self.wan_upstream_port()
         elif mode == "NAT-WAN":
-            upstream_port = self.upstream_port()
+            upstream_port = self.wan_upstream_port()
         elif mode == "NAT-LAN":
-            upstream_port = self.upstream_port()
+            upstream_port = self.lan_upstream_port()
         elif mode == "VLAN":
             # for vlan mode vlan id should be available
             if vlan_id is not None:
-                upstream_port = self.upstream_port() + "." + str(vlan_id)
+                upstream_port = self.wan_upstream_port() + "." + str(vlan_id)
             else:
                 logging.error("Vlan id is not available for vlan")
                 pytest.exit("Vlan id is not available for vlan")
@@ -695,11 +695,20 @@ class lf_libs:
         else:
             logging.error("Name is not provided")
 
-    def upstream_port(self):
+    def wan_upstream_port(self):
         """finding upstream port"""
         upstream_port = ""
         for i in self.dut_data:
-            upstream_port = i["wan_port"]
+            if dict(i).keys().__contains__("wan_port"):
+                upstream_port = i["wan_port"]
+        return upstream_port
+
+    def lan_upstream_port(self):
+        """finding upstream port"""
+        upstream_port = ""
+        for i in self.dut_data:
+            if dict(i).keys().__contains__("lan_port"):
+                upstream_port = i["lan_port"]
         return upstream_port
 
     def setup_sniffer(self, band=None, station_radio_data=None):
