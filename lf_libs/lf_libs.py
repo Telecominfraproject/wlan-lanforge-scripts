@@ -975,6 +975,10 @@ class lf_libs:
     def clean_layer3cx(self):
         pass
 
+    def get_max_sta(self, radio=""):
+        data = self.json_get("/radiostatus/all")
+        return data[radio]["max_vifs"]
+
     def add_vlan(self, vlan_ids=[]):
         data = self.json_get("/port/all")
         flag = 0
