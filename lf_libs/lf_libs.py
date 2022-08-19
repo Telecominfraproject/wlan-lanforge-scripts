@@ -68,6 +68,7 @@ class lf_libs:
     default_scenario_name = None
     default_scenario_test = None
     default_scenario_raw_lines = []
+    temp_raw_lines = []
     chamberview_object = None
     max_possible_stations = None
     max_2g_stations = None
@@ -154,6 +155,7 @@ class lf_libs:
         lf_data = dict(lf_data)
         self.dut_data = dut_data
         self.run_lf = run_lf
+        self.dut_idx_mapping = {}
         # try:
         self.lanforge_data = lf_data.get("details")
         self.testbed = lf_data.get("testbed")
@@ -169,7 +171,8 @@ class lf_libs:
         elif self.scenario == "dhcp-external":
             logging.info("Scenario name: " + str(self.scenario))
             self.create_dhcp_external()
-        self.chamber_view(raw_lines=self.default_scenario_raw_lines)
+        self.chamber_view(raw_lines="default")
+        self.temp_raw_lines = self.default_scenario_raw_lines.copy()
         self.setup_dut()
 
         # except Exception as e:
@@ -204,6 +207,7 @@ class lf_libs:
 
     def setup_dut(self):
         self.dut_objects = []
+        print("MMMM", self.dut_data)
         for index in range(0, len(self.dut_data)):
             dut_obj = DUT(lfmgr=self.manager_ip,
                           port=self.manager_http_port,
@@ -404,10 +408,10 @@ class lf_libs:
         data = self.json_get("/text/Network-Connectivity." + str(self.default_scenario_name))
         data = data["record"]["text"].split("\n")
         for d in data:
-            temp_raw_lines = self.default_scenario_raw_lines.copy()
+            self.temp_raw_lines = self.default_scenario_raw_lines.copy()
             if "profile_link" in d:
-                temp_raw_lines.append([d])
-        logging.info("Saved default CV Scenario details: " + str(temp_raw_lines))
+                self.temp_raw_lines.append([d])
+        logging.info("Saved default CV Scenario details: " + str(self.temp_raw_lines))
 
     def setup_interfaces(self, ssid="", bssid="", passkey="", encryption="", band=None, vlan_id=None, mode=None,
                          num_sta=None):
@@ -1120,7 +1124,7 @@ class lf_libs:
         flag = 0
         profile_name = ""
         port_list = []
-        temp_raw_lines = self.default_scenario_raw_lines.copy()
+        #temp_raw_lines = self.default_scenario_raw_lines.copy()
         for port in self.wan_ports:
             for vlans in vlan_ids:
                 for i in data["interfaces"]:
@@ -1133,10 +1137,10 @@ class lf_libs:
                     elif self.scenario == "dhcp-external":
                         profile_name = "vlan_profile"
                     port_list.append(str(port) + "." + str(vlans))
-                    temp_raw_lines.append(["profile_link " + port + " " + profile_name + " 1 " + port
+                    self.temp_raw_lines.append(["profile_link " + port + " " + profile_name + " 1 " + port
                                            + " NA " + port.split(".")[2] + ",AUTO -1 " + str(vlans)])
 
-        self.chamber_view(raw_lines=temp_raw_lines)
+        self.chamber_view(raw_lines="custom")
         if self.scenario == "dhcp-external":
             for port in port_list:
                 data = {
@@ -1149,7 +1153,8 @@ class lf_libs:
                 self.json_post("/cli-json/set_port", data)
                 time.sleep(2)
 
-    def chamber_view(self, delete_old_scenario=True, raw_lines=[]):
+    def chamber_view(self, delete_old_scenario=True, raw_lines="default"):
+        """create chamber view. raw_lines values are default | custom"""
         if delete_old_scenario:
             self.chamberview_object.clean_cv_scenario(scenario_name=self.scenario)
         # if self.scenario == "dhcp-bridge":
@@ -1158,10 +1163,17 @@ class lf_libs:
         # elif self.scenario == "dhcp-external":
         #     self.create_dhcp_external()
         #     logging.info("Scenario name: " + str(self.scenario))
+        if raw_lines.lower() == "default":
+            raw_lines_ = self.default_scenario_raw_lines
+        elif raw_lines.lower() == "custom":
+            raw_lines_ = self.temp_raw_lines
+        else:
+            logging.error("raw lines are wrong. Provide default or custom")
         self.chamberview_object.setup(create_scenario=self.scenario,
-                                      raw_line=raw_lines
+                                      raw_line=raw_lines_
                                       )
-        logging.info("Raw Lines: " + str(raw_lines))
+        logging.info("Raw Lines type: " + str(raw_lines))
+        logging.info("Raw Lines: " + str(raw_lines_))
         self.chamberview_object.build(self.scenario)
         self.chamberview_object.sync_cv()
         time.sleep(2)
