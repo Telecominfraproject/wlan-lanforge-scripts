@@ -37,6 +37,7 @@ StaScan = stascan.StaScan
 cv_test_reports = importlib.import_module("py-json.cv_test_reports")
 lf_report = cv_test_reports.lanforge_reports
 
+
 class lf_libs:
     """
     "traffic_generator": {
@@ -55,6 +56,7 @@ class lf_libs:
     lanforge_data = dict()
     manager_ip = None
     testbed = None
+    run_lf = False
     manager_http_port = None
     manager_ssh_port = None
     manager_default_db = None
@@ -147,10 +149,11 @@ class lf_libs:
     """
     local_realm = None
 
-    def __init__(self, lf_data={}, dut_data=[], log_level=logging.DEBUG):
+    def __init__(self, lf_data={}, dut_data=[], run_lf=False, log_level=logging.DEBUG):
         logging.basicConfig(format='%(asctime)s - %(message)s', level=log_level)
         lf_data = dict(lf_data)
         self.dut_data = dut_data
+        self.run_lf = run_lf
         # try:
         self.lanforge_data = lf_data.get("details")
         self.testbed = lf_data.get("testbed")
@@ -200,16 +203,18 @@ class lf_libs:
     """
 
     def setup_dut(self):
+        self.dut_objects = []
         for index in range(0, len(self.dut_data)):
             dut_obj = DUT(lfmgr=self.manager_ip,
                           port=self.manager_http_port,
-                          dut_name=self.testbed + "-" + str(index),
+                          dut_name=self.dut_data[index]["identifier"],
                           sw_version=self.dut_data[index]["firmware_version"],
                           hw_version=self.dut_data[index]["mode"],
                           model_num=self.dut_data[index]["model"],
                           serial_num=self.dut_data[index]["identifier"])
             dut_obj.setup()
             dut_obj.add_ssids()
+            self.dut_objects.append(dut_obj)
             logging.info("Creating DUT")
 
     def setup_metadata(self):
@@ -404,40 +409,103 @@ class lf_libs:
                 temp_raw_lines.append([d])
         logging.info("Saved default CV Scenario details: " + str(temp_raw_lines))
 
-    def setup_interfaces(self, band=None, vlan_id=None, mode=None, num_sta=None):
-        if band is None:
-            logging.error("Band value is not available.")
-            pytest.exit("Band value is not available.")
-        if mode is None:
-            logging.error("mode value is not available")
-            pytest.exit("mode value is not available")
-        if num_sta is None:
-            logging.error("Number of stations are not available")
-            pytest.exit("Number of stations are not available")
+    def setup_interfaces(self, ssid="", bssid="", passkey="", encryption="", band=None, vlan_id=None, mode=None,
+                         num_sta=None):
+        if band not in ["twog", "fiveg", "sixg"]:
+            pytest.skip("Unsupported Band Selected: " + str(band))
+        if mode not in ["BRIDGE", "NAT-WAN", "NAT-LAN", "VLAN"]:
+            pytest.skip("Unsupported Mode Selected: " + str(mode))
+        r_val = dict()
+        for dut in self.dut_data:
+            r_val[dut["identifier"]] = None
+        for i in r_val:
+            r_val[i] = dict.fromkeys(["ssid", "bssid", "passkey", "encryption", "upstream_port",
+                                      "upstream_resource", "upstream", "station_data", "sniff_radio_2g",
+                                      "sniff_radio_5g", "sniff_radio_6g"])
         if mode == "BRIDGE":
-            upstream_port = self.wan_upstream_port()
-        elif mode == "NAT-WAN":
-            upstream_port = self.wan_upstream_port()
-        elif mode == "NAT-LAN":
-            upstream_port = self.lan_upstream_port()
-        elif mode == "VLAN":
-            # for vlan mode vlan id should be available
-            if vlan_id is not None:
-                upstream_port = self.wan_upstream_port() + "." + str(vlan_id)
+            ret = self.get_wan_upstream_ports()
+            for dut in r_val:
+                if ret.keys().__contains__(dut) and ret[dut] is not None:
+                    upstream_data = (ret[dut]).split(".")
+                    r_val[dut]["upstream_port"] = ret[dut]
+                    upstream_resource = upstream_data[1]
+                    r_val[dut]["upstream_resource"] = upstream_resource
+                    upstream_data.pop(0)
+                    upstream_data.pop(0)
+                    upstream = ".".join(upstream_data)
+                    r_val[dut]["upstream"] = upstream
+                else:
+                    r_val.pop(dut)
+        if mode == "NAT-WAN":
+            ret = self.get_wan_upstream_ports()
+            for dut in r_val:
+                if ret.keys().__contains__(dut) and ret[dut] is not None:
+                    upstream_data = (ret[dut]).split(".")
+                    r_val[dut]["upstream_port"] = ret[dut]
+                    upstream_resource = upstream_data[1]
+                    r_val[dut]["upstream_resource"] = upstream_resource
+                    upstream_data.pop(0)
+                    upstream_data.pop(0)
+                    upstream = ".".join(upstream_data)
+                    r_val[dut]["upstream"] = upstream
+                else:
+                    r_val.pop(dut)
+        if mode == "NAT-LAN":
+            ret = self.get_lan_upstream_ports()
+            for dut in r_val:
+                if ret.keys().__contains__(dut) and ret[dut] is not None:
+                    upstream_data = (ret[dut]).split(".")
+                    r_val[dut]["upstream_port"] = ret[dut]
+                    upstream_resource = upstream_data[1]
+                    r_val[dut]["upstream_resource"] = upstream_resource
+                    upstream_data.pop(0)
+                    upstream_data.pop(0)
+                    upstream = ".".join(upstream_data)
+                    r_val[dut]["upstream"] = upstream
+                else:
+                    r_val.pop(dut)
+        if mode == "VLAN":
+            if vlan_id is None:
+                logging.error("VLAN ID is Unspecified in the VLAN Case")
+                pytest.skip("VLAN ID is Unspecified in the VLAN Case")
             else:
-                logging.error("Vlan id is not available for vlan")
-                pytest.exit("Vlan id is not available for vlan")
-        else:
-            logging.error("Mode value is wrong.Value e.g. BRIDGE or NAT or VLAN")
-            pytest.exit("Mode value is wrong.Value e.g. BRIDGE or NAT or VLAN")
-        radio_data = {}
-        sta_prefix = ""
-        sniff_radio = ""
-        data_dict = {}
-        # deleting existing stations and layer 3
-        self.pre_cleanup()
+                ret = self.get_wan_upstream_ports()
+                for dut in r_val:
+                    if ret.keys().__contains__(dut) and ret[dut] is not None:
+                        upstream_data = (ret[dut] + "." + str(vlan_id)).split(".")
+                        r_val[dut]["upstream_port"] = ret[dut] + "." + str(vlan_id)
+                        upstream_resource = upstream_data[1]
+                        r_val[dut]["upstream_resource"] = upstream_resource
+                        upstream_data.pop(0)
+                        upstream_data.pop(0)
+                        upstream = ".".join(upstream_data)
+                        r_val[dut]["upstream"] = upstream
+                    else:
+                        r_val.pop(dut)
+        dict_all_radios_2g = {"wave2_2g_radios": self.wave2_2g_radios,
+                              "wave1_radios": self.wave1_radios, "mtk_radios": self.mtk_radios,
+                              "ax200_radios": self.ax200_radios,
+                              "ax210_radios": self.ax210_radios}
+
+        dict_all_radios_5g = {"wave2_5g_radios": self.wave2_5g_radios,
+                              "wave1_radios": self.wave1_radios, "mtk_radios": self.mtk_radios,
+                              "ax200_radios": self.ax200_radios,
+                              "ax210_radios": self.ax210_radios}
+
+        dict_all_radios_6g = {"ax210_radios": self.ax210_radios}
+
         max_station_per_radio = {"wave2_2g_radios": 64, "wave2_5g_radios": 64, "wave1_radios": 64, "mtk_radios": 19,
                                  "ax200_radios": 1, "ax210_radios": 1}
+        radio_data = {}
+        sniff_radio = ""
+
+        sta_prefix = ""
+        data_dict = {}
+        # deleting existing stations and layer 3
+        # self.pre_cleanup()
+        data_dict["sniff_radio_2g"] = None
+        data_dict["sniff_radio_5g"] = None
+        data_dict["sniff_radio_6g"] = None
         if band == "twog":
             if self.run_lf:
                 for i in self.dut_data:
@@ -445,6 +513,7 @@ class lf_libs:
                     passkey = i["ssid"]["2g-password"]
                     security = i["ssid"]["2g-encryption"].lower()
             sta_prefix = self.twog_prefix
+            data_dict["sta_prefix"] = sta_prefix
             # checking station compitality of lanforge
             if int(num_sta) > int(self.max_2g_stations):
                 logging.error("Can't create %s stations on lanforge" % num_sta)
@@ -454,12 +523,6 @@ class lf_libs:
                     self.ax200_radios) == 0 and len(self.mtk_radios) == 0:
                 logging.error("Twog radio is not available")
                 pytest.skip("Twog radio is not available")
-
-            dict_all_radios_2g = {"wave2_2g_radios": self.wave2_2g_radios,
-                                  "wave1_radios": self.wave1_radios, "mtk_radios": self.mtk_radios,
-                                  "ax200_radios": self.ax200_radios,
-                                  "ax210_radios": self.ax210_radios}
-
             # radio and station selection
             stations = num_sta
             for j in dict_all_radios_2g:
@@ -476,7 +539,6 @@ class lf_libs:
                                 radio_data[i] = max_station
                                 stations = stations - max_station
                                 diff = max_station - stations
-            # setup sniffer
             sniff_radio = self.setup_sniffer(band=band, station_radio_data=radio_data)
             data_dict["sniff_radio_2g"] = sniff_radio
         if band == "fiveg":
@@ -487,6 +549,7 @@ class lf_libs:
                     security = i["ssid"]["2g-encryption"].lower()
 
             sta_prefix = self.fiveg_prefix
+            data_dict["sta_prefix"] = sta_prefix
             # checking station compitality of lanforge
             if int(num_sta) > int(self.max_5g_stations):
                 logging.error("Can't create %s stations on lanforge" % num_sta)
@@ -496,11 +559,6 @@ class lf_libs:
                     self.ax200_radios) == 0 and len(self.mtk_radios) == 0:
                 logging.error("fiveg radio is not available")
                 pytest.skip("fiveg radio is not available")
-
-            dict_all_radios_5g = {"wave2_5g_radios": self.wave2_5g_radios,
-                                  "wave1_radios": self.wave1_radios, "mtk_radios": self.mtk_radios,
-                                  "ax200_radios": self.ax200_radios,
-                                  "ax210_radios": self.ax210_radios}
 
             # radio and station selection
             stations = num_sta
@@ -529,6 +587,7 @@ class lf_libs:
                     security = i["ssid"]["6g-encryption"].lower()
 
             sta_prefix = self.sixg_prefix
+            data_dict["sta_prefix"] = sta_prefix
             # checking station compitality of lanforge
             if int(num_sta) > int(self.max_6g_stations):
                 logging.error("Can't create %s stations on lanforge" % num_sta)
@@ -537,8 +596,6 @@ class lf_libs:
             elif len(self.ax210_radios) == 0:
                 logging.error("sixg radio is not available")
                 pytest.skip("sixg radio is not available")
-
-            dict_all_radios_6g = {"ax210_radios": self.ax210_radios}
 
             # radio and station selection
             stations = num_sta
@@ -559,7 +616,7 @@ class lf_libs:
 
             sniff_radio = self.setup_sniffer(band=band, station_radio_data=radio_data)
             data_dict["sniff_radio_6g"] = sniff_radio
-        # creating dict of radio and station_list
+
         dict_radio_sta_list = {}
         # list of per radio station
         length_to_split = list(radio_data.values())
@@ -577,22 +634,97 @@ class lf_libs:
             for j in dict_radio_sta_list[i]:
                 temp_list.append(shelf_resource + j)
             dict_radio_sta_list[i] = temp_list
+        data_dict["radios"] = dict_radio_sta_list
 
+        for i in r_val:
+            r_val[i]["station_data"] = data_dict["radios"]
+            r_val[i]["sta_prefix"] = data_dict["sta_prefix"]
+            r_val[i]["sniff_radio_2g"] = data_dict["sniff_radio_2g"]
+            r_val[i]["sniff_radio_5g"] = data_dict["sniff_radio_5g"]
+            r_val[i]["sniff_radio_6g"] = data_dict["sniff_radio_6g"]
         if self.run_lf:
-            data_dict["radios"] = dict_radio_sta_list
-            data_dict["upstream_port"] = upstream_port
-            data_dict["ssid"] = ssid
-            data_dict["passkey"] = passkey
-            data_dict["security"] = security
-            data_dict["sta_prefix"] = sta_prefix
-            # data_dict["sniff_radio"] = sniff_radio
-            return data_dict
+            for dut in self.dut_data:
+                ssid_data = []
+                if r_val.keys().__contains__(dut["identifier"]):
+                    if dut.keys().__contains__("ssid"):
+                        if band == "twog":
+                            r_val[dut["identifier"]]["ssid"] = dut["ssid"]["2g-ssid"]
+                            r_val[dut["identifier"]]["passkey"] = dut["ssid"]["2g-password"]
+                            r_val[dut["identifier"]]["encryption"] = dut["ssid"]["2g-encryption"]
+                            r_val[dut["identifier"]]["bssid"] = dut["ssid"]["2g-bssid"]
+                            if dut["ssid"]["2g-encryption"] == "OPEN":
+                                ssid_data.append(['ssid_idx=0 ssid=' + dut["ssid"]["2g-ssid"] +
+                                                  ' password=' + dut["ssid"]["2g-password"] +
+                                                  ' bssid=' + dut["ssid"]["2g-bssid"]])
+                            else:
+                                ssid_data.append(['ssid_idx=0 ssid=' + dut["ssid"]["2g-ssid"] +
+                                                  ' security=' + str(dut["ssid"]["2g-encryption"]).upper() +
+                                                  ' password=' + dut["ssid"]["2g-password"] +
+                                                  ' bssid=' + dut["ssid"]["2g-bssid"]])
+                            self.update_duts(identifier=dut["identifier"], ssid_data=ssid_data)
+                        if band == "fiveg":
+                            r_val[dut["identifier"]]["ssid"] = dut["ssid"]["5g-ssid"]
+                            r_val[dut["identifier"]]["passkey"] = dut["ssid"]["5g-password"]
+                            r_val[dut["identifier"]]["encryption"] = dut["ssid"]["5g-encryption"]
+                            r_val[dut["identifier"]]["bssid"] = dut["ssid"]["5g-bssid"]
+                            if dut["ssid"]["5g-encryption"] == "OPEN":
+                                ssid_data.append(['ssid_idx=0 ssid=' + dut["ssid"]["5g-ssid"] +
+                                                  ' password=' + dut["ssid"]["5g-password"] +
+                                                  ' bssid=' + dut["ssid"]["5g-bssid"]])
+                            else:
+                                ssid_data.append(['ssid_idx=0 ssid=' + dut["ssid"]["5g-ssid"] +
+                                                  ' security=' + str(dut["ssid"]["5g-encryption"]).upper() +
+                                                  ' password=' + dut["ssid"]["5g-password"] +
+                                                  ' bssid=' + dut["ssid"]["5g-bssid"]])
+                            self.update_duts(identifier=dut["identifier"], ssid_data=ssid_data)
+                        if band == "sixg":
+                            r_val[dut["identifier"]]["ssid"] = dut["ssid"]["6g-ssid"]
+                            r_val[dut["identifier"]]["passkey"] = dut["ssid"]["6g-password"]
+                            r_val[dut["identifier"]]["encryption"] = dut["ssid"]["6g-encryption"]
+                            r_val[dut["identifier"]]["bssid"] = dut["ssid"]["6g-bssid"]
+                            if dut["ssid"]["6g-encryption"] == "OPEN":
+                                ssid_data.append(['ssid_idx=0 ssid=' + dut["ssid"]["6g-ssid"] +
+                                                  ' password=' + dut["ssid"]["6g-password"] +
+                                                  ' bssid=' + dut["ssid"]["6g-bssid"]])
+                            else:
+                                ssid_data.append(['ssid_idx=0 ssid=' + dut["ssid"]["6g-ssid"] +
+                                                  ' security=' + str(dut["ssid"]["6g-encryption"]).upper() +
+                                                  ' password=' + dut["ssid"]["6g-password"] +
+                                                  ' bssid=' + dut["ssid"]["6g-bssid"]])
+                            self.update_duts(identifier=dut["identifier"], ssid_data=ssid_data)
         else:
-            data_dict["radios"] = dict_radio_sta_list
-            data_dict["upstream_port"] = upstream_port
-            data_dict["sta_prefix"] = sta_prefix
-            # data_dict["sniff_radio"] = sniff_radio
-            return data_dict
+            for dut in self.dut_data:
+                ssid_data = []
+                if r_val.keys().__contains__(dut["identifier"]):
+                    r_val[dut["identifier"]]["ssid"] = ssid
+                    r_val[dut["identifier"]]["passkey"] = passkey
+                    r_val[dut["identifier"]]["encryption"] = encryption
+                    r_val[dut["identifier"]]["bssid"] = bssid
+                    if encryption == "OPEN":
+                        ssid_data.append(['ssid_idx=0 ssid=' + ssid +
+                                          ' password=' + passkey +
+                                          ' bssid=' + str(bssid).upper()])
+                    else:
+                        ssid_data.append(['ssid_idx=0 ssid=' + ssid +
+                                          ' security=' + str(encryption).upper() +
+                                          ' password=' + passkey +
+                                          ' bssid=' + str(bssid).upper()])
+
+                    if str(encryption).upper() in ["OPEN", "WPA", "WPA2", "WPA3", "WEP"]:
+                        self.update_duts(identifier=dut["identifier"], ssid_data=ssid_data)
+        print(r_val)
+        return r_val
+
+    def update_duts(self, identifier=0, ssid_data=[]):
+        for dut_obj in self.dut_objects:
+            if identifier == dut_obj.dut_name:
+                dut_obj.ssid = ssid_data
+                dut_obj.add_ssids()
+            # SSID data should be in this format
+            # [
+            # ['ssid_idx=0 ssid=Default-SSID-2g security=WPA|WEP| password=12345678 bssid=90:3c:b3:94:48:58'],
+            # ['ssid_idx=1 ssid=Default-SSID-5gl password=12345678 bssid=90:3c:b3:94:48:59']
+            #  ]
 
     def setup_relevent_profiles(self):
         """ TODO
@@ -695,21 +827,25 @@ class lf_libs:
         else:
             logging.error("Name is not provided")
 
-    def wan_upstream_port(self):
-        """finding upstream port"""
-        upstream_port = ""
-        for i in self.dut_data:
-            if dict(i).keys().__contains__("wan_port"):
-                upstream_port = i["wan_port"]
-        return upstream_port
+    def get_wan_upstream_ports(self):
+        """finding upstream wan ports"""
+        r_val = dict()
+        for dut in self.dut_data:
+            r_val[dut["identifier"]] = None
+            if dut["wan_port"] is not None:
+                if dut["wan_port"] in self.lanforge_data["wan_ports"].keys():
+                    r_val[dut["identifier"]] = dut["wan_port"]
+        return r_val
 
-    def lan_upstream_port(self):
-        """finding upstream port"""
-        upstream_port = ""
-        for i in self.dut_data:
-            if dict(i).keys().__contains__("lan_port"):
-                upstream_port = i["lan_port"]
-        return upstream_port
+    def get_lan_upstream_ports(self):
+        """finding upstream wan ports"""
+        r_val = dict()
+        for dut in self.dut_data:
+            r_val[dut["identifier"]] = None
+            if dut["lan_port"] is not None:
+                if dut["lan_port"] in self.lanforge_data["lan_ports"].keys():
+                    r_val[dut["identifier"]] = dut["lan_port"]
+        return r_val
 
     def setup_sniffer(self, band=None, station_radio_data=None):
         """Setup sniff radio"""
