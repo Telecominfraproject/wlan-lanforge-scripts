@@ -47,17 +47,18 @@ class lf_tests(lf_libs):
     """
 
     def __init__(self, lf_data={}, dut_data={}, log_level=logging.DEBUG, run_lf=False, influx_params=None):
-        super().__init__(lf_data, dut_data,  run_lf, log_level)
+        super().__init__(lf_data, dut_data, run_lf, log_level)
 
-    def client_connectivity_test(self, ssid="[BLANK]", passkey="[BLANK]", dut_data={},
+    def client_connectivity_test(self, ssid="[BLANK]", passkey="[BLANK]", bssid="[BLANK]", dut_data={},
                                  security="open", extra_securities=[], sta_mode=0,
                                  num_sta=1, mode="BRIDGE", vlan_id=[None], band="twog",
                                  allure_attach=True, runtime_secs=40):
-        data = self.setup_interfaces(ssid=ssid, bssid=passkey, passkey=passkey, encryption=security,
+        data = self.setup_interfaces(ssid=ssid, bssid=bssid, passkey=passkey, encryption=security,
                                      band=band, vlan_id=vlan_id[0], mode=mode, num_sta=num_sta)
-        self.add_vlan(vlan_ids=vlan_id)
 
         logging.info("Setup interface data" + str(data))
+        if data == {}:
+            pytest.skip("Skipping This Test")
         sta_connect_obj = []
         for dut in data:
             for radio in data[dut]["station_data"]:
@@ -85,7 +86,6 @@ class lf_tests(lf_libs):
                 obj_sta_connect.upload_bps = 128000
                 obj_sta_connect.side_a_pdu = 1200
                 obj_sta_connect.side_b_pdu = 1500
-
 
                 # changed to auto channel
                 self.set_radio_channel(radio=radio, channel="AUTO")
@@ -424,7 +424,7 @@ if __name__ == '__main__':
     }
 
     obj = lf_tests(lf_data=dict(basic_04["traffic_generator"]), dut_data=list(basic_04["device_under_tests"]),
-                   log_level=logging.DEBUG, run_lf=True)
+                   log_level=logging.DEBUG, run_lf=False)
     # A =obj.setup_interfaces(band="fiveg", vlan_id=100, mode="NAT-WAN", num_sta=1)
     # print(A)
     # obj.setup_relevent_profiles()
@@ -436,12 +436,14 @@ if __name__ == '__main__':
     # obj.create_dhcp_external()obj.add_vlan(vlan_ids=[100, 200, 300, 400, 500, 600])
     # obj.get_cx_data()
     # obj.chamber_view()
-    dut = {'0000c1018812': [['OpenWifi', 'wpa2', 'OpenWifi', '2G', '6A:21:5F:DA:45:6F'],
-                      {'2G': [6, 40, 2437], '5G': None, '6G': None}]}
+    dut = {'0000c1018812': [['ssid_open_2g_nat', 'open', 'something', '2G', '6A:21:5F:DA:45:6F'],
+                            {'2G': [6, 40, 2437], '5G': None, '6G': None}]}
 
-    c = obj.client_connectivity_test(ssid="OpenWifi", passkey="OpenWifi", security="wpa2", extra_securities=[],
-                                     num_sta=1, mode="BRIDGE", dut_data=dut,
-                                     band="twog")
+    passes, result = obj.client_connectivity_test(ssid="ssid_open_2g_nat", passkey="something", security="open",
+                                                  extra_securities=[],
+                                                  num_sta=1, mode="NAT-WAN", dut_data=dut,
+                                                  band="twog")
+    print(passes == "PASS", result)
     # obj.start_sniffer(radio_channel=1, radio="wiphy7", test_name="sniff_radio", duration=30)
     # print("started")
     # time.sleep(30)
