@@ -456,7 +456,8 @@ class lf_libs:
                     r_val.pop(dut)
         if mode == "NAT-LAN":
             ret = self.get_lan_upstream_ports()
-            for dut in r_val:
+            temp = r_val.copy()
+            for dut in temp:
                 if ret.keys().__contains__(dut) and ret[dut] is not None:
                     upstream_data = (ret[dut]).split(".")
                     r_val[dut]["upstream_port"] = ret[dut]
@@ -473,6 +474,7 @@ class lf_libs:
                 logging.error("VLAN ID is Unspecified in the VLAN Case")
                 pytest.skip("VLAN ID is Unspecified in the VLAN Case")
             else:
+                self.add_vlan(vlan_ids=[vlan_id])
                 ret = self.get_wan_upstream_ports()
                 for dut in r_val:
                     if ret.keys().__contains__(dut) and ret[dut] is not None:
@@ -656,9 +658,8 @@ class lf_libs:
                             r_val[dut["identifier"]]["passkey"] = dut["ssid"]["2g-password"]
                             r_val[dut["identifier"]]["encryption"] = dut["ssid"]["2g-encryption"]
                             r_val[dut["identifier"]]["bssid"] = dut["ssid"]["2g-bssid"]
-                            if dut["ssid"]["2g-encryption"] == "OPEN":
+                            if str(dut["ssid"]["2g-encryption"]).upper() == "OPEN":
                                 ssid_data.append(['ssid_idx=0 ssid=' + dut["ssid"]["2g-ssid"] +
-                                                  ' password=' + dut["ssid"]["2g-password"] +
                                                   ' bssid=' + dut["ssid"]["2g-bssid"]])
                             else:
                                 ssid_data.append(['ssid_idx=0 ssid=' + dut["ssid"]["2g-ssid"] +
@@ -671,9 +672,8 @@ class lf_libs:
                             r_val[dut["identifier"]]["passkey"] = dut["ssid"]["5g-password"]
                             r_val[dut["identifier"]]["encryption"] = dut["ssid"]["5g-encryption"]
                             r_val[dut["identifier"]]["bssid"] = dut["ssid"]["5g-bssid"]
-                            if dut["ssid"]["5g-encryption"] == "OPEN":
+                            if str(dut["ssid"]["5g-encryption"]).upper() == "OPEN":
                                 ssid_data.append(['ssid_idx=0 ssid=' + dut["ssid"]["5g-ssid"] +
-                                                  ' password=' + dut["ssid"]["5g-password"] +
                                                   ' bssid=' + dut["ssid"]["5g-bssid"]])
                             else:
                                 ssid_data.append(['ssid_idx=0 ssid=' + dut["ssid"]["5g-ssid"] +
@@ -686,9 +686,8 @@ class lf_libs:
                             r_val[dut["identifier"]]["passkey"] = dut["ssid"]["6g-password"]
                             r_val[dut["identifier"]]["encryption"] = dut["ssid"]["6g-encryption"]
                             r_val[dut["identifier"]]["bssid"] = dut["ssid"]["6g-bssid"]
-                            if dut["ssid"]["6g-encryption"] == "OPEN":
+                            if str(dut["ssid"]["6g-encryption"]).upper() == "OPEN":
                                 ssid_data.append(['ssid_idx=0 ssid=' + dut["ssid"]["6g-ssid"] +
-                                                  ' password=' + dut["ssid"]["6g-password"] +
                                                   ' bssid=' + dut["ssid"]["6g-bssid"]])
                             else:
                                 ssid_data.append(['ssid_idx=0 ssid=' + dut["ssid"]["6g-ssid"] +
@@ -704,9 +703,8 @@ class lf_libs:
                     r_val[dut["identifier"]]["passkey"] = passkey
                     r_val[dut["identifier"]]["encryption"] = encryption
                     r_val[dut["identifier"]]["bssid"] = bssid
-                    if encryption == "OPEN":
+                    if str(encryption).upper() == "OPEN":
                         ssid_data.append(['ssid_idx=0 ssid=' + ssid +
-                                          ' password=' + passkey +
                                           ' bssid=' + str(bssid).upper()])
                     else:
                         ssid_data.append(['ssid_idx=0 ssid=' + ssid +
@@ -716,7 +714,6 @@ class lf_libs:
 
                     if str(encryption).upper() in ["OPEN", "WPA", "WPA2", "WPA3", "WEP"]:
                         self.update_duts(identifier=dut["identifier"], ssid_data=ssid_data)
-        print(r_val)
         return r_val
 
     def update_duts(self, identifier=0, ssid_data=[]):
