@@ -94,7 +94,6 @@ class lf_tests(lf_libs):
                 logging.info("ssid scan data : " + str(result))
                 if not result:
                     # Sniffer required
-                    # print("sniff radio", data["sniff_radio"].split(".")[2])
                     for duts in self.dut_data:
                         identifier = duts["identifier"]
                         if dut_data.keys().__contains__(identifier):
@@ -172,9 +171,9 @@ class lf_tests(lf_libs):
                             self.stop_sniffer()
                 else:
                     for obj in sta_connect_obj:
-                        print(obj)
+
                         obj.start()
-                    print("napping %f sec" % runtime_secs)
+                    logging.info("napping %f sec" % runtime_secs)
                     time.sleep(runtime_secs)
         pass_fail_result = []
         for obj in sta_connect_obj:
@@ -260,7 +259,11 @@ class lf_tests(lf_libs):
             else:
                 logging.info("client connection to" + str(obj.dut_ssid) + "unsuccessful. Test Failed")
                 result = "FAIL"
-
+        for obj in sta_connect_obj:
+            try:
+                self.get_supplicant_logs(radio="1." + str(obj.resource) + "." + str(obj.radio))
+            except Exception as e:
+                logging.error("client_cpnnectivity_tests() -- Error in getting Supplicant Logs:" + str(e))
         result = "PASS"
         description = ""
         for i in pass_fail_result:
@@ -318,7 +321,6 @@ class lf_tests(lf_libs):
         for obj in client_connect_obj:
             obj.build()
             result = obj.wait_for_ip(station_list=obj.sta_list, timeout_sec=50)
-            # print(self.client_connect.wait_for_ip(station_name))
             pass_fail.append(result)
             station_data_ = self.get_station_data(sta_name=obj.sta_list, rows=station_data,
                                                   allure_attach=False)
@@ -353,17 +355,17 @@ class lf_tests(lf_libs):
 if __name__ == '__main__':
     basic_04 = {
         "target": "tip_2x",
-        "controller": {
+        "controller" : {
             "url": "https://sec-qa01.cicd.lab.wlan.tip.build:16001",
             "username": "tip@ucentral.com",
             "password": "OpenWifi%123"
         },
         "device_under_tests": [{
-            "model": "edgecore_ecw5211",
-            "supported_bands": ["2G", "5G"],
+            "model": "cig_wf196",
+            "supported_bands": ["2G", "5G", "6G"],
             "supported_modes": ["BRIDGE", "NAT", "VLAN"],
-            "wan_port": "1.1.eth2",
-            "lan_port": "1.1.eth1",
+            "wan_port": "1.3.eth2",
+            "lan_port": None,
             "ssid": {
                 "2g-ssid": "OpenWifi",
                 "5g-ssid": "OpenWifi",
@@ -371,21 +373,21 @@ if __name__ == '__main__':
                 "2g-password": "OpenWifi",
                 "5g-password": "OpenWifi",
                 "6g-password": "OpenWifi",
-                "2g-encryption": "OPEN",
-                "5g-encryption": "OPEN",
-                "6g-encryption": "OPEN",
+                "2g-encryption": "WPA2",
+                "5g-encryption": "WPA2",
+                "6g-encryption": "WPA3",
                 "2g-bssid": "68:7d:b4:5f:5c:31",
                 "5g-bssid": "68:7d:b4:5f:5c:3c",
                 "6g-bssid": "68:7d:b4:5f:5c:38"
             },
-            "mode": "wifi5",
-            "identifier": "68215fda456d",
+            "mode": "wifi6e",
+            "identifier": "824f816011e4",
             "method": "serial",
             "host_ip": "localhost",
             "host_username": "lanforge",
             "host_password": "pumpkin77",
-            "host_ssh_port": 8832,
-            "serial_tty": "/dev/ttyAP5",
+            "host_ssh_port": 8902,
+            "serial_tty": "/dev/ttyAP0",
             "firmware_version": "next-latest"
         }],
         "traffic_generator": {
@@ -394,26 +396,24 @@ if __name__ == '__main__':
             "scenario": "dhcp-bridge",
             "details": {
                 "manager_ip": "localhost",
-                "http_port": 8830,
-                "ssh_port": 8831,
+                "http_port":  8900,
+                "ssh_port":  8901,
                 "setup": {"method": "build", "DB": "Test_Scenario_Automation"},
                 "wan_ports": {
-                    "1.1.eth2": {"addressing": "dhcp-server", "subnet": "172.16.0.1/16", "dhcp": {
+                    "1.3.eth2": {"addressing": "dhcp-server", "subnet": "172.16.0.1/16", "dhcp": {
                         "lease-first": 10,
                         "lease-count": 10000,
                         "lease-time": "6h"
+                        }
                     }
-                                 }
                 },
                 "lan_ports": {
-                    "1.1.eth1": {
-                        "addressing": "dynamic"
-                    }
+
                 },
                 "uplink_nat_ports": {
-                    "1.1.eth3": {
+                    "1.3.eth3": {
                         "addressing": "static",
-                        "ip": "10.28.2.9",
+                        "ip": "10.28.2.39",
                         "gateway_ip": "10.28.2.1/24",
                         "ip_mask": "255.255.255.0",
                         "dns_servers": "BLANK"
@@ -425,6 +425,7 @@ if __name__ == '__main__':
 
     obj = lf_tests(lf_data=dict(basic_04["traffic_generator"]), dut_data=list(basic_04["device_under_tests"]),
                    log_level=logging.DEBUG, run_lf=False)
+    obj.get_supplicant_logs(radio="1.1.wiphy1")
     # A =obj.setup_interfaces(band="fiveg", vlan_id=100, mode="NAT-WAN", num_sta=1)
     # print(A)
     # obj.setup_relevent_profiles()
@@ -436,14 +437,14 @@ if __name__ == '__main__':
     # obj.create_dhcp_external()obj.add_vlan(vlan_ids=[100, 200, 300, 400, 500, 600])
     # obj.get_cx_data()
     # obj.chamber_view()
-    dut = {'0000c1018812': [['ssid_open_2g_nat', 'open', 'something', '2G', '6A:21:5F:DA:45:6F'],
-                            {'2G': [6, 40, 2437], '5G': None, '6G': None}]}
-
+    # dut = {'0000c1018812': [['ssid_open_2g_nat', 'open', 'something', '2G', '6A:21:5F:DA:45:6F'],
+    #                         {'2G': [6, 40, 2437], '5G': None, '6G': None}]}
+    #
     passes, result = obj.client_connectivity_test(ssid="ssid_open_2g_nat", passkey="something", security="open",
                                                   extra_securities=[],
                                                   num_sta=1, mode="NAT-WAN", dut_data=dut,
                                                   band="twog")
-    print(passes == "PASS", result)
+    # print(passes == "PASS", result)
     # obj.start_sniffer(radio_channel=1, radio="wiphy7", test_name="sniff_radio", duration=30)
     # print("started")
     # time.sleep(30)

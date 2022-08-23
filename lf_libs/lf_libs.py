@@ -160,7 +160,7 @@ class lf_libs:
         self.scenario = lf_data.get("scenario")
         self.setup_lf_data()
         self.setup_relevent_profiles()
-        # self.load_scenario()
+        self.load_scenario()
         self.setup_metadata()
         if self.scenario == "dhcp-bridge":
             logging.info("Scenario name: " + str(self.scenario))
@@ -171,9 +171,8 @@ class lf_libs:
             self.create_dhcp_external()
         self.chamber_view(raw_lines=self.default_scenario_raw_lines)
         self.setup_dut()
-
         # except Exception as e:
-        logging.error("lf_data has bad values: " + str(lf_data))
+        # logging.error("lf_data has bad values: " + str(lf_data))
         # logging.error(e)
 
     """
@@ -1192,6 +1191,44 @@ class lf_libs:
             self.json_post("/cli-json/set_wifi_radio", data=data)
         else:
             logging.error("Radio name is wrong")
+
+    def get_supplicant_logs(self, radio="1.1.wiphy0", attach_allure=True):
+        try:
+            resource = radio.split(".")[1]
+            radio = radio.split(".")[2]
+            ip = self.get_manager_from_resource(resource=int(resource))
+            if ip is not None:
+                supplicant = "/home/lanforge/wifi/wpa_supplicant_log_" + radio + ".txt"
+                obj = SCP_File(ip=ip, port=22, username="root", password="lanforge",
+                               remote_path=supplicant,
+                               local_path=".")
+                obj.pull_file()
+                if attach_allure:
+                    allure.attach.file(source="wpa_supplicant_log_" + radio + ".txt",
+                                       name="wpa_supplicant_log - " + str(radio))
+        except Exception as e:
+            logging.error("get_supplicant_logs() - Error in getting supplicant Logs: " + str(e))
+
+    def get_resources(self):
+        try:
+            d = self.json_get("/port/?fields=alias,ip")
+            resource_data = dict()
+            for i in d["interfaces"]:
+                if str(list(dict(i).keys())[0]).__contains__("eth0"):
+                    resource_data[str(list(dict(i).keys())[0]).split(".")[1]] = i[str(list(dict(i).keys())[0])]["ip"]
+            logging.info("Resource ID and Management port Mapping: " + str(resource_data))
+        except Exception as e:
+            logging.error(str(e))
+        return resource_data
+
+    def get_manager_from_resource(self, resource=1):
+        resource_data = self.get_resources()
+        try:
+            ip = resource_data[str(resource)]
+        except Exception as e:
+            logging.error("Resource is Unavailable when reading manager: " + str(e))
+            ip = None
+        return ip
 
 
 class Report:
