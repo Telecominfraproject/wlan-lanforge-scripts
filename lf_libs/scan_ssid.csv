@@ -1,0 +1,4 @@
+,age,auth,beacon,bss,channel,entity id,frequency,info,signal,ssid
+0,4365,WPA2,100,00:06:ae:6d:f0:fe,1,1.1.8,2412,2x2 MCS 0-11 AX,-39.0,dual_band
+1,4096,Open,100,68:21:5f:da:45:6f,6,1.1.8,2437,2x2 MIMO,-41.0,ssid_open_2g_nat
+2,35835829,WPA2,100,6a:21:5f:da:45:6f,6,1.1.8,2437,2x2 MIMO,-42.0,OpenWifi

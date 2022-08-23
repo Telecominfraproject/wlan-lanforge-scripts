@@ -153,6 +153,7 @@ class lf_libs:
         logging.basicConfig(format='%(asctime)s - %(message)s', level=log_level)
         lf_data = dict(lf_data)
         self.dut_data = dut_data
+        self.dut_data = dut_data
         self.run_lf = run_lf
         # try:
         self.lanforge_data = lf_data.get("details")
@@ -160,7 +161,6 @@ class lf_libs:
         self.scenario = lf_data.get("scenario")
         self.setup_lf_data()
         self.setup_relevent_profiles()
-        self.load_scenario()
         self.setup_metadata()
         if self.scenario == "dhcp-bridge":
             logging.info("Scenario name: " + str(self.scenario))

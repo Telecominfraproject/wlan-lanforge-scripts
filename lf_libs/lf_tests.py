@@ -1,5 +1,6 @@
 import csv
 import importlib
+import json
 import logging
 import os
 import sys
@@ -53,10 +54,17 @@ class lf_tests(lf_libs):
                                  security="open", extra_securities=[], sta_mode=0,
                                  num_sta=1, mode="BRIDGE", vlan_id=[None], band="twog",
                                  allure_attach=True, runtime_secs=40):
+
+        logging.info("DUT Data:\n" + json.dumps(str(dut_data), indent=2))
+        allure.attach(name="DUT Data:\n", body=json.dumps(str(dut_data), indent=2),
+                      attachment_type=allure.attachment_type.JSON)
+
         data = self.setup_interfaces(ssid=ssid, bssid=bssid, passkey=passkey, encryption=security,
                                      band=band, vlan_id=vlan_id[0], mode=mode, num_sta=num_sta)
 
-        logging.info("Setup interface data" + str(data))
+        logging.info("Setup interface data:\n" + json.dumps(str(data), indent=2))
+        allure.attach(name="Interface Info: \n", body=json.dumps(str(data), indent=2),
+                      attachment_type=allure.attachment_type.JSON)
         if data == {}:
             pytest.skip("Skipping This Test")
         sta_connect_obj = []
@@ -98,9 +106,9 @@ class lf_tests(lf_libs):
                         identifier = duts["identifier"]
                         if dut_data.keys().__contains__(identifier):
                             if band == "twog":
-                                if dict(dut_data.get(identifier)[-1]).keys().__contains__("2G") and \
-                                        dict(dut_data.get(identifier)[-1])["2G"] is not None:
-                                    channel = dict(dut_data.get(identifier)[-1])["2G"][0]
+                                if dict(dut_data.get(identifier)["radio_data"]).keys().__contains__("2G") and \
+                                        dict(dut_data.get(identifier)["radio_data"])["2G"] is not None:
+                                    channel = dict(dut_data.get(identifier)["radio_data"])["2G"]["channel"]
                                     if data[dut]["sniff_radio_2g"] is not None:
                                         self.start_sniffer(radio_channel=channel,
                                                            radio=data[dut]["sniff_radio_2g"].split(".")[2],
@@ -108,9 +116,9 @@ class lf_tests(lf_libs):
                                         time.sleep(10)
                                         self.stop_sniffer()
                             elif band == "fiveg":
-                                if dict(dut_data.get(identifier)[-1]).keys().__contains__("5G") and \
-                                        dict(dut_data.get(identifier)[-1])["5G"] is not None:
-                                    channel = dict(dut_data.get(identifier)[-1])["5G"][0]
+                                if dict(dut_data.get(identifier)["radio_data"]).keys().__contains__("5G") and \
+                                        dict(dut_data.get(identifier)["radio_data"])["5G"] is not None:
+                                    channel = dict(dut_data.get(identifier)["radio_data"])["5G"]["channel"]
                                     if data[dut]["sniff_radio_5g"] is not None:
                                         self.start_sniffer(radio_channel=channel,
                                                            radio=data[dut]["sniff_radio_5g"].split(".")[2],
@@ -118,9 +126,9 @@ class lf_tests(lf_libs):
                                         time.sleep(10)
                                         self.stop_sniffer()
                             elif band == "sixg":
-                                if dict(dut_data.get(identifier)[-1]).keys().__contains__("6G") and \
-                                        dict(dut_data.get(identifier)[-1])["6G"] is not None:
-                                    channel = dict(dut_data.get(identifier)[-1])["6G"][0]
+                                if dict(dut_data.get(identifier)["radio_data"]).keys().__contains__("6G") and \
+                                        dict(dut_data.get(identifier)["radio_data"])["6G"] is not None:
+                                    channel = dict(dut_data.get(identifier)["radio_data"])["6G"]["channel"]
                                     if data[dut]["sniff_radio_6g"] is not None:
                                         self.start_sniffer(radio_channel=channel,
                                                            radio=data[dut]["sniff_radio_6g"].split(".")[2],
@@ -135,9 +143,9 @@ class lf_tests(lf_libs):
                 identifier = dut_["identifier"]
                 if dut_data.keys().__contains__(identifier):
                     if band == "twog":
-                        if dict(dut_data.get(identifier)[-1]).keys().__contains__("2G") and \
-                                dict(dut_data.get(identifier)[-1])["2G"] is not None:
-                            channel = dict(dut_data.get(identifier)[-1])["2G"][0]
+                        if dict(dut_data.get(identifier)["radio_data"]).keys().__contains__("2G") and \
+                                dict(dut_data.get(identifier)["radio_data"])["2G"] is not None:
+                            channel = dict(dut_data.get(identifier)["radio_data"])["2G"]["channel"]
                             self.start_sniffer(radio_channel=channel, radio=data[dut]["sniff_radio_2g"].split(".")[2],
                                                duration=runtime_secs)
                             logging.info("started-sniffer")
@@ -148,9 +156,9 @@ class lf_tests(lf_libs):
                             logging.info("stopping-sniffer")
                             self.stop_sniffer()
                     elif band == "fiveg":
-                        if dict(dut_data.get(identifier)[-1]).keys().__contains__("5G") and \
-                                dict(dut_data.get(identifier)[-1])["5G"] is not None:
-                            channel = dict(dut_data.get(identifier)[-1])["5G"][0]
+                        if dict(dut_data.get(identifier)["radio_data"]).keys().__contains__("5G") and \
+                                dict(dut_data.get(identifier)["radio_data"])["5G"] is not None:
+                            channel = dict(dut_data.get(identifier)["radio_data"])["5G"]["channel"]
                             self.start_sniffer(radio_channel=channel, radio=data[dut]["sniff_radio_5g"].split(".")[2],
                                                duration=runtime_secs)
                             for obj in sta_connect_obj:
@@ -159,9 +167,9 @@ class lf_tests(lf_libs):
                             time.sleep(runtime_secs)
                             self.stop_sniffer()
                     elif band == "sixg":
-                        if dict(dut_data.get(identifier)[-1]).keys().__contains__("6G") and \
-                                dict(dut_data.get(identifier)[-1])["6G"] is not None:
-                            channel = dict(dut_data.get(identifier)[-1])["6G"][0]
+                        if dict(dut_data.get(identifier)["radio_data"]).keys().__contains__("6G") and \
+                                dict(dut_data.get(identifier)["radio_data"])["6G"] is not None:
+                            channel = dict(dut_data.get(identifier)["radio_data"])["6G"]["channel"]
                             self.start_sniffer(radio_channel=channel, radio=data[dut]["sniff_radio_6g"].split(".")[2],
                                                duration=runtime_secs)
                             for obj in sta_connect_obj:
@@ -171,7 +179,6 @@ class lf_tests(lf_libs):
                             self.stop_sniffer()
                 else:
                     for obj in sta_connect_obj:
-
                         obj.start()
                     logging.info("napping %f sec" % runtime_secs)
                     time.sleep(runtime_secs)
@@ -261,7 +268,8 @@ class lf_tests(lf_libs):
                 result = "FAIL"
         for obj in sta_connect_obj:
             try:
-                self.get_supplicant_logs(radio="1." + str(obj.resource) + "." + str(obj.radio))
+                print("1." + str(obj.resource) + "." + str(obj.radio))
+                self.get_supplicant_logs(radio=str(obj.radio))
             except Exception as e:
                 logging.error("client_cpnnectivity_tests() -- Error in getting Supplicant Logs:" + str(e))
         result = "PASS"
@@ -355,7 +363,7 @@ class lf_tests(lf_libs):
 if __name__ == '__main__':
     basic_04 = {
         "target": "tip_2x",
-        "controller" : {
+        "controller": {
             "url": "https://sec-qa01.cicd.lab.wlan.tip.build:16001",
             "username": "tip@ucentral.com",
             "password": "OpenWifi%123"
@@ -396,16 +404,16 @@ if __name__ == '__main__':
             "scenario": "dhcp-bridge",
             "details": {
                 "manager_ip": "localhost",
-                "http_port":  8900,
-                "ssh_port":  8901,
+                "http_port": 8900,
+                "ssh_port": 8901,
                 "setup": {"method": "build", "DB": "Test_Scenario_Automation"},
                 "wan_ports": {
                     "1.3.eth2": {"addressing": "dhcp-server", "subnet": "172.16.0.1/16", "dhcp": {
                         "lease-first": 10,
                         "lease-count": 10000,
                         "lease-time": "6h"
-                        }
                     }
+                                 }
                 },
                 "lan_ports": {
 
@@ -437,8 +445,8 @@ if __name__ == '__main__':
     # obj.create_dhcp_external()obj.add_vlan(vlan_ids=[100, 200, 300, 400, 500, 600])
     # obj.get_cx_data()
     # obj.chamber_view()
-    # dut = {'0000c1018812': [['ssid_open_2g_nat', 'open', 'something', '2G', '6A:21:5F:DA:45:6F'],
-    #                         {'2G': [6, 40, 2437], '5G': None, '6G': None}]}
+    dut = {'0000c1018812': [['ssid_open_2g_nat', 'open', 'something', '2G', '6A:21:5F:DA:45:6F'],
+                            {'2G': [6, 40, 2437], '5G': None, '6G': None}]}
     #
     passes, result = obj.client_connectivity_test(ssid="ssid_open_2g_nat", passkey="something", security="open",
                                                   extra_securities=[],
