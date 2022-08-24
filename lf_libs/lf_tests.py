@@ -4,6 +4,8 @@ import logging
 import os
 import sys
 import time
+import string
+import random
 import paramiko
 from datetime import datetime
 
@@ -39,16 +41,19 @@ cv_test_reports = importlib.import_module("py-json.cv_test_reports")
 lf_report = cv_test_reports.lanforge_reports
 createstation = importlib.import_module("py-scripts.create_station")
 CreateStation = createstation.CreateStation
-
+wificapacitytest = importlib.import_module("py-scripts.lf_wifi_capacity_test")
+WiFiCapacityTest = wificapacitytest.WiFiCapacityTest
+csvtoinflux = importlib.import_module("py-scripts.csv_to_influx")
+CSVtoInflux = csvtoinflux.CSVtoInflux
 
 class lf_tests(lf_libs):
     """
         lf_tools is needed in lf_tests to do various operations needed by various tests
     """
 
-    def __init__(self, lf_data={}, dut_data={}, log_level=logging.DEBUG, run_lf=False, influx_params=None):
+    def __init__(self, lf_data={}, dut_data={}, log_level=logging.DEBUG, run_lf=False, influx_params=None, local_report_path="../reports/"):
         super().__init__(lf_data, dut_data, run_lf, log_level)
-
+        self.local_report_path = local_report_path
 
     def client_connectivity_test(self, ssid="[BLANK]", passkey="[BLANK]", bssid="[BLANK]", dut_data={},
                                  security="open", extra_securities=[], sta_mode=0,
@@ -350,11 +355,11 @@ class lf_tests(lf_libs):
             logging.info("ALL Stations got IP's")
             return station_data_all
 
-    def add_stations(self, band="2G", num_stations=9, ssid_name=[], idx=0):
+    def add_stations(self, band="2G", num_stations=9, ssid_name="", dut_data={}, identifier=None):
 
         dut_name = []
-        for index in range(0, len(self.dut_data)):
-            dut_name.append(self.dut_data[index]["identifier"])
+        # for index in range(0, len(self.dut_data)):
+        #     dut_name.append(self.dut_data[index]["identifier"])
         if num_stations == 0:
             logging.warning("0 Stations")
             return
@@ -362,6 +367,7 @@ class lf_tests(lf_libs):
         for dut in self.dut_data:
             r_val[dut["identifier"]] = None
         idx = None
+        # updating ssids on all APS
         if self.run_lf:
             # idx = idx
             # if self.run_lf or self.cc_1:
@@ -415,21 +421,22 @@ class lf_tests(lf_libs):
         else:
             for dut in self.dut_data:
                 ssid_data = []
-                if r_val.keys().__contains__(dut["identifier"]):
-                    for idx_ in self.dut_data[dut]["ssid_data"]:
+                identifier = dut["identifier"]
+                if r_val.keys().__contains__(identifier):
+                    for idx_ in dut_data[identifier]["ssid_data"]:
 
-                        if str(self.dut_data[dut]["ssid_data"][idx_]["encryption"]).upper() == "OPEN":
-                            ssid_data.append(['ssid_idx=' + str(idx_) + ' ssid=' + self.dut_data[dut]["ssid_data"][idx_]["ssid"]
+                        if str(dut_data[identifier]["ssid_data"][idx_]["encryption"]).upper() == "OPEN":
+                            ssid_data.append(['ssid_idx=' + str(idx_) + ' ssid=' + dut_data[identifier]["ssid_data"][idx_]["ssid"]
                                               +
-                                              ' bssid=' + str(self.dut_data[dut]["ssid_data"][idx_]["bssid"]).upper()])
+                                              ' bssid=' + str(dut_data[identifier]["ssid_data"][idx_]["bssid"]).upper()])
                         else:
-                            ssid_data.append(['ssid_idx=' + str(idx_) + ' ssid=' + self.dut_data[dut]["ssid_data"][idx_]["ssid"] +
-                                              ' security=' + str(self.dut_data[dut]["ssid_data"][idx_]["encryption"]).upper() +
-                                              ' password=' + self.dut_data[dut]["ssid_data"][idx_]["password"] +
-                                              ' bssid=' + str(self.dut_data[dut]["ssid_data"][idx_]["bssid"]).upper()])
+                            ssid_data.append(['ssid_idx=' + str(idx_) + ' ssid=' + dut_data[identifier]["ssid_data"][idx_]["ssid"] +
+                                              ' security=' + str(dut_data[identifier]["ssid_data"][idx_]["encryption"]).upper() +
+                                              ' password=' + dut_data[identifier]["ssid_data"][idx_]["password"] +
+                                              ' bssid=' + str(dut_data[identifier]["ssid_data"][idx_]["bssid"]).upper()])
 
-                        if str(self.dut_data[dut]["ssid_data"][idx_]["encryption"]).upper() in ["OPEN", "WPA", "WPA2", "WPA3", "WEP"]:
-                            self.update_duts(identifier=dut["identifier"], ssid_data=ssid_data)
+                        if str(dut_data[identifier]["ssid_data"][idx_]["encryption"]).upper() in ["OPEN", "WPA", "WPA2", "WPA3", "WEP"]:
+                            self.update_duts(identifier=identifier, ssid_data=ssid_data)
 
         dict_all_radios_2g = {"wave2_2g_radios": self.wave2_2g_radios,
                               "wave1_radios": self.wave1_radios, "mtk_radios": self.mtk_radios,
@@ -447,109 +454,204 @@ class lf_tests(lf_libs):
                                  "ax200_radios": 1, "ax210_radios": 1}
         radio_data = {}
         sniff_radio = ""
-        for dut in dut_name:
-            if self.run_lf or self.cc_1:
-                if band == "2G":
-                    idx = 0
-                if band == "5G":
-                    idx = 1
-                if band == "6g":
-                    idx = 2
-            else:
+        if self.run_lf or self.cc_1:
+            if band == "2G":
+                idx = 0
+            if band == "5G":
+                idx = 1
+            if band == "6g":
+                idx = 2
+        else:
+            for dut in dut_name:
                 for idx_ in self.dut_data[dut]["ssid_data"]:
-                    if band == self.dut_data[dut]["ssid_data"][idx_]["band"] and ssid_data == \
+                    if band == self.dut_data[dut]["ssid_data"][idx_]["band"] and ssid_name == \
                             self.dut_data[dut]["ssid_data"][idx_]["ssid"]:
                         idx = idx_
-            print("*********idx***********", idx)
-            if band == "2G":
-                if int(num_stations) > int(self.max_2g_stations):
-                    logging.error("Can't create %s stations on lanforge" % num_stations)
-                    pytest.skip("Can't create %s stations on lanforge" % num_stations)
-                # checking atleast one 2g radio is available or not
-                elif len(self.wave2_2g_radios) == 0 and len(self.wave1_radios) and len(self.ax210_radios) == 0 and len(
-                        self.ax200_radios) == 0 and len(self.mtk_radios) == 0:
-                    logging.error("Twog radio is not available")
-                    pytest.skip("Twog radio is not available")
-                stations = num_stations
-                for j in dict_all_radios_2g:
-                    max_station = max_station_per_radio[j]
-                    if stations > 0:
-                        if len(dict_all_radios_2g[j]) > 0:
-                            diff = max_station - stations
-                            for i in dict_all_radios_2g[j]:
-                                if diff >= 0:
-                                    radio_data[i] = stations
-                                    stations = 0
-                                    break
-                                elif diff < 0:
-                                    radio_data[i] = max_station
-                                    stations = stations - max_station
-                                    diff = max_station - stations
-                sniff_radio = self.setup_sniffer(band=band, station_radio_data=radio_data)
-            if band == "5G":
-                # checking station compitality of lanforge
-                if int(num_stations) > int(self.max_5g_stations):
-                    logging.error("Can't create %s stations on lanforge" % num_stations)
-                    pytest.skip("Can't create %s stations on lanforge" % num_stations)
-                # checking atleast one 5g radio is available or not
-                elif len(self.wave2_5g_radios) == 0 and len(self.wave1_radios) and len(self.ax210_radios) == 0 and len(
-                        self.ax200_radios) == 0 and len(self.mtk_radios) == 0:
-                    logging.error("fiveg radio is not available")
-                    pytest.skip("fiveg radio is not available")
+        print("*********idx***********", idx)
+        if band == "2G":
+            stations = None
+            if num_stations != "max":
+                if num_stations <= int(self.max_2g_stations):
+                    stations = num_stations
+                else:
+                    stations = int(self.max_2g_stations)
+            if num_stations == "max":
+                stations = int(self.max_2g_stations)
+            for j in dict_all_radios_2g:
+                max_station = max_station_per_radio[j]
+                if stations > 0:
+                    if len(dict_all_radios_2g[j]) > 0:
+                        diff = max_station - stations
+                        for i in dict_all_radios_2g[j]:
+                            if diff >= 0:
+                                radio_data[i] = stations
+                                stations = 0
+                                break
+                            elif diff < 0:
+                                radio_data[i] = max_station
+                                stations = stations - max_station
+                                diff = max_station - stations
+        if band == "5G":
+            stations = None
+            if num_stations != "max":
+                if num_stations <= int(self.max_5g_stations):
+                    stations = num_stations
+                else:
+                    stations = int(self.max_5g_stations)
+            if num_stations == "max":
+                stations = int(self.max_5g_stations)
+            for j in dict_all_radios_5g:
+                max_station = max_station_per_radio[j]
+                if stations > 0:
+                    if len(dict_all_radios_5g[j]) > 0:
+                        diff = max_station - stations
+                        for i in dict_all_radios_5g[j]:
+                            if diff >= 0:
+                                radio_data[i] = stations
+                                stations = 0
+                                break
+                            elif diff < 0:
+                                radio_data[i] = max_station
+                                stations = stations - max_station
+                                diff = max_station - stations
 
-                # radio and station selection
-                stations = num_stations
-                for j in dict_all_radios_5g:
-                    max_station = max_station_per_radio[j]
-                    if stations > 0:
-                        if len(dict_all_radios_5g[j]) > 0:
-                            diff = max_station - stations
-                            for i in dict_all_radios_5g[j]:
-                                if diff >= 0:
-                                    radio_data[i] = stations
-                                    stations = 0
-                                    break
-                                elif diff < 0:
-                                    radio_data[i] = max_station
-                                    stations = stations - max_station
-                                    diff = max_station - stations
-                # setup sniffer
-                sniff_radio = self.setup_sniffer(band=band, station_radio_data=radio_data)
-            if band == "6G":
-                # checking station compitality of lanforge
-                if int(num_stations) > int(self.max_6g_stations):
-                    logging.error("Can't create %s stations on lanforge" % num_stations)
-                    pytest.skip("Can't create %s stations on lanforge" % num_stations)
-                # checking atleast one 6g radio is available or not
-                elif len(self.ax210_radios) == 0:
-                    logging.error("sixg radio is not available")
-                    pytest.skip("sixg radio is not available")
+        if band == "6G":
+            stations = None
+            if num_stations != "max":
+                if num_stations <= int(self.max_6g_stations):
+                    stations = num_stations
+                else:
+                    stations = int(self.max_6g_stations)
+            if num_stations == "max":
+                stations = int(self.max_6g_stations)
 
-                # radio and station selection
-                stations = num_stations
-                for j in dict_all_radios_6g:
-                    max_station = max_station_per_radio[j]
-                    if stations > 0:
-                        if len(dict_all_radios_6g[j]) > 0:
-                            diff = max_station - stations
-                            for i in dict_all_radios_6g[j]:
-                                if diff >= 0:
-                                    radio_data[i] = stations
-                                    stations = 0
-                                    break
-                                elif diff < 0:
-                                    radio_data[i] = max_station
-                                    stations = stations - max_station
-                                    diff = max_station - stations
+            # radio and station selection
+            for j in dict_all_radios_6g:
+                max_station = max_station_per_radio[j]
+                if stations > 0:
+                    if len(dict_all_radios_6g[j]) > 0:
+                        diff = max_station - stations
+                        for i in dict_all_radios_6g[j]:
+                            if diff >= 0:
+                                radio_data[i] = stations
+                                stations = 0
+                                break
+                            elif diff < 0:
+                                radio_data[i] = max_station
+                                stations = stations - max_station
+                                diff = max_station - stations
 
-                sniff_radio = self.setup_sniffer(band=band, station_radio_data=radio_data)
         print(radio_data)
         for radio in radio_data:
+            if identifier is None:
+                logging.error("Identifier is None")
+                pytest.fail("Identifier is None")
             station_data = ["profile_link " + radio.split(".")[0] + "." + radio.split(".")[1] +
-                            " STA-AUTO " + str(radio_data[radio]) + " 'DUT: " + dut + " Radio-" +
+                            " STA-AUTO " + str(radio_data[radio]) + " 'DUT: " + identifier + " Radio-" +
                             str(int(idx) + 1) + "'" + " NA " + radio.split(".")[2]]
             self.temp_raw_lines.append(station_data)
-        print(self.temp_raw_lines)
+            print(self.temp_raw_lines)
+
+    def wifi_capacity(self, mode="BRIDGE", vlan_id=100, batch_size="1,5,10,20,40,64,128",
+                      instance_name="wct_instance", download_rate="1Gbps", influx_tags="",
+                      upload_rate="1Gbps", protocol="TCP-IPv4", duration="60000", stations="", create_stations=True,
+                      sort="interleave", raw_lines=[], move_to_influx=False,  dut_data={}, ssid_name=None, num_stations={}):
+        wificapacity_obj_list = []
+        for dut in self.dut_data:
+            sets = [["DUT_NAME", dut["model"]]]
+            identifier = dut["identifier"]
+            print("sets", sets)
+            instance_name = ''.join(random.choices(string.ascii_uppercase + string.digits, k=12))
+            if mode == "BRIDGE":
+                ret = self.get_wan_upstream_ports()
+                print("ret", ret)
+                print("dut", dut)
+                upstream_port = ret[identifier]
+
+            if mode == "NAT-WAN":
+                ret = self.get_wan_upstream_ports()
+                upstream_port = ret[identifier]
+
+            if mode == "NAT-LAN":
+                ret = self.get_lan_upstream_ports()
+                upstream_port = ret[identifier]
+            if mode == "VLAN":
+                if vlan_id is None:
+                    logging.error("VLAN ID is Unspecified in the VLAN Case")
+                    pytest.skip("VLAN ID is Unspecified in the VLAN Case")
+                else:
+                    self.add_vlan(vlan_ids=[vlan_id])
+                    ret = self.get_wan_upstream_ports()
+                    upstream_data = ret[identifier] + "." + str(vlan_id)
+            logging.info("Upstream data: ", upstream_port)
+            sets = [["DUT_NAME", dut]]
+            '''SINGLE WIFI CAPACITY using lf_wifi_capacity.py'''
+            for band_ in num_stations:
+                if band_ not in ["2G", "5G", "6G"]:
+                    logging.error("Band is missing")
+                    pytest.fail("band is missing")
+
+                if not isinstance(num_stations[band_], int)  or num_stations[band_] == "max":
+                    logging.error("Number of stations are wrong")
+                    pytest.fail("Number of stations are wrong")
+                if ssid_name is None:
+                    logging.error("ssid name is missing")
+                    pytest.fail("ssid name is missing")
+                self.add_stations(band=band_, num_stations=num_stations[band_], ssid_name=ssid_name, dut_data=dut_data, identifier=identifier)
+            self.chamber_view(raw_lines="custom")
+            wificapacity_obj = WiFiCapacityTest(lfclient_host=self.manager_ip,
+                                                lf_port=self.manager_http_port,
+                                                ssh_port=self.manager_ssh_port,
+                                                lf_user="lanforge",
+                                                lf_password="lanforge",
+                                                local_lf_report_dir=self.local_report_path,
+                                                instance_name=instance_name,
+                                                config_name="wifi_config",
+                                                upstream=upstream_port,
+                                                batch_size=batch_size,
+                                                loop_iter="1",
+                                                protocol=protocol,
+                                                duration=duration,
+                                                pull_report=True,
+                                                load_old_cfg=False,
+                                                upload_rate=upload_rate,
+                                                download_rate=download_rate,
+                                                sort=sort,
+                                                stations=stations,
+                                                create_stations=create_stations,
+                                                radio=None,
+                                                security=None,
+                                                paswd=None,
+                                                ssid=None,
+                                                enables=[],
+                                                disables=[],
+                                                raw_lines=raw_lines,
+                                                raw_lines_file="",
+                                                test_tag=influx_tags,
+                                                sets=sets)
+            wificapacity_obj.setup()
+            wificapacity_obj.run()
+            if move_to_influx:
+                try:
+                    report_name = "../reports/" + \
+                                  wificapacity_obj.report_name[0]['LAST']["response"].split(":::")[1].split("/")[-1]
+                    influx = CSVtoInflux(influx_host=self.influx_params["influx_host"],
+                                         influx_port=self.influx_params["influx_port"],
+                                         influx_org=self.influx_params["influx_org"],
+                                         influx_token=self.influx_params["influx_token"],
+                                         influx_bucket=self.influx_params["influx_bucket"],
+                                         path=report_name)
+
+                    influx.glob()
+                except Exception as e:
+                    print(e)
+                    pass
+            report_name = wificapacity_obj.report_name[0]['LAST']["response"].split(":::")[1].split("/")[-1]
+
+            self.attach_report_graphs(report_name=report_name)
+            self.attach_report_kpi(report_name=report_name)
+            wificapacity_obj_list.append(wificapacity_obj)
+        return wificapacity_obj_list
 
 
 
@@ -806,8 +908,12 @@ if __name__ == '__main__':
     obj = lf_tests(lf_data=dict(basic_04["traffic_generator"]), dut_data=list(basic_04["device_under_tests"]),
                    log_level=logging.DEBUG, run_lf=True)
     #obj.add_stations()
-    obj.add_stations(band="5G")
-    obj.chamber_view(raw_lines="custom")
+    #obj.add_stations(band="5G")
+    #obj.chamber_view(raw_lines="custom")
+    obj.wifi_capacity(instance_name="test_client_wpa2_BRIDGE_udp_bi", mode="BRIDGE", vlan_id=[100],
+                                        download_rate="1Gbps", batch_size="1,5,10,20,40,64,128,256",
+                                        influx_tags="wifi-capacity-udp-bidirectional-bridge-wpa2-2.4G-5G",
+                                        upload_rate="1Gbps", protocol="UDP-IPv4", duration="60000", move_to_influx=False)
     # A =obj.setup_interfaces(band="fiveg", vlan_id=100, mode="NAT-WAN", num_sta=1)
     # print(A)
     # obj.setup_relevent_profiles()
