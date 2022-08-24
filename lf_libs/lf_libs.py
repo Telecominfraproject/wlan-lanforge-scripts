@@ -1209,6 +1209,39 @@ class lf_libs:
         else:
             logging.error("Radio name is wrong")
 
+    def attach_report_graphs(self, report_name=None, pdf_name="WIFI Capacity Test PDF Report"):
+        relevant_path = "../reports/" + report_name + "/"
+        entries = os.listdir("../reports/" + report_name + '/')
+        pdf = False
+        for i in entries:
+            if ".pdf" in i:
+                pdf = i
+        if pdf:
+            allure.attach.file(source=relevant_path + pdf,
+                               name=pdf_name)
+
+        included_extensions = ['png']
+        file_names = [fn for fn in os.listdir(relevant_path)
+                      if any(fn.endswith(ext) for ext in included_extensions)]
+
+        a = [item for item in file_names if 'print' not in item]
+        a = [item for item in a if 'logo' not in item]
+        a = [item for item in a if 'Logo' not in item]
+        a = [item for item in a if 'candela' not in item]
+
+        a.sort()
+        for i in a:
+            allure.attach.file(source=relevant_path + i,
+                               name=i,
+                               attachment_type="image/png", extension=None)
+
+    def attach_report_kpi(self, report_name=None, file_name="kpi_file"):
+        path = "../reports/" + str(report_name) + "/kpi.csv"
+        if os.path.exists(path):
+            allure.attach.file(source=path,
+                               name=file_name, attachment_type="CSV")
+        return os.path.exists(path)
+
 
 class Report:
     def __init__(self, key1=None,
@@ -1229,6 +1262,8 @@ class Report:
         self.table = table
         x = tabulate(self.table, headers=headers, tablefmt=tablefmt)
         return x
+
+
 
 
 class SCP_File:
