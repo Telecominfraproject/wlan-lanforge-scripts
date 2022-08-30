@@ -319,7 +319,7 @@ class lf_tests(lf_libs):
         else:
             all_identifier_list = []
             for dut in self.dut_data:
-                all_identifier_list.append(self.dut_data[dut]["indentifier"])
+                all_identifier_list.append(dut["identifier"])
             print(all_identifier_list)
             if identifier not in all_identifier_list:
                 logging.error("Identifier is missinhg")
@@ -383,21 +383,57 @@ class lf_tests(lf_libs):
             logging.info("ALL Stations got IP's")
             return station_data_all
 
-    # def dfs_test(self, ssid=None, security=None, passkey=None, mode=None,
-    #              band=None, num_sta=1, vlan_id=[None], dut_data={}):
-    #     """DFS test"""
-    #     if len(dut_data) == 0:
-    #         logging.error("DUT data is empty")
-    #         pytest.fail("DUT data is empty")
-    #     for identifier in dut_data:
-    #         station_data = self.client_connect(ssid=ssid, security=security, passkey=passkey, mode=mode,
-    #                                            band=band, num_sta=num_sta, vlan_id=vlan_id,
-    #                                            allure_name="Data before simulate radar", identifier=identifier)
-    #         station_list = list(station_data.kyes())
-    #         pass_fail = []
-    #         logging.info("AP channel: " + str(ap_channel))
-    #
-    #         #run the simulate radar command
+    def dfs_test(self, ssid=None, security=None, passkey=None, mode=None,
+                 band=None, num_sta=1, vlan_id=[None], dut_data={}):
+        """DFS test"""
+
+        for dut in self.dut_data:
+            identifier = dut["identifier"]
+            station_data = self.client_connect(ssid=ssid, security=security, passkey=passkey, mode=mode,
+                                               band=band, num_sta=num_sta, vlan_id=vlan_id,
+                                               allure_name="Station Data before simulate radar", identifier=identifier,
+                                               station_data=["4way time (us)", "channel", "cx time (us)", "dhcp (ms)", "ip", "signal", "mode"])
+            station_list = list(station_data.keys())
+            table_dict = {}
+            sta_channel_before_dfs_list = []
+            sta_channel_after_dfs_list = []
+            pass_fail = []
+            ap_channel = dut_data[identifier]["radio_data"]["5G"][0]
+            logging.info("AP channel: " + str(ap_channel))
+            sta_channel_before_dfs = station_data[station_list[0]]["channel"]
+            logging.info("station channel before dfs: " + str(sta_channel_before_dfs))
+            if str(ap_channel) == str(sta_channel_before_dfs):
+                pass
+                # simulate radar
+                time.sleep(15)
+            else:
+                logging.error("Station not connected to applied channel")
+                pytest.fail("Station not connected to applied channel")
+            self.get_station_data(rows=["4way time (us)", "channel", "cx time (us)", "dhcp (ms)", "ip", "signal", "mode"],
+                                  sta_name=station_list, allure_name="Station Data before simulate radar")
+            sta_channel_after_dfs = self.station_data_query(station_name=station_list[0], query="channel")
+            sta_channel_before_dfs_list.append(sta_channel_before_dfs)
+            sta_channel_after_dfs_list.append(sta_channel_after_dfs)
+            table_dict["station name"] = station_list
+            table_dict["Before"] = sta_channel_before_dfs_list
+            table_dict["After"] = sta_channel_after_dfs_list
+            # pass fail checking
+            if str(sta_channel_before_dfs) != str(sta_channel_after_dfs):
+                pass_fail.append("Pass")
+                table_dict["Pass/Fail"] = pass_fail
+            else:
+                pass_fail.append("Fail")
+                table_dict["Pass/Fail"] = pass_fail
+            logging.info("dfs_table_data: " + str(table_dict))
+            self.attach_table_allure(data=table_dict, allure_name="Pass_Fail Table")
+
+            if sta_channel_before_dfs != sta_channel_after_dfs:
+                logging.info("channel after dfs: " + str(sta_channel_after_dfs))
+            else:
+                logging.error("DFS not happened")
+                pytest.fail("DFS not happened")
+
+            #run the simulate radar command
 
 
 
@@ -898,7 +934,7 @@ if __name__ == '__main__':
                 "6g-bssid": "68:7d:b4:5f:5c:38"
             },
             "mode": "wifi6e",
-            "identifier": "824f816011e4",
+            "identifier": "68215fda456d",
             "method": "serial",
             "host_ip": "localhost",
             "host_username": "lanforge",
@@ -945,11 +981,9 @@ if __name__ == '__main__':
     # obj.add_stations()
     # obj.add_stations(band="5G")
     # obj.chamber_view(raw_lines="custom")
-    # dut = {'0000c1018812': {"ssid_data": {
-    #     0: {"ssid": 'TestSSID-2G', "encryption": 'wpa2', "password": 'OpenWifi', "band": '2G',
-    #         "bssid": '00:00:C1:01:88:15'},
-    #     1: {"ssid": 'TestSSID-5G', "encryption": 'wpa2', "password": 'OpenWifi', "band": '5G',
-    #         "bssid": '00:00:C1:01:88:14'}}, "radio_data": {'2G': [1, 40, 2422], '5G': [36, 80, 5210], '6G': None}}}
+    dut = {'68215fda456d': {"ssid_data": {
+        1: {"ssid": 'OpenWifi', "encryption": 'wpa2', "password": 'OpenWifi', "band": '5G',
+            "bssid": '00:00:C1:01:88:14'}}, "radio_data": {'2G': [1, 40, 2422], '5G': [36, 80, 5210], '6G': None}}}
     # obj.wifi_capacity(instance_name="test_client_wpa2_BRIDGE_udp_bi", mode="BRIDGE",
     #                   vlan_id=[100],
     #                   download_rate="1Gbps", batch_size="1,5,10,20,40,64,128,256",
@@ -965,7 +999,7 @@ if __name__ == '__main__':
     #                    station_data=["4way time (us)", "channel", "cx time (us)", "dhcp (ms)", "ip", "signal"],
     #                    allure_attach=True)
     obj.dfs_test(ssid="OpenWifi", security="wpa2", passkey="OpenWifi", mode="BRIDGE",
-                 band="fiveg", num_sta=1)
+                 band="fiveg", num_sta=1, dut_data=dut)
     # obj.add_vlan(vlan_iFds=[100])
     # obj.create_dhcp_external()obj.add_vlan(vlan_ids=[100, 200, 300, 400, 500, 600])
     # obj.get_cx_data()
