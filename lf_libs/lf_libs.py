@@ -981,7 +981,7 @@ class lf_libs:
         except Exception as e:
             logging.error(e)
 
-    def get_station_data(self, rows=[], sta_name=[], allure_attach=True):
+    def get_station_data(self, rows=[], sta_name=[], allure_attach=True, allure_name="station data"):
         """
         Attach station data to allure
         e.g. rows = ["ip", "signal"] , sta_names = ["1.1.wlan0000", "1.1.wlan0001"]
@@ -1009,7 +1009,7 @@ class lf_libs:
                 temp_list.append(sta_dict[j][i])
             station_table_dict[i] = temp_list
         if allure_attach:
-            self.attach_table_allure(data=station_table_dict, allure_name="station data")
+            self.attach_table_allure(data=station_table_dict, allure_name=allure_name)
         return sta_dict
 
     def get_cx_data(self, cx_name=[], cx_data=[], allure_attach=True):
@@ -1110,6 +1110,22 @@ class lf_libs:
 
     def clean_layer3cx(self):
         pass
+
+    def station_data_query(self, station_name=None, query=None):
+        """Station data query. station name e.g 1.1.wlan0000"""
+        if station_name is None or query is None:
+            logging.error("Station name or query is missing")
+        x = station_name.split(".")
+        url = f"/port/{x[0]}/{x[1]}/{x[2]}?fields={query}"
+        logging.info("url: " + str(url))
+        response = self.json_get(_req_url=url)
+        if (response is None) or ("interface" not in response):
+            logging.info("station_list: incomplete response:")
+            # pprint(response)
+            pytest.skip("station_list: incomplete response:")
+        y = response["interface"][query]
+        print("y", y)
+        return y
 
     def get_max_sta(self, radio=""):
         data = self.json_get("/radiostatus/all")
