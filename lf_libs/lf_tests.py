@@ -384,9 +384,9 @@ class lf_tests(lf_libs):
             return station_data_all
 
     def dfs_test(self, ssid=None, security=None, passkey=None, mode=None,
-                 band=None, num_sta=1, vlan_id=[None], dut_data={}):
+                 band=None, num_sta=1, vlan_id=[None], dut_data={}, tip_2x_obj=None):
         """DFS test"""
-
+        logging.info("DUT DATA: " + str(dut_data))
         for dut in self.dut_data:
             identifier = dut["identifier"]
             station_data = self.client_connect(ssid=ssid, security=security, passkey=passkey, mode=mode,
@@ -398,20 +398,30 @@ class lf_tests(lf_libs):
             sta_channel_before_dfs_list = []
             sta_channel_after_dfs_list = []
             pass_fail = []
-            ap_channel = dut_data[identifier]["radio_data"]["5G"][0]
+            sta_channel_after_dfs = None
+            sta_channel_before_dfs = None
+            ap_channel = dut_data[identifier]["radio_data"]["5G"]["channel"]
             logging.info("AP channel: " + str(ap_channel))
             sta_channel_before_dfs = station_data[station_list[0]]["channel"]
             logging.info("station channel before dfs: " + str(sta_channel_before_dfs))
             if str(ap_channel) == str(sta_channel_before_dfs):
-                pass
-                # simulate radar
-                time.sleep(15)
+                if tip_2x_obj is not None:
+                    logging.info("AP idx: " + str(self.dut_data.index(dut)))
+                    tip_2x_obj.simulate_radar(idx=self.dut_data.index(dut))
+                    time.sleep(30)
+                else:
+                    logging.error("tip_2x_obj is empty")
             else:
                 logging.error("Station not connected to applied channel")
                 pytest.fail("Station not connected to applied channel")
             self.get_station_data(rows=["4way time (us)", "channel", "cx time (us)", "dhcp (ms)", "ip", "signal", "mode"],
                                   sta_name=station_list, allure_name="Station Data before simulate radar")
-            sta_channel_after_dfs = self.station_data_query(station_name=station_list[0], query="channel")
+            for i in range(5):
+                sta_channel_after_dfs = self.station_data_query(station_name=station_list[0], query="channel")
+                if sta_channel_after_dfs != sta_channel_before_dfs and str(sta_channel_after_dfs) != "-1":
+                    break
+                else:
+                    time.sleep(20)
             sta_channel_before_dfs_list.append(sta_channel_before_dfs)
             sta_channel_after_dfs_list.append(sta_channel_after_dfs)
             table_dict["station name"] = station_list
@@ -427,13 +437,15 @@ class lf_tests(lf_libs):
             logging.info("dfs_table_data: " + str(table_dict))
             self.attach_table_allure(data=table_dict, allure_name="Pass_Fail Table")
 
-            if sta_channel_before_dfs != sta_channel_after_dfs:
+            if sta_channel_before_dfs != sta_channel_after_dfs and str(sta_channel_after_dfs) != "-1":
                 logging.info("channel after dfs: " + str(sta_channel_after_dfs))
-            else:
-                logging.error("DFS not happened")
-                pytest.fail("DFS not happened")
+                ret = tip_2x_obj.get_dfs_logs(idx=self.dut_data.index(dut))
+                allure.attach(name="Simulate Radar Logs ", body=ret)
 
-            #run the simulate radar command
+            else:
+                logging.error("5 Ghz channel didn't changed after radar detected")
+                pytest.fail("5 Ghz channel didn't changed after radar detected")
+
 
 
 
