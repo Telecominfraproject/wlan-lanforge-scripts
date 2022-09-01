@@ -391,7 +391,7 @@ class lf_tests(lf_libs):
             identifier = dut["identifier"]
             station_data = self.client_connect(ssid=ssid, security=security, passkey=passkey, mode=mode,
                                                band=band, num_sta=num_sta, vlan_id=vlan_id,
-                                               allure_name="Station Data before simulate radar", identifier=identifier,
+                                               allure_name="Station data before simulate radar", identifier=identifier,
                                                station_data=["4way time (us)", "channel", "cx time (us)", "dhcp (ms)", "ip", "signal", "mode"])
             station_list = list(station_data.keys())
             table_dict = {}
@@ -415,7 +415,7 @@ class lf_tests(lf_libs):
                 logging.error("Station not connected to applied channel")
                 pytest.fail("Station not connected to applied channel")
             self.get_station_data(rows=["4way time (us)", "channel", "cx time (us)", "dhcp (ms)", "ip", "signal", "mode"],
-                                  sta_name=station_list, allure_name="Station Data before simulate radar")
+                                  sta_name=station_list, allure_name="Station data after simulate radar")
             for i in range(5):
                 sta_channel_after_dfs = self.station_data_query(station_name=station_list[0], query="channel")
                 if sta_channel_after_dfs != sta_channel_before_dfs and str(sta_channel_after_dfs) != "-1":
