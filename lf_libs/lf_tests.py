@@ -540,7 +540,7 @@ class lf_tests(lf_libs):
                                  "ax200_radios": 1, "ax210_radios": 1}
         radio_data = {}
         sniff_radio = ""
-        if self.run_lf or self.cc_1:
+        if self.run_lf:
             if band == "2G":
                 idx = 0
             if band == "5G":
@@ -548,10 +548,10 @@ class lf_tests(lf_libs):
             if band == "6g":
                 idx = 2
         else:
-            for dut in dut_name:
-                for idx_ in self.dut_data[dut]["ssid_data"]:
-                    if band == self.dut_data[dut]["ssid_data"][idx_]["band"] and ssid_name == \
-                            self.dut_data[dut]["ssid_data"][idx_]["ssid"]:
+            for dut in dut_data:
+                for idx_ in dut_data[dut]["ssid_data"]:
+                    if band == dut_data[dut]["ssid_data"][idx_]["band"] and ssid_name == \
+                            dut_data[dut]["ssid_data"][idx_]["ssid"]:
                         idx = idx_
         print("*********idx***********", idx)
         if band == "2G":
@@ -990,57 +990,3 @@ if __name__ == '__main__':
 
     obj = lf_tests(lf_data=dict(basic_04["traffic_generator"]), dut_data=list(basic_04["device_under_tests"]),
                    log_level=logging.DEBUG, run_lf=False)
-    # obj.add_stations()
-    # obj.add_stations(band="5G")
-    # obj.chamber_view(raw_lines="custom")
-    dut = {'68215fda456d': {"ssid_data": {
-        1: {"ssid": 'OpenWifi', "encryption": 'wpa2', "password": 'OpenWifi', "band": '5G',
-            "bssid": '00:00:C1:01:88:14'}}, "radio_data": {'2G': [1, 40, 2422], '5G': [36, 80, 5210], '6G': None}}}
-    # obj.wifi_capacity(instance_name="test_client_wpa2_BRIDGE_udp_bi", mode="BRIDGE",
-    #                   vlan_id=[100],
-    #                   download_rate="1Gbps", batch_size="1,5,10,20,40,64,128,256",
-    #                   influx_tags="Jitu",
-    #                   upload_rate="1Gbps", protocol="UDP-IPv4", duration="60000",
-    #                   move_to_influx=False, dut_data=dut, ssid_name="OpenWifi",
-    #                   num_stations={"2G": 10, "5G": 10})
-    # A =obj.setup_interfaces(band="fiveg", vlan_id=100, mode="NAT-WAN", num_sta=1)
-    # print(A)
-    # obj.setup_relevent_profiles()
-    # obj.client_connect(ssid="OpenWifi", passkey="OpenWifi", security="wpa2", mode="BRIDGE", band="twog",
-    #                    vlan_id=[None], num_sta=65, scan_ssid=True,
-    #                    station_data=["4way time (us)", "channel", "cx time (us)", "dhcp (ms)", "ip", "signal"],
-    #                    allure_attach=True)
-    obj.dfs_test(ssid="OpenWifi", security="wpa2", passkey="OpenWifi", mode="BRIDGE",
-                 band="fiveg", num_sta=1, dut_data=dut)
-    # obj.add_vlan(vlan_iFds=[100])
-    # obj.create_dhcp_external()obj.add_vlan(vlan_ids=[100, 200, 300, 400, 500, 600])
-    # obj.get_cx_data()
-    # obj.chamber_view()
-    # dut = {'0000c1018812': [['ssid_open_2g_nat', 'open', 'something', '2G', '6A:21:5F:DA:45:6F'],
-    #                         {'2G': [6, 40, 2437], '5G': None, '6G': None}]}
-
-    # passes, result = obj.client_connectivity_test(ssid="ssid_open_2g_nat", passkey="something", security="open",
-    #                                               extra_securities=[],
-    #                                               num_sta=1, mode="NAT-WAN", dut_data=dut,
-    #                                               band="twog")
-    # print(passes == "PASS", result)
-    # # obj.start_sniffer(radio_channel=1, radio="wiphy7", test_name="sniff_radio", duration=30)
-    # print("started")
-    # time.sleep(30)
-    # obj.stop_sniffer()
-    # lf_report.pull_reports(hostname="10.28.3.28", port=22, username="lanforge",
-    #                        password="lanforge",
-    #                        report_location="/home/lanforge/" + "sniff_radio.pcap",
-    #                        report_dir=".")
-    #     def start_sniffer(self, radio_channel=None, radio=None, test_name="sniff_radio", duration=60):
-    #
-    # obj.get_cx_data()
-    # obj.chamber_view()
-    # obj.client_connectivity_test(ssid="wpa2_5g", passkey="something", security="wpa2", extra_securities=[],
-    #                              num_sta=1, mode="BRIDGE", vlan_id=1,
-    # #                              band="fiveg", ssid_channel=36)
-    # obj.chamber_view()
-    # obj.setup_relevent_profiles()
-    # obj.add_vlan(vlan_ids=[100, 200, 300])
-    # # obj.chamber_view()
-    # obj.setup_relevent_profiles()
