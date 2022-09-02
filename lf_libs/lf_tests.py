@@ -294,9 +294,6 @@ class lf_tests(lf_libs):
     def enterprise_client_connectivity_test(self):
         pass
 
-    def wifi_capacity_test(self):
-        pass
-
     def dataplane_throughput_test(self):
         pass
 
@@ -337,7 +334,8 @@ class lf_tests(lf_libs):
         station_data_all = {}
         for radio in data[identifier]["station_data"]:
             client_connect = CreateStation(_host=self.manager_ip, _port=self.manager_http_port,
-                                           _sta_list=data[identifier]["station_data"][radio], _password=data[identifier]["passkey"],
+                                           _sta_list=data[identifier]["station_data"][radio],
+                                           _password=data[identifier]["passkey"],
                                            _ssid=data[identifier]["ssid"],
                                            _security=data[identifier]["encryption"])
             client_connect.station_profile.sta_mode = sta_mode
@@ -448,12 +446,7 @@ class lf_tests(lf_libs):
 
 
 
-
-
-
-
     def add_stations(self, band="2G", num_stations=9, ssid_name="", dut_data={}, identifier=None):
-
         dut_name = []
         # for index in range(0, len(self.dut_data)):
         #     dut_name.append(self.dut_data[index]["identifier"])
@@ -671,6 +664,7 @@ class lf_tests(lf_libs):
             logging.info("Upstream data: " + str(upstream_port))
             sets = [["DUT_NAME", dut]]
             '''SINGLE WIFI CAPACITY using lf_wifi_capacity.py'''
+            self.temp_raw_lines = self.default_scenario_raw_lines.copy()
             for band_ in num_stations:
                 if band_ not in ["2G", "5G", "6G"]:
                     logging.error("Band is missing")
@@ -720,7 +714,8 @@ class lf_tests(lf_libs):
             if move_to_influx:
                 try:
                     report_name = "../reports/" + \
-                                  wificapacity_obj.report_name[0]['LAST']["response"].split(":::")[1].split("/")[-1] + "/"
+                                  wificapacity_obj.report_name[0]['LAST']["response"].split(":::")[1].split("/")[
+                                      -1] + "/"
                     influx = CSVtoInflux(influx_host=self.influx_params["influx_host"],
                                          influx_port=self.influx_params["influx_port"],
                                          influx_org=self.influx_params["influx_org"],
