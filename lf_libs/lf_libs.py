@@ -1136,7 +1136,7 @@ class lf_libs:
         flag = 0
         profile_name = ""
         port_list = []
-        #temp_raw_lines = self.default_scenario_raw_lines.copy()
+        # temp_raw_lines = self.default_scenario_raw_lines.copy()
         for port in self.wan_ports:
             for vlans in vlan_ids:
                 for i in data["interfaces"]:
@@ -1150,7 +1150,7 @@ class lf_libs:
                         profile_name = "vlan_profile"
                     port_list.append(str(port) + "." + str(vlans))
                     self.temp_raw_lines.append(["profile_link " + port + " " + profile_name + " 1 " + port
-                                           + " NA " + port.split(".")[2] + ",AUTO -1 " + str(vlans)])
+                                                + " NA " + port.split(".")[2] + ",AUTO -1 " + str(vlans)])
 
         self.chamber_view(raw_lines="custom")
         if self.scenario == "dhcp-external":
@@ -1256,6 +1256,7 @@ class lf_libs:
             allure.attach.file(source=path,
                                name=file_name, attachment_type="CSV")
         return os.path.exists(path)
+
     def get_supplicant_logs(self, radio="1.1.wiphy0", attach_allure=True):
         try:
             resource = radio.split(".")[1]
@@ -1294,6 +1295,29 @@ class lf_libs:
             ip = None
         return ip
 
+    def client_disconnect(self, station_name=[], clean_l3_traffic=False, clear_all_sta=False):
+        client_dis = CreateStation(_host=self.manager_ip, _port=self.manager_http_port,
+                                   _sta_list=station_name, _password="passkey", _ssid="ssid", _security="security")
+        if len(station_name) > 0:
+            client_dis.station_profile.cleanup(station_name)
+        elif clear_all_sta:
+            exist_sta = []
+            for u in client_dis.json_get("/port/?fields=port+type,alias")['interfaces']:
+                if list(u.values())[0]['port type'] not in ['Ethernet', 'WIFI-Radio', 'NA']:
+                    exist_sta.append(list(u.values())[0]['alias'])
+            client_dis.station_profile.cleanup(desired_stations=exist_sta)
+        if clean_l3_traffic:
+            try:
+                exist_l3 = list(
+                    filter(lambda cx_name: cx_name if (cx_name != 'handler' and cx_name != 'uri') else False,
+                           client_dis.json_get("/cx/?fields=name")))
+                list(map(lambda i: client_dis.rm_cx(cx_name=i), exist_l3))
+                list(map(lambda cx_name: [client_dis.rm_endp(ename=i) for i in [f"{cx_name}-A", f"{cx_name}-B"]],
+                         exist_l3))
+            except Exception as e:
+                logging.error(e)
+        return True
+
 
 class Report:
     def __init__(self, key1=None,
@@ -1314,8 +1338,6 @@ class Report:
         self.table = table
         x = tabulate(self.table, headers=headers, tablefmt=tablefmt)
         return x
-
-
 
 
 class SCP_File:
