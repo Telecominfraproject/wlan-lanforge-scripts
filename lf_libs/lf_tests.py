@@ -302,8 +302,8 @@ class lf_tests(lf_libs):
     def multiband_performance_test(self):
         pass
 
-    def multi_psk_test(self, band="twog", mpsk_data=None, ssid="'OpenWifi'", bssid="['BLANK']", passkey="OpenWifi",
-                       encryption="wpa", vlan_id=None, mode="BRIDGE", num_sta=1, dut_data=None):
+    def multi_psk_test(self, band="twog", mpsk_data=None, ssid="OpenWifi", bssid="['BLANK']", passkey="OpenWifi",
+                       encryption="wpa", mode="BRIDGE", num_sta=1, dut_data=None):
         if mpsk_data is None:
             mpsk_data = {100: {"num_stations": num_sta, "passkey": "OpenWifi1"},
                          200: {"num_stations": num_sta, "passkey": "OpenWifi2"}}
@@ -339,14 +339,17 @@ class lf_tests(lf_libs):
                                     station_data=["ip", "alias", "mac", "port type"],
                                     allure_attach=True)
         non_vlan_sta = ""
-        if mode == "BRIDGE":
-            setup_data = self.setup_interfaces(ssid=ssid, bssid=bssid, passkey=bssid, encryption=encryption, band=band, vlan_id=None, mode=mode,
-                         num_sta=None)
+        if mode == "BRIDGE" or mode == "NAT-WAN":
+            # setup_data = self.setup_interfaces(ssid=ssid, bssid=bssid, passkey=bssid, encryption=encryption, band=band, vlan_id=None, mode=mode,
+            #              num_sta=None)
+            # logging.info(f"---------- \n setup data : {setup_data} \n")
             non_vlan_sta = "WAN Upstream"
-            logging.info(f"---------- \n setup data : {setup_data} \n")
-            upstream_ports = self.get_wan_upstream_ports
-        else:
+            upstream_port = dut_data[0]["wan_port"]
+            vlan_data[non_vlan_sta] = self.wan_ports[upstream_port]
+        if mode == "NAT-LAN":
             non_vlan_sta = "LAN upstream"
+            upstream_port=dut_data[0]["lan_port"]
+            vlan_data[non_vlan_sta]=self.lan_ports[upstream_port]
         sta_data[non_vlan_sta] = self.client_connect(ssid=ssid, passkey=passkey, security=encryption, mode=mode, band=band,
                             vlan_id=[None], num_sta=num_sta, scan_ssid=True,
                             station_data=["ip", "alias", "mac", "port type"],
@@ -357,6 +360,7 @@ class lf_tests(lf_libs):
         table_heads=["station name", "configured vlan-id", "expected IP Range", "allocated IP", "mac address",
                      'pass/fail']
         table_data=[]
+        pf = 'PASS'
         for i in sta_data:
             if str(i) in vlan_data:
                 for item in sta_data[i]:
@@ -403,7 +407,11 @@ class lf_tests(lf_libs):
         table_info = report_obj.table2(table=table_data, headers=table_heads)
         logging.info(str("\n") + str(table_info))
         allure.attach(name="Test Results", body=table_info)
-        return table_data
+        if pf == 'FAIL':
+            logging.info("Station did not get an ip or Obtained IP of Station is not in Expected Range")
+            pytest.fail("Expected IP and Obtained IP are Different")
+        else:
+            logging.info("ALL Stations got IP as Expected")
 
     def client_connect(self, ssid="[BLANK]", passkey="[BLANK]", security="wpa2", mode="BRIDGE", band="twog",
                        vlan_id=[None], num_sta=None, scan_ssid=True, sta_mode=0,
@@ -967,7 +975,7 @@ if __name__ == '__main__':
             "testbed": "basic",
             "scenario": "dhcp-bridge",
             "details": {
-                "manager_ip": "10.28.3.10",
+                "manager_ip": "10.28.3.30",
                 "http_port": 8080,
                 "ssh_port": 22,
                 "setup": {"method": "build", "DB": "Test_Scenario_Automation"},
@@ -1021,7 +1029,7 @@ if __name__ == '__main__':
     #                    station_data=["4way time (us)", "channel", "cx time (us)", "dhcp (ms)", "ip", "signal"],
     #                    allure_attach=True)
     obj.multi_psk_test(band="twog", mpsk_data=None, ssid="OpenWifi", bssid="['00:00:c1:01:88:12']", passkey="OpenWifi",
-                       encryption="wpa", vlan_id=None, mode="BRIDGE", num_sta=1)
+                       encryption="wpa", mode="BRIDGE", num_sta=1)
     # obj.add_vlan(vlan_iFds=[100])
     # obj.create_dhcp_external()obj.add_vlan(vlan_ids=[100, 200, 300, 400, 500, 600])
     # obj.get_cx_data()
