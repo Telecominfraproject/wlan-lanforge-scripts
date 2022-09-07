@@ -340,7 +340,11 @@ class lf_tests(lf_libs):
                                     allure_attach=True)
         non_vlan_sta = ""
         if mode == "BRIDGE":
+            setup_data = self.setup_interfaces(ssid=ssid, bssid=bssid, passkey=bssid, encryption=encryption, band=band, vlan_id=None, mode=mode,
+                         num_sta=None)
             non_vlan_sta = "WAN Upstream"
+            logging.info(f"---------- \n setup data : {setup_data} \n")
+            upstream_ports = self.get_wan_upstream_ports
         else:
             non_vlan_sta = "LAN upstream"
         sta_data[non_vlan_sta] = self.client_connect(ssid=ssid, passkey=passkey, security=encryption, mode=mode, band=band,
@@ -445,7 +449,7 @@ class lf_tests(lf_libs):
         pass_fail = []
         for obj in client_connect_obj:
             obj.build()
-            result = obj.wait_for_ip(station_list=obj.sta_list, timeout_sec=50)
+            result = obj.wait_for_ip(station_list=obj.sta_list, timeout_sec=100)
             pass_fail.append(result)
             station_data_ = self.get_station_data(sta_name=obj.sta_list, rows=station_data,
                                                   allure_attach=False)
@@ -963,7 +967,7 @@ if __name__ == '__main__':
             "testbed": "basic",
             "scenario": "dhcp-bridge",
             "details": {
-                "manager_ip": "10.28.3.28",
+                "manager_ip": "10.28.3.10",
                 "http_port": 8080,
                 "ssh_port": 22,
                 "setup": {"method": "build", "DB": "Test_Scenario_Automation"},
