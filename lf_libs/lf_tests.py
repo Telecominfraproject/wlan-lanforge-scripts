@@ -85,7 +85,6 @@ class lf_tests(lf_libs):
                                               _cleanup_on_exit=False)
 
                 obj_sta_connect.sta_mode = sta_mode
-                print(data[dut]["upstream_resource"], "shivam")
                 obj_sta_connect.upstream_resource = data[dut]["upstream_resource"]
                 obj_sta_connect.upstream_port = data[dut]["upstream"]
                 self.enable_verbose_debug(radio=radio, enable=True)
