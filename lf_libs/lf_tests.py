@@ -585,9 +585,9 @@ class lf_tests(lf_libs):
                                     allure_attach=True)
         non_vlan_sta = ""
         if mode == "BRIDGE" or mode == "NAT-WAN":
-            # setup_data = self.setup_interfaces(ssid=ssid, bssid=bssid, passkey=bssid, encryption=encryption, band=band, vlan_id=None, mode=mode,
-            #              num_sta=None)
-            # logging.info(f"---------- \n setup data : {setup_data} \n")
+            # setup_data = self.setup_interfaces(ssid=ssid, bssid=bssid, passkey=bssid, encryption=encryption,
+            # band=band, vlan_id=None, mode=mode, num_sta=None) logging.info(f"---------- \n setup data : {
+            # setup_data} \n")
             non_vlan_sta = "WAN Upstream"
             upstream_port = dut_data[0]["wan_port"]
             vlan_data[non_vlan_sta] = self.wan_ports[upstream_port]
@@ -607,7 +607,7 @@ class lf_tests(lf_libs):
         table_data=[]
         pf = 'PASS'
         for i in sta_data:
-            if str(i) in vlan_data:
+            if (str(i) in vlan_data) and (str(i) != 'WAN Upstream' and str(i) != 'LAN Upstream'):
                 for item in sta_data[i]:
                     exp1 = sta_data[i][item]['ip'].split('.')
                     ip1 = vlan_data[str(i)]['ip'].split('.')
@@ -618,12 +618,12 @@ class lf_tests(lf_libs):
                         pf = 'FAIL'
                         logging.info(f"FAIL: Station did not got IP from vlan {i}")
                     table_data.append(
-                        [sta_data[i][item]['alias'], sta_data[i][item], f'{exp1[0]}.{exp1[1]}.X.X', sta_data[i][item]['ip'], sta_data[i][item]['mac'],
+                        [sta_data[i][item]['alias'], str(i), f'{exp1[0]}.{exp1[1]}.X.X', sta_data[i][item]['ip'], sta_data[i][item]['mac'],
                          f'{pf}'])
             elif str(i) == "WAN Upstream":
                 for item in sta_data[i]:
                     exp2 = sta_data[i][item]['ip'].split('.')
-                    ip2 = vlan_data[str(i)]['ip'].split('.')
+                    ip2 = vlan_data[str(i)]['subnet'].split('.')
                     if exp2[0] == ip2[0] and exp2[1] == ip2[1]:
                         pf = 'PASS'
                         logging.info(f"PASS: Station got IP from WAN Upstream")
@@ -631,7 +631,7 @@ class lf_tests(lf_libs):
                         pf = 'FAIL'
                         logging.info(f"FAIL: Station did not got IP from WAN Upstream")
                     table_data.append(
-                        [sta_data[i][item]['alias'], sta_data[i][item], f'{exp2[0]}.{exp2[1]}.X.X',
+                        [sta_data[i][item]['alias'], str(i), vlan_data[str(i)]['subnet'],
                          sta_data[i][item]['ip'], sta_data[i][item]['mac'],
                          f'{pf}'])
             elif str(i) == "LAN Upstream":
@@ -1220,7 +1220,7 @@ if __name__ == '__main__':
             "testbed": "basic",
             "scenario": "dhcp-bridge",
             "details": {
-                "manager_ip": "192.168.52.89",
+                "manager_ip": "10.28.3.34",
                 "http_port": 8080,
                 "ssh_port": 22,
                 "setup": {"method": "build", "DB": "Test_Scenario_Automation"},
