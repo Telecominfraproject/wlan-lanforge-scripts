@@ -85,6 +85,7 @@ class lf_tests(lf_libs):
                                               _cleanup_on_exit=False)
 
                 obj_sta_connect.sta_mode = sta_mode
+                print(data[dut]["upstream_resource"], "shivam")
                 obj_sta_connect.upstream_resource = data[dut]["upstream_resource"]
                 obj_sta_connect.upstream_port = data[dut]["upstream"]
                 self.enable_verbose_debug(radio=radio, enable=True)
@@ -933,7 +934,7 @@ class lf_tests(lf_libs):
 
 
 if __name__ == '__main__':
-    basic_04 = {
+    basic = {
         "target": "tip_2x",
         "controller": {
             "url": "https://sec-qa01.cicd.lab.wlan.tip.build:16001",
@@ -941,10 +942,10 @@ if __name__ == '__main__':
             "password": "OpenWifi%123"
         },
         "device_under_tests": [{
-            "model": "cig_wf196",
-            "supported_bands": ["2G", "5G", "6G"],
+            "model": "edgecore_eap101",
+            "supported_bands": ["2G", "5G"],
             "supported_modes": ["BRIDGE", "NAT", "VLAN"],
-            "wan_port": "1.3.eth2",
+            "wan_port": "1.1.eth3",
             "lan_port": None,
             "ssid": {
                 "2g-ssid": "OpenWifi",
@@ -960,14 +961,14 @@ if __name__ == '__main__':
                 "5g-bssid": "68:7d:b4:5f:5c:3c",
                 "6g-bssid": "68:7d:b4:5f:5c:38"
             },
-            "mode": "wifi6e",
-            "identifier": "68215fda456d",
+            "mode": "wifi6",
+            "identifier": "903cb36c4301",
             "method": "serial",
-            "host_ip": "localhost",
+            "host_ip": "192.168.52.89",
             "host_username": "lanforge",
-            "host_password": "pumpkin77",
+            "host_password": "lanforge",
             "host_ssh_port": 22,
-            "serial_tty": "/dev/ttyAP5",
+            "serial_tty": "/dev/ttyUSB0",
             "firmware_version": "next-latest"
         }],
         "traffic_generator": {
@@ -975,12 +976,12 @@ if __name__ == '__main__':
             "testbed": "basic",
             "scenario": "dhcp-bridge",
             "details": {
-                "manager_ip": "10.28.3.30",
+                "manager_ip": "192.168.52.89",
                 "http_port": 8080,
                 "ssh_port": 22,
                 "setup": {"method": "build", "DB": "Test_Scenario_Automation"},
                 "wan_ports": {
-                    "1.3.eth2": {"addressing": "dhcp-server", "subnet": "172.16.0.1/16", "dhcp": {
+                    "1.1.eth3": {"addressing": "dhcp-server", "subnet": "172.16.0.1/16", "dhcp": {
                         "lease-first": 10,
                         "lease-count": 10000,
                         "lease-time": "6h"
@@ -991,10 +992,10 @@ if __name__ == '__main__':
 
                 },
                 "uplink_nat_ports": {
-                    "1.1.eth3": {
-                        "addressing": "dhcp-server",
-                        "ip": "10.28.2.9",
-                        "gateway_ip": "10.28.2.1/24",
+                    "1.1.eth2": {
+                        "addressing": "static",
+                        "ip": "192.168.52.150",
+                        "gateway_ip": "192.168.52.1/24",
                         "ip_mask": "255.255.255.0",
                         "dns_servers": "BLANK"
                     }
@@ -1003,7 +1004,7 @@ if __name__ == '__main__':
         }
     }
 
-    obj = lf_tests(lf_data=dict(basic_04["traffic_generator"]), dut_data=list(basic_04["device_under_tests"]),
+    obj = lf_tests(lf_data=dict(basic["traffic_generator"]), dut_data=list(basic["device_under_tests"]),
                    log_level=logging.DEBUG, run_lf=False)
 
     # obj.add_stations()
@@ -1028,19 +1029,18 @@ if __name__ == '__main__':
     #                    vlan_id=[None], num_sta=65, scan_ssid=True,
     #                    station_data=["4way time (us)", "channel", "cx time (us)", "dhcp (ms)", "ip", "signal"],
     #                    allure_attach=True)
-    obj.multi_psk_test(band="twog", mpsk_data=None, ssid="OpenWifi", bssid="['00:00:c1:01:88:12']", passkey="OpenWifi",
-                       encryption="wpa", mode="BRIDGE", num_sta=1)
+    # obj.multi_psk_test(band="twog", mpsk_data=None, ssid="OpenWifi", bssid="['00:00:c1:01:88:12']", passkey="OpenWifi",
+    #                    encryption="wpa", mode="BRIDGE", num_sta=1)
     # obj.add_vlan(vlan_iFds=[100])
     # obj.create_dhcp_external()obj.add_vlan(vlan_ids=[100, 200, 300, 400, 500, 600])
     # obj.get_cx_data()
     # obj.chamber_view()
-    # dut = {'0000c1018812': [['ssid_open_2g_nat', 'open', 'something', '2G', '6A:21:5F:DA:45:6F'],
-    #                         {'2G': [6, 40, 2437], '5G': None, '6G': None}]}
+    dut = {'903cb36c4301': {'ssid_data': {0: {'ssid': 'ssid_wpa_2g_br', 'encryption': 'wpa', 'password': 'something', 'band': '2G', 'bssid': '90:3C:B3:6C:43:04'}}, 'radio_data': {'2G': {'channel': 6, 'bandwidth': 20, 'frequency': 2437}, '5G': {'channel': None, 'bandwidth': None, 'frequency': None}, '6G': {'channel': None, 'bandwidth': None, 'frequency': None}}}}
 
-    # passes, result = obj.client_connectivity_test(ssid="ssid_open_2g_nat", passkey="something", security="open",
-    #                                               extra_securities=[],
-    #                                               num_sta=1, mode="NAT-WAN", dut_data=dut,
-    #                                               band="twog")
+    passes, result = obj.client_connectivity_test(ssid="ssid_wpa_2g_br", passkey="something", security="wpa",
+                                                  extra_securities=[],
+                                                  num_sta=1, mode="NAT-WAN", dut_data=dut,
+                                                  band="twog")
     # print(passes == "PASS", result)
     # # obj.start_sniffer(radio_channel=1, radio="wiphy7", test_name="sniff_radio", duration=30)
     # print("started")
