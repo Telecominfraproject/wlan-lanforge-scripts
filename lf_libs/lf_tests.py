@@ -547,8 +547,116 @@ class lf_tests(lf_libs):
     def multiband_performance_test(self):
         pass
 
-    def multi_psk_test(self):
-        pass
+    def multi_psk_test(self, band="twog", mpsk_data=None, ssid="OpenWifi", bssid="['BLANK']", passkey="OpenWifi",
+                       encryption="wpa", mode="BRIDGE", num_sta=1, dut_data=None):
+        if mpsk_data is None:
+            mpsk_data = {100: {"num_stations": num_sta, "passkey": "OpenWifi1"},
+                         200: {"num_stations": num_sta, "passkey": "OpenWifi2"}}
+        if dut_data is None:
+            dut_data = self.dut_data
+
+        logging.info("Creating VLAN's")
+        # create VLAN's
+        self.add_vlan(vlan_ids=list(mpsk_data.keys()))
+        logging.info("Wait until VLAN's bring up")
+        time.sleep(10)
+        # query and fetch vlan Ip Address
+        port_data=self.json_get(_req_url="/port?fields=alias,port+type,ip,mac")['interfaces']
+        # Fail if Vlan don't have IP
+        vlan_data = {}
+        for i in port_data:
+            for item in i:
+                if i[item]['port type'] == '802.1Q VLAN' and i[item]['ip'] == '0.0.0.0':
+                    logging.error(f"VLAN Interface - {i[item]['alias']} do not have IP")
+                    pytest.fail("VLAN do not have IP")
+                    break
+                elif i[item]['port type'] == '802.1Q VLAN' and i[item]['ip'] != '0.0.0.0':
+                    vlan_data[i[item]['alias'].split(".")[1]] = i[item]
+                else:
+                    pass
+
+        # create stations
+        sta_data = {}
+        for key in list(mpsk_data.keys()):
+            if "passkey" in mpsk_data[key] and mpsk_data[key]["passkey"] is not None:
+                sta_data[key] = self.client_connect(ssid=ssid, passkey=mpsk_data[key]["passkey"], security=encryption, mode=mode, band=band,
+                                    vlan_id=[None], num_sta=num_sta, scan_ssid=True,
+                                    station_data=["ip", "alias", "mac", "port type"],
+                                    allure_attach=True)
+        non_vlan_sta = ""
+        if mode == "BRIDGE" or mode == "NAT-WAN":
+            # setup_data = self.setup_interfaces(ssid=ssid, bssid=bssid, passkey=bssid, encryption=encryption, band=band, vlan_id=None, mode=mode,
+            #              num_sta=None)
+            # logging.info(f"---------- \n setup data : {setup_data} \n")
+            non_vlan_sta = "WAN Upstream"
+            upstream_port = dut_data[0]["wan_port"]
+            vlan_data[non_vlan_sta] = self.wan_ports[upstream_port]
+        if mode == "NAT-LAN":
+            non_vlan_sta = "LAN upstream"
+            upstream_port=dut_data[0]["lan_port"]
+            vlan_data[non_vlan_sta]=self.lan_ports[upstream_port]
+        sta_data[non_vlan_sta] = self.client_connect(ssid=ssid, passkey=passkey, security=encryption, mode=mode, band=band,
+                            vlan_id=[None], num_sta=num_sta, scan_ssid=True,
+                            station_data=["ip", "alias", "mac", "port type"],
+                            allure_attach=True)
+        logging.info("station data: " + str(sta_data))
+
+        # check Pass/Fail
+        table_heads=["station name", "configured vlan-id", "expected IP Range", "allocated IP", "mac address",
+                     'pass/fail']
+        table_data=[]
+        pf = 'PASS'
+        for i in sta_data:
+            if str(i) in vlan_data:
+                for item in sta_data[i]:
+                    exp1 = sta_data[i][item]['ip'].split('.')
+                    ip1 = vlan_data[str(i)]['ip'].split('.')
+                    if exp1[0] == ip1[0] and exp1[1] == ip1[1]:
+                        pf = 'PASS'
+                        logging.info(f"PASS: Station got IP from vlan {i}")
+                    else:
+                        pf = 'FAIL'
+                        logging.info(f"FAIL: Station did not got IP from vlan {i}")
+                    table_data.append(
+                        [sta_data[i][item]['alias'], sta_data[i][item], f'{exp1[0]}.{exp1[1]}.X.X', sta_data[i][item]['ip'], sta_data[i][item]['mac'],
+                         f'{pf}'])
+            elif str(i) == "WAN Upstream":
+                for item in sta_data[i]:
+                    exp2 = sta_data[i][item]['ip'].split('.')
+                    ip2 = vlan_data[str(i)]['ip'].split('.')
+                    if exp2[0] == ip2[0] and exp2[1] == ip2[1]:
+                        pf = 'PASS'
+                        logging.info(f"PASS: Station got IP from WAN Upstream")
+                    else:
+                        pf = 'FAIL'
+                        logging.info(f"FAIL: Station did not got IP from WAN Upstream")
+                    table_data.append(
+                        [sta_data[i][item]['alias'], sta_data[i][item], f'{exp2[0]}.{exp2[1]}.X.X',
+                         sta_data[i][item]['ip'], sta_data[i][item]['mac'],
+                         f'{pf}'])
+            elif str(i) == "LAN Upstream":
+                for item in sta_data[i]:
+                    exp3 = sta_data[i][item]['ip'].split('.')
+                    ip3=vlan_data[str(i)]['ip'].split('.')
+                    if exp3[0] == '192' and exp3[1] == '168':
+                        pf = 'PASS'
+                        logging.info(f"PASS: Station got IP from LAN Upstream")
+                    else:
+                        pf = 'FAIL'
+                        logging.info(f"FAIL: Station did not got IP from LAN Upstream")
+                    table_data.append(
+                        [sta_data[i][item]['alias'], 'LAN upstream', f'192.168.X.X', sta_data[i][item]['ip'], sta_data[i][item]['mac'], f'{pf}'])
+
+        # attach test data in a table to allure
+        report_obj = Report()
+        table_info = report_obj.table2(table=table_data, headers=table_heads)
+        logging.info(str("\n") + str(table_info))
+        allure.attach(name="Test Results", body=table_info)
+        if pf == 'FAIL':
+            logging.info("Station did not get an ip or Obtained IP of Station is not in Expected Range")
+            pytest.fail("Expected IP and Obtained IP are Different")
+        else:
+            logging.info("ALL Stations got IP as Expected")
 
     def client_connect(self, ssid="[BLANK]", passkey="[BLANK]", security="wpa2", mode="BRIDGE", band="twog",
                        vlan_id=[None], num_sta=None, scan_ssid=True, sta_mode=0,
@@ -563,8 +671,8 @@ class lf_tests(lf_libs):
                 all_identifier_list.append(dut["identifier"])
             print(all_identifier_list)
             if identifier not in all_identifier_list:
-                logging.error("Identifier is missinhg")
-                pytest.fail("Identifier is missinhg")
+                logging.error("Identifier is missing")
+                pytest.fail("Identifier is missing")
 
         data = self.setup_interfaces(ssid=ssid, passkey=passkey, encryption=security,
                                      band=band, vlan_id=vlan_id[0], mode=mode, num_sta=num_sta)
@@ -594,7 +702,7 @@ class lf_tests(lf_libs):
         pass_fail = []
         for obj in client_connect_obj:
             obj.build()
-            result = obj.wait_for_ip(station_list=obj.sta_list, timeout_sec=50)
+            result = obj.wait_for_ip(station_list=obj.sta_list, timeout_sec=100)
             pass_fail.append(result)
             station_data_ = self.get_station_data(sta_name=obj.sta_list, rows=station_data,
                                                   allure_attach=False)
@@ -1070,7 +1178,7 @@ class lf_tests(lf_libs):
 
 
 if __name__ == '__main__':
-    basic_04 = {
+    basic = {
         "target": "tip_2x",
         "controller": {
             "url": "https://sec-qa01.cicd.lab.wlan.tip.build:16001",
@@ -1078,10 +1186,10 @@ if __name__ == '__main__':
             "password": "OpenWifi%123"
         },
         "device_under_tests": [{
-            "model": "cig_wf196",
-            "supported_bands": ["2G", "5G", "6G"],
+            "model": "edgecore_eap101",
+            "supported_bands": ["2G", "5G"],
             "supported_modes": ["BRIDGE", "NAT", "VLAN"],
-            "wan_port": "1.3.eth2",
+            "wan_port": "1.1.eth3",
             "lan_port": None,
             "ssid": {
                 "2g-ssid": "OpenWifi",
@@ -1097,14 +1205,14 @@ if __name__ == '__main__':
                 "5g-bssid": "68:7d:b4:5f:5c:3c",
                 "6g-bssid": "68:7d:b4:5f:5c:38"
             },
-            "mode": "wifi6e",
-            "identifier": "68215fda456d",
+            "mode": "wifi6",
+            "identifier": "903cb36c4301",
             "method": "serial",
-            "host_ip": "localhost",
+            "host_ip": "192.168.52.89",
             "host_username": "lanforge",
-            "host_password": "pumpkin77",
+            "host_password": "lanforge",
             "host_ssh_port": 22,
-            "serial_tty": "/dev/ttyAP5",
+            "serial_tty": "/dev/ttyUSB0",
             "firmware_version": "next-latest"
         }],
         "traffic_generator": {
@@ -1112,12 +1220,12 @@ if __name__ == '__main__':
             "testbed": "basic",
             "scenario": "dhcp-bridge",
             "details": {
-                "manager_ip": "10.28.3.12",
+                "manager_ip": "192.168.52.89",
                 "http_port": 8080,
                 "ssh_port": 22,
                 "setup": {"method": "build", "DB": "Test_Scenario_Automation"},
                 "wan_ports": {
-                    "1.3.eth2": {"addressing": "dhcp-server", "subnet": "172.16.0.1/16", "dhcp": {
+                    "1.1.eth3": {"addressing": "dhcp-server", "subnet": "172.16.0.1/16", "dhcp": {
                         "lease-first": 10,
                         "lease-count": 10000,
                         "lease-time": "6h"
@@ -1128,10 +1236,10 @@ if __name__ == '__main__':
 
                 },
                 "uplink_nat_ports": {
-                    "1.1.eth3": {
-                        "addressing": "dhcp-server",
-                        "ip": "10.28.2.9",
-                        "gateway_ip": "10.28.2.1/24",
+                    "1.1.eth2": {
+                        "addressing": "static",
+                        "ip": "192.168.52.150",
+                        "gateway_ip": "192.168.52.1/24",
                         "ip_mask": "255.255.255.0",
                         "dns_servers": "BLANK"
                     }
@@ -1140,5 +1248,61 @@ if __name__ == '__main__':
         }
     }
 
-    obj = lf_tests(lf_data=dict(basic_04["traffic_generator"]), dut_data=list(basic_04["device_under_tests"]),
+    obj = lf_tests(lf_data=dict(basic["traffic_generator"]), dut_data=list(basic["device_under_tests"]),
                    log_level=logging.DEBUG, run_lf=False)
+
+    # obj.add_stations()
+    # obj.add_stations(band="5G")
+    # obj.chamber_view(raw_lines="custom")
+    # dut = {'0000c1018812': {"ssid_data": {
+    #     0: {"ssid": 'TestSSID-2G', "encryption": 'wpa2', "password": 'OpenWifi', "band": '2G',
+    #         "bssid": '00:00:C1:01:88:15'},
+    #     1: {"ssid": 'TestSSID-5G', "encryption": 'wpa2', "password": 'OpenWifi', "band": '5G',
+    #         "bssid": '00:00:C1:01:88:14'}}, "radio_data": {'2G': [1, 40, 2422], '5G': [36, 80, 5210], '6G': None}}}
+    # obj.wifi_capacity(instance_name="test_client_wpa2_BRIDGE_udp_bi", mode="BRIDGE",
+    #                   vlan_id=[100],
+    #                   download_rate="1Gbps", batch_size="1,5,10,20,40,64,128,256",
+    #                   influx_tags="Jitu",
+    #                   upload_rate="1Gbps", protocol="UDP-IPv4", duration="60000",
+    #                   move_to_influx=False, dut_data=dut, ssid_name="OpenWifi",
+    #                   num_stations={"2G": 10, "5G": 10})
+    # A =obj.setup_interfaces(band="fiveg", vlan_id=100, mode="NAT-WAN", num_sta=1)
+    # print(A)
+    # obj.setup_relevent_profiles()
+    # obj.client_connect(ssid="OpenWifi", passkey="OpenWifi", security="wpa2", mode="BRIDGE", band="twog",
+    #                    vlan_id=[None], num_sta=65, scan_ssid=True,
+    #                    station_data=["4way time (us)", "channel", "cx time (us)", "dhcp (ms)", "ip", "signal"],
+    #                    allure_attach=True)
+    # obj.multi_psk_test(band="twog", mpsk_data=None, ssid="OpenWifi", bssid="['00:00:c1:01:88:12']", passkey="OpenWifi",
+    #                    encryption="wpa", mode="BRIDGE", num_sta=1)
+    # obj.add_vlan(vlan_iFds=[100])
+    # obj.create_dhcp_external()obj.add_vlan(vlan_ids=[100, 200, 300, 400, 500, 600])
+    # obj.get_cx_data()
+    # obj.chamber_view()
+    dut = {'903cb36c4301': {'ssid_data': {0: {'ssid': 'ssid_wpa_2g_br', 'encryption': 'wpa', 'password': 'something', 'band': '2G', 'bssid': '90:3C:B3:6C:43:04'}}, 'radio_data': {'2G': {'channel': 6, 'bandwidth': 20, 'frequency': 2437}, '5G': {'channel': None, 'bandwidth': None, 'frequency': None}, '6G': {'channel': None, 'bandwidth': None, 'frequency': None}}}}
+
+    passes, result = obj.client_connectivity_test(ssid="ssid_wpa_2g_br", passkey="something", security="wpa",
+                                                  extra_securities=[],
+                                                  num_sta=1, mode="NAT-WAN", dut_data=dut,
+                                                  band="twog")
+    # print(passes == "PASS", result)
+    # # obj.start_sniffer(radio_channel=1, radio="wiphy7", test_name="sniff_radio", duration=30)
+    # print("started")
+    # time.sleep(30)
+    # obj.stop_sniffer()
+    # lf_report.pull_reports(hostname="10.28.3.28", port=22, username="lanforge",
+    #                        password="lanforge",
+    #                        report_location="/home/lanforge/" + "sniff_radio.pcap",
+    #                        report_dir=".")
+    #     def start_sniffer(self, radio_channel=None, radio=None, test_name="sniff_radio", duration=60):
+    #
+    # obj.get_cx_data()
+    # obj.chamber_view()
+    # obj.client_connectivity_test(ssid="wpa2_5g", passkey="something", security="wpa2", extra_securities=[],
+    #                              num_sta=1, mode="BRIDGE", vlan_id=1,
+    # #                              band="fiveg", ssid_channel=36)
+    # obj.chamber_view()
+    # obj.setup_relevent_profiles()
+    # obj.add_vlan(vlan_ids=[100, 200, 300])
+    # # obj.chamber_view()
+    # obj.setup_relevent_profiles()
