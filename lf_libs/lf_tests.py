@@ -319,6 +319,7 @@ class lf_tests(lf_libs):
         # list of multiple eap_connect objects
         eap_connect_objs = []
         for dut in data:
+            upstream_list = []
             for radio in data[dut]["station_data"]:
                 obj_eap_connect = TTLSTest(host=self.manager_ip, port=self.manager_http_port,
                                            sta_list=data[dut]["station_data"][radio], vap=False)
@@ -326,8 +327,9 @@ class lf_tests(lf_libs):
                 obj_eap_connect.upstream_resource = data[dut]["upstream_resource"]
                 obj_eap_connect.l3_cx_obj_udp.upstream_resource = data[dut]["upstream_resource"]
                 obj_eap_connect.l3_cx_obj_tcp.upstream_resource = data[dut]["upstream_resource"]
-                obj_eap_connect.l3_cx_obj_udp.upstream = data[dut]["upstream"]
-                obj_eap_connect.l3_cx_obj_tcp.upstream = data[dut]["upstream"]
+                upstream_list.append(data[dut]["upstream"])
+                obj_eap_connect.l3_cx_obj_udp.upstream = upstream_list
+                obj_eap_connect.l3_cx_obj_tcp.upstream = upstream_list
                 self.enable_verbose_debug(radio=radio, enable=True)
                 obj_eap_connect.radio = radio
                 obj_eap_connect.admin_down(radio)
