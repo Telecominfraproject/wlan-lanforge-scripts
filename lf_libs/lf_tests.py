@@ -1157,7 +1157,7 @@ class lf_tests(lf_libs):
             dataplane_obj.run()
             if move_to_influx:
                 report_name = "../reports/" + \
-                              dataplane_obj.report_name[0]['LAST']["response"].split(":::")[1].split("/")[-1] + "/"
+                              dataplane_obj.report_name[0]['LAST']["response"].split(":::")[1].split("/")[-1]
                 try:
                     influx = CSVtoInflux(influx_host=self.influx_params["influx_host"],
                                          influx_port=self.influx_params["influx_port"],
@@ -1170,7 +1170,7 @@ class lf_tests(lf_libs):
                 except Exception as e:
                     print(e)
                     pass
-            report_name = dataplane_obj.report_name[0]['LAST']["response"].split(":::")[1].split("/")[-1] + "/"
+            report_name = dataplane_obj.report_name[0]['LAST']["response"].split(":::")[1].split("/")[-1]
             self.attach_report_graphs(report_name=report_name, pdf_name="Dataplane Throughput Test - TCP-UDP 5G")
             self.attach_report_kpi(report_name=report_name)
             logging.info("Test Completed... Cleaning up Stations")
