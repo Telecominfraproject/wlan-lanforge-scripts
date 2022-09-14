@@ -1319,6 +1319,19 @@ class lf_libs:
                 logging.error(e)
         return True
 
+    def run_lf_dut_data(self):
+        """Dut data for running test cases only on lanforge"""
+        ret = {}
+        try:
+            for i in self.dut_data:
+                ret = {i["identifier"]: i["ssid"]}
+        except Exception as e:
+            logging.error(e)
+        return ret
+
+
+
+
 
 class Report:
     def __init__(self, key1=None,

@@ -1,4 +1,9 @@
 ,age,auth,beacon,bss,channel,entity id,frequency,info,signal,ssid
-0,4365,WPA2,100,00:06:ae:6d:f0:fe,1,1.1.8,2412,2x2 MCS 0-11 AX,-39.0,dual_band
-1,4096,Open,100,68:21:5f:da:45:6f,6,1.1.8,2437,2x2 MIMO,-41.0,ssid_open_2g_nat
-2,35835829,WPA2,100,6a:21:5f:da:45:6f,6,1.1.8,2437,2x2 MIMO,-42.0,OpenWifi
+0,119837735,WPA2,100,00:06:ae:6d:f1:0e,52,1.1.9,5260,2x2 MCS 0-11 AX,-47.0,ssid_wpa2_dual_band
+1,407985018,WPA,100,02:06:ae:6d:f1:0e,52,1.1.9,5260,2x2 MCS 0-11 AX,-45.0,ssid_wpa_5g
+2,407984993,WPA2,100,06:06:ae:6d:f1:0e,52,1.1.9,5260,2x2 MCS 0-11 AX,-44.0,ssid_wpa2_5g
+3,407985070,WPA WPA2,100,0a:06:ae:6d:f1:0e,52,1.1.9,5260,2x2 MCS 0-11 AX,-45.0,ssid_wpa_wpa2_p_m_5g
+4,321100412,WPA WPA2,100,62:21:5f:da:45:70,36,1.1.9,5180,2x2 MCS 0-9 AC,-47.0,ssid_wpa_wpa2_p_m_5g
+5,4312,WPA2,100,68:21:5f:da:45:70,36,1.1.9,5180,2x2 MCS 0-9 AC,-50.0,OpenWifi
+6,321100414,WPA,100,6a:21:5f:da:45:70,36,1.1.9,5180,2x2 MCS 0-9 AC,-47.0,ssid_wpa_5g
+7,321100413,WPA2,100,6e:21:5f:da:45:70,36,1.1.9,5180,2x2 MCS 0-9 AC,-47.0,ssid_wpa2_5g
