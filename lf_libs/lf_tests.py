@@ -500,7 +500,7 @@ class lf_tests(lf_libs):
             cx_table_dict["Pass/Fail"] = pass_fail_cx
             if allure_attach:
                 self.attach_table_allure(data=cx_table_dict, allure_name="cx data")
-            obj.cleanup()
+            obj.cleanup(obj.sta_list)
             result = "PASS"
             description = "Unknown error"
             count = 0
