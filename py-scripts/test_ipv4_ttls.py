@@ -224,7 +224,9 @@ class TTLSTest(Realm):
         print("Starting test...")
         for sec in range(self.timeout):
             for sta_name in sta_list:
-                sta_status = self.json_get("port/1/1/" + sta_name + "?fields=port,alias,ip,ap", debug_=self.debug)
+                port = LFUtils.name_to_eid(sta_name)
+                sta_status = self.json_get("port/" + str(port[0]) + "/" + str(port[1]) + "/" +
+                                           str(port[2]) + "?fields=port,alias,ip,ap", debug_=self.debug)
                 # print(sta_status)
                 if sta_status is None or sta_status['interface'] is None or sta_status['interface']['ip'] == "0.0.0.0":
                     continue
