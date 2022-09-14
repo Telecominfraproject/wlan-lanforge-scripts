@@ -517,14 +517,6 @@ class lf_tests(lf_libs):
                     description = "did not report traffic"
                     temp_dict[result] = description
                     pass_fail_result.append(temp_dict)
-            if obj.passes():
-                logging.info("client connection to" + str(obj.dut_ssid) + "successful. Test Passed")
-                result = "PASS"
-                temp_dict[result] = ""
-                pass_fail_result.append(temp_dict)
-            else:
-                logging.info("client connection to" + str(obj.dut_ssid) + "unsuccessful. Test Failed")
-                result = "FAIL"
         for obj in eap_connect_objs:
             try:
                 print("1." + str(obj.resource) + "." + str(obj.radio))
