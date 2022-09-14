@@ -1132,6 +1132,7 @@ class lf_libs:
         return data[radio]["max_vifs"]
 
     def add_vlan(self, vlan_ids=[]):
+        self.temp_raw_lines = self.default_scenario_raw_lines.copy()
         data = self.json_get("/port/all")
         flag = 0
         profile_name = ""
