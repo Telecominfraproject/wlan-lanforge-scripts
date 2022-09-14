@@ -319,17 +319,15 @@ class lf_tests(lf_libs):
         # list of multiple eap_connect objects
         eap_connect_objs = []
         for dut in data:
-            upstream_list = []
             for radio in data[dut]["station_data"]:
                 obj_eap_connect = TTLSTest(host=self.manager_ip, port=self.manager_http_port,
-                                           sta_list=data[dut]["station_data"][radio], vap=False)
+                                           sta_list=data[dut]["station_data"][radio], vap=False, _debug_on=True)
                 obj_eap_connect.station_profile.sta_mode = sta_mode
                 obj_eap_connect.upstream_resource = data[dut]["upstream_resource"]
                 obj_eap_connect.l3_cx_obj_udp.upstream_resource = data[dut]["upstream_resource"]
                 obj_eap_connect.l3_cx_obj_tcp.upstream_resource = data[dut]["upstream_resource"]
-                upstream_list.append(data[dut]["upstream"])
-                obj_eap_connect.l3_cx_obj_udp.upstream = upstream_list
-                obj_eap_connect.l3_cx_obj_tcp.upstream = upstream_list
+                obj_eap_connect.l3_cx_obj_udp.upstream = data[dut]["upstream"]
+                obj_eap_connect.l3_cx_obj_tcp.upstream = data[dut]["upstream"]
                 self.enable_verbose_debug(radio=radio, enable=True)
                 obj_eap_connect.radio = radio
                 obj_eap_connect.admin_down(radio)
@@ -446,13 +444,13 @@ class lf_tests(lf_libs):
         pass_fail_result = []
         for obj in eap_connect_objs:
             sta_rows = ["4way time (us)", "channel", "cx time (us)", "dhcp (ms)", "ip", "signal"]
-            station_data = self.get_station_data(sta_name=obj.station_names, rows=sta_rows,
+            station_data = self.get_station_data(sta_name=obj.sta_list, rows=sta_rows,
                                                  allure_attach=False)
             sta_table_dict = {}
             sta_table_dict["station name"] = list(station_data.keys())
             for i in sta_rows:
                 temp_list = []
-                for j in obj.station_names:
+                for j in obj.sta_list:
                     temp_list.append(station_data[j][i])
                 sta_table_dict[i] = temp_list
             # pass fail
@@ -466,21 +464,21 @@ class lf_tests(lf_libs):
             if allure_attach:
                 self.attach_table_allure(data=sta_table_dict, allure_name="station data")
             obj.stop()
-            cx_name = list(obj.l3_udp_profile.get_cx_names()) + list(
-                obj.l3_tcp_profile.get_cx_names())
+            cx_name = list(obj.l3_cx_obj_udp.cx_profile.get_cx_names()) + list(
+                obj.l3_cx_obj_tcp.cx_profile.get_cx_names())
             cx_row = ["type", "bps rx a", "bps rx b"]
             cx_data = self.get_cx_data(cx_name=cx_name, cx_data=cx_row, allure_attach=False)
             cx_table_dict = {}
             upstream = []
-            for i in range(len(obj.station_names)):
+            for i in range(len(obj.sta_list)):
                 upstream.append(data[dut]["upstream_port"])
             cx_table_dict["Upstream"] = upstream
-            cx_table_dict["Downstream"] = obj.station_names
+            cx_table_dict["Downstream"] = obj.sta_list
             cx_tcp_ul = []
             cx_tcp_dl = []
             cx_udp_ul = []
             cx_udp_dl = []
-            for sta in obj.station_names:
+            for sta in obj.sta_list:
                 for i in cx_data:
                     if sta.split(".")[2] in i:
                         if cx_data[i]["type"] == "LF/UDP":
