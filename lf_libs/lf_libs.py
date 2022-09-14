@@ -413,7 +413,9 @@ class lf_libs:
         logging.info("Saved default CV Scenario details: " + str(self.temp_raw_lines))
 
     def setup_interfaces(self, ssid="", bssid="", passkey="", encryption="", band=None, vlan_id=None, mode=None,
-                         num_sta=None):
+                         num_sta=None, dut_data_=None):
+        if dut_data_ is None:
+            pytest.skip("No DUT data received")
         if band not in ["twog", "fiveg", "sixg"]:
             pytest.skip("Unsupported Band Selected: " + str(band))
         if mode not in ["BRIDGE", "NAT-WAN", "NAT-LAN", "VLAN"]:
@@ -512,11 +514,6 @@ class lf_libs:
         data_dict["sniff_radio_5g"] = None
         data_dict["sniff_radio_6g"] = None
         if band == "twog":
-            if self.run_lf:
-                for i in self.dut_data:
-                    ssid = i["ssid"]["2g-ssid"]
-                    passkey = i["ssid"]["2g-password"]
-                    security = i["ssid"]["2g-encryption"].lower()
             sta_prefix = self.twog_prefix
             data_dict["sta_prefix"] = sta_prefix
             # checking station compitality of lanforge
@@ -547,12 +544,6 @@ class lf_libs:
             sniff_radio = self.setup_sniffer(band=band, station_radio_data=radio_data)
             data_dict["sniff_radio_2g"] = sniff_radio
         if band == "fiveg":
-            if self.run_lf:
-                for i in self.dut_data:
-                    ssid = i["ssid"]["2g-ssid"]
-                    passkey = i["ssid"]["2g-password"]
-                    security = i["ssid"]["2g-encryption"].lower()
-
             sta_prefix = self.fiveg_prefix
             data_dict["sta_prefix"] = sta_prefix
             # checking station compitality of lanforge
@@ -585,12 +576,6 @@ class lf_libs:
             sniff_radio = self.setup_sniffer(band=band, station_radio_data=radio_data)
             data_dict["sniff_radio_5g"] = sniff_radio
         if band == "sixg":
-            if self.run_lf:
-                for i in self.dut_data:
-                    ssid = i["ssid"]["6g-ssid"]
-                    passkey = i["ssid"]["6g-password"]
-                    security = i["ssid"]["6g-encryption"].lower()
-
             sta_prefix = self.sixg_prefix
             data_dict["sta_prefix"] = sta_prefix
             # checking station compitality of lanforge
@@ -647,53 +632,37 @@ class lf_libs:
             r_val[i]["sniff_radio_2g"] = data_dict["sniff_radio_2g"]
             r_val[i]["sniff_radio_5g"] = data_dict["sniff_radio_5g"]
             r_val[i]["sniff_radio_6g"] = data_dict["sniff_radio_6g"]
+            #mode encryption and band
+        if band == "twog":
+            temp_band = "2G"
+        elif band == "fiveg":
+            temp_band = "5G"
+        elif band == "sixg":
+            temp_band = "6G"
         if self.run_lf:
+            ssid_data_run_lf = self.run_lf_dut_data()
             for dut in self.dut_data:
-                ssid_data = []
-                if r_val.keys().__contains__(dut["identifier"]):
-                    if dut.keys().__contains__("ssid"):
-                        if band == "twog":
-                            r_val[dut["identifier"]]["ssid"] = dut["ssid"]["2g-ssid"]
-                            r_val[dut["identifier"]]["passkey"] = dut["ssid"]["2g-password"]
-                            r_val[dut["identifier"]]["encryption"] = dut["ssid"]["2g-encryption"]
-                            r_val[dut["identifier"]]["bssid"] = dut["ssid"]["2g-bssid"]
-                            if str(dut["ssid"]["2g-encryption"]).upper() == "OPEN":
-                                ssid_data.append(['ssid_idx=0 ssid=' + dut["ssid"]["2g-ssid"] +
-                                                  ' bssid=' + dut["ssid"]["2g-bssid"]])
-                            else:
-                                ssid_data.append(['ssid_idx=0 ssid=' + dut["ssid"]["2g-ssid"] +
-                                                  ' security=' + str(dut["ssid"]["2g-encryption"]).upper() +
-                                                  ' password=' + dut["ssid"]["2g-password"] +
-                                                  ' bssid=' + dut["ssid"]["2g-bssid"]])
-                            self.update_duts(identifier=dut["identifier"], ssid_data=ssid_data)
-                        if band == "fiveg":
-                            r_val[dut["identifier"]]["ssid"] = dut["ssid"]["5g-ssid"]
-                            r_val[dut["identifier"]]["passkey"] = dut["ssid"]["5g-password"]
-                            r_val[dut["identifier"]]["encryption"] = dut["ssid"]["5g-encryption"]
-                            r_val[dut["identifier"]]["bssid"] = dut["ssid"]["5g-bssid"]
-                            if str(dut["ssid"]["5g-encryption"]).upper() == "OPEN":
-                                ssid_data.append(['ssid_idx=0 ssid=' + dut["ssid"]["5g-ssid"] +
-                                                  ' bssid=' + dut["ssid"]["5g-bssid"]])
-                            else:
-                                ssid_data.append(['ssid_idx=0 ssid=' + dut["ssid"]["5g-ssid"] +
-                                                  ' security=' + str(dut["ssid"]["5g-encryption"]).upper() +
-                                                  ' password=' + dut["ssid"]["5g-password"] +
-                                                  ' bssid=' + dut["ssid"]["5g-bssid"]])
-                            self.update_duts(identifier=dut["identifier"], ssid_data=ssid_data)
-                        if band == "sixg":
-                            r_val[dut["identifier"]]["ssid"] = dut["ssid"]["6g-ssid"]
-                            r_val[dut["identifier"]]["passkey"] = dut["ssid"]["6g-password"]
-                            r_val[dut["identifier"]]["encryption"] = dut["ssid"]["6g-encryption"]
-                            r_val[dut["identifier"]]["bssid"] = dut["ssid"]["6g-bssid"]
-                            if str(dut["ssid"]["6g-encryption"]).upper() == "OPEN":
-                                ssid_data.append(['ssid_idx=0 ssid=' + dut["ssid"]["6g-ssid"] +
-                                                  ' bssid=' + dut["ssid"]["6g-bssid"]])
-                            else:
-                                ssid_data.append(['ssid_idx=0 ssid=' + dut["ssid"]["6g-ssid"] +
-                                                  ' security=' + str(dut["ssid"]["6g-encryption"]).upper() +
-                                                  ' password=' + dut["ssid"]["6g-password"] +
-                                                  ' bssid=' + dut["ssid"]["6g-bssid"]])
-                            self.update_duts(identifier=dut["identifier"], ssid_data=ssid_data)
+                if mode != ssid_data_run_lf[dut["identifier"]]["mode"]:
+                    pytest.skip("Dut is not configured in mode: " + mode)
+                    #"{'706dec0a8a79': {'ssid': 'ssid_wpa_5g_br', 'bssid': '[BLANK]', 'passkey': 'something', 'encryption': 'wpa', 'upstream_port': '1.1.eth2',
+                    # 'upstream_resource': '1', 'upstream': 'eth2', 'station_data': {'1.1.wiphy5': ['1.1.ath10k_5g00']},
+                    # 'sniff_radio_2g': None, 'sniff_radio_5g': '1.1.wiphy0', 'sniff_radio_6g': None, 'sta_prefix': 'ath10k_5g0'}}"
+                else:
+                    for i in ssid_data_run_lf[dut["identifier"]]["ssid_data"]:
+                        if encryption == ssid_data_run_lf[dut["identifier"]]["ssid_data"][i]["encryption"]:
+                            if band == ssid_data_run_lf[dut["identifier"]]["ssid_data"][i]["band"]:
+                                r_val[dut["identifier"]]["ssid"] = ssid_data_run_lf[dut["identifier"]]["ssid_data"][i]["ssid"]
+                                r_val[dut["identifier"]]["passkey"] = ssid_data_run_lf[dut["identifier"]]["ssid_data"][i]["password"]
+                                r_val[dut["identifier"]]["encryption"] = ssid_data_run_lf[dut["identifier"]]["ssid_data"][i]["encryption"]
+                                r_val[dut["identifier"]]["bssid"] = ssid_data_run_lf[dut["identifier"]]["ssid_data"][i]["bssid"]
+                                r_val[dut["identifier"]]["channel"] = ssid_data_run_lf[dut["identifier"]]["radio_data"][temp_band]["channel"]
+                    if r_val[dut["identifier"]]["ssid"] is None:
+                        logging.warning("Required combination: " + temp_band + ", " + encryption + " is not available")
+
+                        pytest.skip("Expected ssid configuration is not available in DUT")
+
+
+
         else:
             for dut in self.dut_data:
                 ssid_data = []
@@ -702,6 +671,7 @@ class lf_libs:
                     r_val[dut["identifier"]]["passkey"] = passkey
                     r_val[dut["identifier"]]["encryption"] = encryption
                     r_val[dut["identifier"]]["bssid"] = bssid
+                    r_val[dut["identifier"]]["channel"] = dut_data_["radio_data"][temp_band]["channel"]
                     if str(encryption).upper() == "OPEN":
                         ssid_data.append(['ssid_idx=0 ssid=' + ssid +
                                           ' bssid=' + str(bssid).upper()])
