@@ -111,7 +111,7 @@ class lf_tests(lf_libs):
                 # changed to auto channel
                 self.set_radio_channel(radio=radio, channel="AUTO")
                 logging.info("scan ssid radio: " + str(radio.split(".")[2]))
-                result = self.scan_ssid(radio=radio, ssid=ssid)
+                result = self.scan_ssid(radio=radio, ssid=data[dut]["ssid"])
                 logging.info("ssid scan data : " + str(result))
                 if not result:
                     # Sniffer required
