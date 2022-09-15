@@ -414,6 +414,7 @@ class lf_libs:
 
     def setup_interfaces(self, ssid="", bssid="", passkey="", encryption="", band=None, vlan_id=None, mode=None,
                          num_sta=None, dut_data_=None):
+        logging.info("dut_data_ in setup_interfaces: " + str(dut_data_))
         if dut_data_ is None:
             pytest.skip("No DUT data received")
         if band not in ["twog", "fiveg", "sixg"]:
@@ -662,7 +663,6 @@ class lf_libs:
                         pytest.skip("Expected ssid configuration is not available in DUT")
 
 
-
         else:
             for dut in self.dut_data:
                 ssid_data = []
@@ -671,7 +671,7 @@ class lf_libs:
                     r_val[dut["identifier"]]["passkey"] = passkey
                     r_val[dut["identifier"]]["encryption"] = encryption
                     r_val[dut["identifier"]]["bssid"] = bssid
-                    r_val[dut["identifier"]]["channel"] = dut_data_["radio_data"][temp_band]["channel"]
+                    r_val[dut["identifier"]]["channel"] = dut_data_[dut["identifier"]]["radio_data"][temp_band]["channel"]
                     if str(encryption).upper() == "OPEN":
                         ssid_data.append(['ssid_idx=0 ssid=' + ssid +
                                           ' bssid=' + str(bssid).upper()])
