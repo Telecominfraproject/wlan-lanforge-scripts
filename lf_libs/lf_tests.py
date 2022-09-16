@@ -313,8 +313,10 @@ class lf_tests(lf_libs):
         allure.attach(name="DUT Data:\n", body=json.dumps(str(dut_data), indent=2),
                       attachment_type=allure.attachment_type.JSON)
 
+        if self.run_lf:
+            dut_data = self.run_lf_dut_data()
         data = self.setup_interfaces(ssid=ssid, bssid=bssid, passkey=passkey, encryption=security,
-                                     band=band, vlan_id=vlan_id[0], mode=mode, num_sta=num_sta)
+                                     band=band, vlan_id=vlan_id[0], mode=mode, num_sta=num_sta, dut_data_=dut_data)
 
         logging.info("Setup interface data:\n" + json.dumps(str(data), indent=2))
         allure.attach(name="Interface Info: \n", body=json.dumps(str(data), indent=2),
