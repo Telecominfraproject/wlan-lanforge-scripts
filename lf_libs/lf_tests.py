@@ -666,7 +666,7 @@ class lf_tests(lf_libs):
     def client_connect(self, ssid="[BLANK]", passkey="[BLANK]", security="wpa2", mode="BRIDGE", band="twog",
                        vlan_id=[None], num_sta=None, scan_ssid=True, sta_mode=0,
                        station_data=["4way time (us)", "channel", "cx time (us)", "dhcp (ms)", "ip", "signal"],
-                       allure_attach=True, identifier=None, allure_name="station data", client_type=None):
+                       allure_attach=True, identifier=None, allure_name="station data", client_type=None, dut_data={}):
         if identifier is None:
             identifier = self.dut_data[0]["identifier"]
             logging.info("Identifier: " + str(identifier))
@@ -678,9 +678,11 @@ class lf_tests(lf_libs):
             if identifier not in all_identifier_list:
                 logging.error("Identifier is missing")
                 pytest.fail("Identifier is missing")
+        if self.run_lf:
+            dut_data = self.run_lf_dut_data()
 
         data = self.setup_interfaces(ssid=ssid, passkey=passkey, encryption=security,
-                                     band=band, vlan_id=vlan_id[0], mode=mode, num_sta=num_sta)
+                                     band=band, vlan_id=vlan_id[0], mode=mode, num_sta=num_sta, dut_data_=dut_data)
 
         logging.info("Setup interface data:\n" + json.dumps(str(data), indent=2))
         allure.attach(name="Interface Info: \n", body=json.dumps(str(data), indent=2),
@@ -748,7 +750,7 @@ class lf_tests(lf_libs):
                                                band=band, num_sta=num_sta, vlan_id=vlan_id,
                                                allure_name="Station data before simulate radar", identifier=identifier,
                                                station_data=["4way time (us)", "channel", "cx time (us)", "dhcp (ms)",
-                                                             "ip", "signal", "mode"])
+                                                             "ip", "signal", "mode"], dut_data=dut_data)
             station_list = list(station_data.keys())
             table_dict = {}
             sta_channel_before_dfs_list = []
@@ -1099,7 +1101,7 @@ class lf_tests(lf_libs):
                                   move_to_influx=False,
                                   station_data=["4way time (us)", "channel", "cx time (us)", "dhcp (ms)", "ip",
                                                 "signal"],
-                                  allure_attach=True, allure_name="station data", client_type=None):
+                                  allure_attach=True, allure_name="station data", client_type=None, dut_data={}):
         instance_name = ''.join(random.choices(string.ascii_uppercase + string.digits, k=12))
         dataplane_obj_list = []
         for dut in self.dut_data:
@@ -1108,7 +1110,7 @@ class lf_tests(lf_libs):
                                                vlan_id=vlan_id, num_sta=num_sta, scan_ssid=scan_ssid, sta_mode=sta_mode,
                                                station_data=station_data,
                                                allure_attach=allure_attach, identifier=identifier,
-                                               allure_name=allure_name, client_type=client_type)
+                                               allure_name=allure_name, client_type=client_type, dut_data=dut_data)
 
             if mode == "BRIDGE":
                 ret = self.get_wan_upstream_ports()
