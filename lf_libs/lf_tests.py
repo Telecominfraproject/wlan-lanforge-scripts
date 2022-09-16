@@ -592,14 +592,14 @@ class lf_tests(lf_libs):
                                                              band=band,
                                                              vlan_id=[None], num_sta=num_sta, scan_ssid=True,
                                                              station_data=["ip", "alias", "mac", "port type"],
-                                                             allure_attach=True)
+                                                             allure_attach=True, dut_data=dut_data)
                 self.client_disconnect(station_name=list(sta_data[non_vlan_sta].keys()))
             if "passkey" in mpsk_data[key] and mpsk_data[key]["passkey"] is not None:
                 sta_data[key] = self.client_connect(ssid=ssid, passkey=mpsk_data[key]["passkey"], security=encryption,
                                                     mode=mode, band=band,
                                                     vlan_id=[None], num_sta=num_sta, scan_ssid=True,
                                                     station_data=["ip", "alias", "mac", "port type"],
-                                                    allure_attach=True)
+                                                    allure_attach=True, dut_data=dut_data)
                 self.client_disconnect(station_name=list(sta_data[key].keys()))
 
         logging.info("station data: " + str(sta_data))
