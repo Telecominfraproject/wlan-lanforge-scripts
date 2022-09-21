@@ -522,7 +522,7 @@ class lf_libs:
                 logging.error("Can't create %s stations on lanforge" % num_sta)
                 pytest.skip("Can't create %s stations on lanforge" % num_sta)
             # checking atleast one 2g radio is available or not
-            elif len(self.wave2_2g_radios) == 0 and len(self.wave1_radios) and len(self.ax210_radios) == 0 and len(
+            elif len(self.wave2_2g_radios) == 0 and len(self.wave1_radios) == 0 and len(self.ax210_radios) == 0 and len(
                     self.ax200_radios) == 0 and len(self.mtk_radios) == 0:
                 logging.error("Twog radio is not available")
                 pytest.skip("Twog radio is not available")
@@ -552,7 +552,7 @@ class lf_libs:
                 logging.error("Can't create %s stations on lanforge" % num_sta)
                 pytest.skip("Can't create %s stations on lanforge" % num_sta)
             # checking atleast one 5g radio is available or not
-            elif len(self.wave2_5g_radios) == 0 and len(self.wave1_radios) and len(self.ax210_radios) == 0 and len(
+            elif len(self.wave2_5g_radios) == 0 and len(self.wave1_radios) == 0 and len(self.ax210_radios) == 0 and len(
                     self.ax200_radios) == 0 and len(self.mtk_radios) == 0:
                 logging.error("fiveg radio is not available")
                 pytest.skip("fiveg radio is not available")
