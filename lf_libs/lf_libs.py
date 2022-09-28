@@ -206,7 +206,7 @@ class lf_libs:
 
     def setup_dut(self):
         self.dut_objects = []
-        print("MMMM", self.dut_data)
+        logging.info("DUT Data: " + str(self.dut_data))
         for index in range(0, len(self.dut_data)):
             dut_obj = DUT(lfmgr=self.manager_ip,
                           port=self.manager_http_port,
@@ -1094,7 +1094,6 @@ class lf_libs:
             # pprint(response)
             pytest.skip("station_list: incomplete response:")
         y = response["interface"][query]
-        print("y", y)
         return y
 
     def get_max_sta(self, radio=""):
