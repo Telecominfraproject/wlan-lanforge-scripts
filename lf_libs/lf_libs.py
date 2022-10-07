@@ -1134,6 +1134,38 @@ class lf_libs:
                 }
                 self.json_post("/cli-json/set_port", data)
                 time.sleep(2)
+        time.sleep(5)
+        # query and fetch vlan Ip Address
+        port_data = self.json_get(_req_url="/port?fields=alias,parent+dev,port+type,ip,mac")['interfaces']
+        logging.info("Port data: " + str(port_data))
+        vlan_table_data = {}
+        port = []
+        ip = []
+        parent_dev = []
+        not_ip_vlans = []
+        vlan_ip_fail = False
+        for i in port_data:
+            for item in i:
+                if i[item]['port type'] == '802.1Q VLAN' and i[item]['ip'] == '0.0.0.0':
+                    vlan_ip_fail = True
+                    logging.error(f"VLAN Interface - {i[item]['alias']} do not have IP")
+                    port.append(item)
+                    ip.append(i[item]['ip'])
+                    not_ip_vlans.append(item)
+                    parent_dev.append(i[item]['parent dev'])
+                elif i[item]['port type'] == '802.1Q VLAN' and i[item]['ip'] != '0.0.0.0':
+                    port.append(item)
+                    ip.append(i[item]['ip'])
+                    parent_dev.append(i[item]['parent dev'])
+        # creating dict for vlan table
+        vlan_table_data["Port"] = port
+        vlan_table_data["Parent Dev"] = parent_dev
+        vlan_table_data["ip"] = ip
+        # Attaching vlan table to allure
+        self.attach_table_allure(data=vlan_table_data, allure_name="VLAN Table")
+        if vlan_ip_fail:
+            # Fail if Vlan don't have IP
+            pytest.fail("VLAN do not have IP:-" + str(not_ip_vlans))
 
     def chamber_view(self, delete_old_scenario=True, raw_lines="default"):
         """create chamber view. raw_lines values are default | custom"""
