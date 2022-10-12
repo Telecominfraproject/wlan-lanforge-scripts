@@ -870,13 +870,7 @@ class lf_tests(lf_libs):
 
         for dut in dut_data:
             for idx_ in dut_data[dut]["ssid_data"]:
-                if band == "2G":
-                    temp_band = "twog"
-                elif band == "5G":
-                    temp_band = "fiveg"
-                elif band == "6G":
-                    temp_band = "sixg"
-                if temp_band == dut_data[dut]["ssid_data"][idx_]["band"] and ssid_name == \
+                if band == dut_data[dut]["ssid_data"][idx_]["band"] and ssid_name == \
                         dut_data[dut]["ssid_data"][idx_]["ssid"]:
                     idx = idx_
         if band == "2G":
@@ -1065,7 +1059,7 @@ class lf_tests(lf_libs):
                 try:
                     report_name = "../reports/" + \
                                   wificapacity_obj.report_name[0]['LAST']["response"].split(":::")[1].split("/")[
-                                      -1] + "/"
+                                      -1]
                     influx = CSVtoInflux(influx_host=self.influx_params["influx_host"],
                                          influx_port=self.influx_params["influx_port"],
                                          influx_org=self.influx_params["influx_org"],
@@ -1077,7 +1071,7 @@ class lf_tests(lf_libs):
                 except Exception as e:
                     print(e)
                     pass
-            report_name = wificapacity_obj.report_name[0]['LAST']["response"].split(":::")[1].split("/")[-1] + "/"
+            report_name = wificapacity_obj.report_name[0]['LAST']["response"].split(":::")[1].split("/")[-1]
 
             self.attach_report_graphs(report_name=report_name)
             self.attach_report_kpi(report_name=report_name)
