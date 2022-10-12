@@ -1230,6 +1230,7 @@ class lf_libs:
         relevant_path = "../reports/" + report_name + "/"
         logging.info("GETCWD" + str(os.getcwd()))
         logging.info("List report dict" + str(os.listdir("../reports")))
+        logging.info("CHeck Report directory" + str(os.path.exists(f"../reports/{report_name}")))
         entries = os.listdir("../reports/" + report_name + '/')
         logging.info("Entries" + str(entries))
         pdf = False
