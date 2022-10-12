@@ -1229,6 +1229,7 @@ class lf_libs:
     def attach_report_graphs(self, report_name=None, pdf_name="WIFI Capacity Test PDF Report"):
         relevant_path = "../reports/" + report_name + "/"
         logging.info("GETCWD" + str(os.getcwd()))
+        logging.info("List report dict", + str(os.listdir("../reports")))
         entries = os.listdir("../reports/" + report_name + '/')
         logging.info("Entries" + str(entries))
         pdf = False
