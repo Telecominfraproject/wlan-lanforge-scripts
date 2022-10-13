@@ -1059,7 +1059,7 @@ class lf_tests(lf_libs):
                 try:
                     report_name = "../reports/" + \
                                   wificapacity_obj.report_name[0]['LAST']["response"].split(":::")[1].split("/")[
-                                      -1]
+                                      -1] + "/"
                     influx = CSVtoInflux(influx_host=self.influx_params["influx_host"],
                                          influx_port=self.influx_params["influx_port"],
                                          influx_org=self.influx_params["influx_org"],
@@ -1071,8 +1071,9 @@ class lf_tests(lf_libs):
                 except Exception as e:
                     print(e)
                     pass
-            report_name = wificapacity_obj.report_name[0]['LAST']["response"].split(":::")[1].split("/")[-1]
+            report_name = wificapacity_obj.report_name[0]['LAST']["response"].split(":::")[1].split("/")[-1] + "/"
             time.sleep(10)
+            logging.info("report_name: " + str(report_name))
             self.attach_report_graphs(report_name=report_name)
             self.attach_report_kpi(report_name=report_name)
             wificapacity_obj_list.append(wificapacity_obj)
