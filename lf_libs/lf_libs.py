@@ -1261,7 +1261,10 @@ class lf_libs:
                                attachment_type="image/png", extension=None)
 
     def attach_report_kpi(self, report_name=None, file_name="kpi_file"):
-        path = "../reports/" + str(report_name) + "/kpi.csv"
+        if report_name[-1] == "/":
+            path = "../reports/" + str(report_name) + "kpi.csv"
+        else:
+            path = "../reports/" + str(report_name) + "/kpi.csv"
         if os.path.exists(path):
             allure.attach.file(source=path,
                                name=file_name, attachment_type="CSV")
