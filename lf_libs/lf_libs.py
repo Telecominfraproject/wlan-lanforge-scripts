@@ -1227,11 +1227,15 @@ class lf_libs:
             logging.error("Radio name is wrong")
 
     def attach_report_graphs(self, report_name=None, pdf_name="WIFI Capacity Test PDF Report"):
-        relevant_path = "../reports/" + report_name + "/"
-        logging.info("GETCWD" + str(os.getcwd()))
-        logging.info("List report dict" + str(os.listdir("../reports")))
-        logging.info("CHeck Report directory" + str(os.path.exists(f"../reports/{report_name}")))
-        entries = os.listdir("../reports/" + report_name + '/')
+        if report_name[-1] == "/":
+            relevant_path = "../reports/" + report_name
+            entries = os.listdir("../reports/" + report_name)
+        else:
+            relevant_path = "../reports/" + report_name + "/"
+            entries = os.listdir("../reports/" + report_name + '/')
+        # logging.info("GETCWD" + str(os.getcwd()))
+        # logging.info("List report dict" + str(os.listdir("../reports")))
+        # logging.info("CHeck Report directory" + str(os.path.exists(f"../reports/{report_name}")))
         logging.info("Entries" + str(entries))
         pdf = False
         for i in entries:
