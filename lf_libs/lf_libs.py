@@ -1193,6 +1193,7 @@ class lf_libs:
         time.sleep(2)
         self.chamberview_object.show_text_blob(None, None, True)  # Show changes on GUI
         self.chamberview_object.sync_cv()
+        time.sleep(10)
         return self.chamberview_object, self.scenario
 
     def setup_radius_server(self, user=""):
