@@ -846,11 +846,7 @@ class lf_tests(lf_libs):
                              ' security=' + str(dut_data[identifier]["ssid_data"][idx_]["encryption"]).upper() +
                              ' password=' + dut_data[identifier]["ssid_data"][idx_]["password"] +
                              ' bssid=' + str(dut_data[identifier]["ssid_data"][idx_]["bssid"]).upper()])
-
-                    if str(dut_data[identifier]["ssid_data"][idx_]["encryption"]).upper() in ["OPEN", "WPA", "WPA2",
-                                                                                              "WPA3", "WEP"]:
-                        self.update_duts(identifier=identifier, ssid_data=ssid_data)
-
+                self.update_duts(identifier=identifier, ssid_data=ssid_data)
         dict_all_radios_2g = {"wave2_2g_radios": self.wave2_2g_radios,
                               "wave1_radios": self.wave1_radios, "mtk_radios": self.mtk_radios,
                               "ax200_radios": self.ax200_radios,
