@@ -969,6 +969,7 @@ class lf_tests(lf_libs):
                       sort="interleave", raw_lines=[], move_to_influx=False, dut_data={}, ssid_name=None,
                       num_stations={}, add_stations=True):
         wificapacity_obj_list = []
+        vlan_raw_lines = None
         for dut in self.dut_data:
             sets = [["DUT_NAME", dut["model"]]]
             identifier = dut["identifier"]
@@ -989,7 +990,7 @@ class lf_tests(lf_libs):
                     logging.error("VLAN ID is Unspecified in the VLAN Case")
                     pytest.skip("VLAN ID is Unspecified in the VLAN Case")
                 else:
-                    self.add_vlan(vlan_ids=[vlan_id])
+                    vlan_raw_lines = self.add_vlan(vlan_ids=[vlan_id], build=True)
                     ret = self.get_wan_upstream_ports()
                     upstream_port = ret[identifier] + "." + str(vlan_id)
             logging.info("Upstream data: " + str(upstream_port))
@@ -1028,6 +1029,9 @@ class lf_tests(lf_libs):
                     self.add_stations(band=band_, num_stations=num_stations[band_], ssid_name=ssid_name,
                                       dut_data=dut_data,
                                       identifier=identifier)
+                    if vlan_raw_lines is not None:
+                        for i in vlan_raw_lines:
+                            self.temp_raw_lines.append(i)
                     self.chamber_view(raw_lines="custom")
             wificapacity_obj = WiFiCapacityTest(lfclient_host=self.manager_ip,
                                                 lf_port=self.manager_http_port,
