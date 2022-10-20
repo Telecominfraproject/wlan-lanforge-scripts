@@ -1342,6 +1342,27 @@ class lf_libs:
             logging.error(e)
         return ret
 
+    def check_band_ap(self, band=None):
+        """"This method will check given band ap is supporting or not"""
+        temp_band = None
+        if band is not None:
+            if band == "twog" or band == "2G":
+                temp_band = "2G"
+            elif band == "fiveg" or band == "5G":
+                temp_band = "5G"
+            elif band == "sixg" or band == "6G":
+                temp_band = "6G"
+            print(self.dut_data)
+            if len(self.dut_data) == 1:
+                for ap in self.dut_data:
+                    print(ap)
+                    if temp_band not in ap["supported_bands"]:
+                        logging.error("AP is not supporting " + temp_band + " Band")
+                        pytest.skip("AP is not supporting " + temp_band + " Band")
+            else:
+                pass
+
+
 
 
 
