@@ -67,6 +67,7 @@ class lf_tests(lf_libs):
                                  security="open", extra_securities=[], sta_mode=0,
                                  num_sta=1, mode="BRIDGE", vlan_id=[None], band="twog",
                                  allure_attach=True, runtime_secs=40):
+        self.check_band_ap(band=band)
         if self.run_lf:
             dut_data = self.run_lf_dut_data()
         logging.info("DUT Data:\n" + json.dumps(str(dut_data), indent=2))
@@ -311,7 +312,7 @@ class lf_tests(lf_libs):
                                             d_vlan=False, cleanup=True,
                                             num_sta=1, mode="BRIDGE", vlan_id=[None], band="twog",
                                             allure_attach=True, runtime_secs=40):
-
+        self.check_band_ap(band=band)
         logging.info("DUT Data:\n" + json.dumps(str(dut_data), indent=2))
         allure.attach(name="DUT Data:\n", body=json.dumps(str(dut_data), indent=2),
                       attachment_type=allure.attachment_type.JSON)
@@ -680,6 +681,7 @@ class lf_tests(lf_libs):
                        vlan_id=[None], num_sta=None, scan_ssid=True, sta_mode=0,
                        station_data=["4way time (us)", "channel", "cx time (us)", "dhcp (ms)", "ip", "signal"],
                        allure_attach=True, identifier=None, allure_name="station data", client_type=None, dut_data={}):
+        self.check_band_ap(band=band)
         if identifier is None:
             identifier = self.dut_data[0]["identifier"]
             logging.info("Identifier: " + str(identifier))
@@ -756,6 +758,7 @@ class lf_tests(lf_libs):
     def dfs_test(self, ssid=None, security=None, passkey=None, mode=None,
                  band=None, num_sta=1, vlan_id=[None], dut_data={}, tip_2x_obj=None):
         """DFS test"""
+        self.check_band_ap(band=band)
         logging.info("DUT DATA: " + str(dut_data))
         for dut in self.dut_data:
             identifier = dut["identifier"]
@@ -822,6 +825,7 @@ class lf_tests(lf_libs):
         dut_name = []
         # for index in range(0, len(self.dut_data)):
         #     dut_name.append(self.dut_data[index]["identifier"])
+        self.check_band_ap(band=band)
         if num_stations == 0:
             logging.warning("0 Stations")
             return
