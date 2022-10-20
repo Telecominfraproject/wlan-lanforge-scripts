@@ -476,7 +476,7 @@ class lf_libs:
                 logging.error("VLAN ID is Unspecified in the VLAN Case")
                 pytest.skip("VLAN ID is Unspecified in the VLAN Case")
             else:
-                self.add_vlan(vlan_ids=[vlan_id])
+                self.add_vlan(vlan_ids=vlan_id)
                 ret = self.get_wan_upstream_ports()
                 for dut in r_val:
                     if ret.keys().__contains__(dut) and ret[dut] is not None:
