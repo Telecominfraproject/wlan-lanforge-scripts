@@ -75,7 +75,7 @@ class lf_tests(lf_libs):
                       attachment_type=allure.attachment_type.JSON)
 
         data = self.setup_interfaces(ssid=ssid, bssid=bssid, passkey=passkey, encryption=security,
-                                     band=band, vlan_id=vlan_id[0], mode=mode, num_sta=num_sta, dut_data_=dut_data)
+                                     band=band, vlan_id=vlan_id, mode=mode, num_sta=num_sta, dut_data_=dut_data)
         logging.info("Setup interface data:\n" + json.dumps(str(data), indent=2))
         allure.attach(name="Interface Info: \n", body=json.dumps(str(data), indent=2),
                       attachment_type=allure.attachment_type.JSON)
@@ -320,7 +320,7 @@ class lf_tests(lf_libs):
         if self.run_lf:
             dut_data = self.run_lf_dut_data()
         data = self.setup_interfaces(ssid=ssid, bssid=bssid, passkey=passkey, encryption=security,
-                                     band=band, vlan_id=vlan_id[0], mode=mode, num_sta=num_sta, dut_data_=dut_data)
+                                     band=band, vlan_id=vlan_id, mode=mode, num_sta=num_sta, dut_data_=dut_data)
 
         logging.info("Setup interface data:\n" + json.dumps(str(data), indent=2))
         allure.attach(name="Interface Info: \n", body=json.dumps(str(data), indent=2),
@@ -464,14 +464,14 @@ class lf_tests(lf_libs):
         pass_fail_result = []
         for obj in eap_connect_objs:
             sta_rows = ["4way time (us)", "channel", "cx time (us)", "dhcp (ms)", "ip", "signal"]
-            station_data = self.get_station_data(sta_name=obj.sta_list, rows=sta_rows,
+            self.station_data = self.get_station_data(sta_name=obj.sta_list, rows=sta_rows,
                                                  allure_attach=False)
             sta_table_dict = {}
-            sta_table_dict["station name"] = list(station_data.keys())
+            sta_table_dict["station name"] = list(self.station_data.keys())
             for i in sta_rows:
                 temp_list = []
                 for j in obj.sta_list:
-                    temp_list.append(station_data[j][i])
+                    temp_list.append(self.station_data[j][i])
                 sta_table_dict[i] = temp_list
             # pass fail
             pass_fail_sta = []
@@ -697,7 +697,7 @@ class lf_tests(lf_libs):
             dut_data = self.run_lf_dut_data()
 
         data = self.setup_interfaces(ssid=ssid, passkey=passkey, encryption=security,
-                                     band=band, vlan_id=vlan_id[0], mode=mode, num_sta=num_sta, dut_data_=dut_data)
+                                     band=band, vlan_id=vlan_id, mode=mode, num_sta=num_sta, dut_data_=dut_data)
 
         logging.info("Setup interface data:\n" + json.dumps(str(data), indent=2))
         allure.attach(name="Interface Info: \n", body=json.dumps(str(data), indent=2),
@@ -973,6 +973,7 @@ class lf_tests(lf_libs):
                       sort="interleave", raw_lines=[], move_to_influx=False, dut_data={}, ssid_name=None,
                       num_stations={}, add_stations=True):
         wificapacity_obj_list = []
+        vlan_raw_lines = None
         for dut in self.dut_data:
             sets = [["DUT_NAME", dut["model"]]]
             identifier = dut["identifier"]
@@ -993,7 +994,7 @@ class lf_tests(lf_libs):
                     logging.error("VLAN ID is Unspecified in the VLAN Case")
                     pytest.skip("VLAN ID is Unspecified in the VLAN Case")
                 else:
-                    self.add_vlan(vlan_ids=[vlan_id])
+                    vlan_raw_lines = self.add_vlan(vlan_ids=vlan_id, build=True)
                     ret = self.get_wan_upstream_ports()
                     upstream_port = ret[identifier] + "." + str(vlan_id)
             logging.info("Upstream data: " + str(upstream_port))
@@ -1032,6 +1033,9 @@ class lf_tests(lf_libs):
                     self.add_stations(band=band_, num_stations=num_stations[band_], ssid_name=ssid_name,
                                       dut_data=dut_data,
                                       identifier=identifier)
+                    if vlan_raw_lines is not None:
+                        for i in vlan_raw_lines:
+                            self.temp_raw_lines.append(i)
                     self.chamber_view(raw_lines="custom")
             wificapacity_obj = WiFiCapacityTest(lfclient_host=self.manager_ip,
                                                 lf_port=self.manager_http_port,
@@ -1124,7 +1128,7 @@ class lf_tests(lf_libs):
                     logging.error("VLAN ID is Unspecified in the VLAN Case")
                     pytest.skip("VLAN ID is Unspecified in the VLAN Case")
                 else:
-                    self.add_vlan(vlan_ids=[vlan_id])
+                    self.add_vlan(vlan_ids=vlan_id)
                     ret = self.get_wan_upstream_ports()
                     upstream_port = ret[identifier] + "." + str(vlan_id)
             logging.info("Upstream data: " + str(upstream_port))
