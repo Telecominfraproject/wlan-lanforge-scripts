@@ -465,7 +465,7 @@ class lf_tests(lf_libs):
         for obj in eap_connect_objs:
             sta_rows = ["4way time (us)", "channel", "cx time (us)", "dhcp (ms)", "ip", "signal"]
             self.station_data = self.get_station_data(sta_name=obj.sta_list, rows=sta_rows,
-                                                 allure_attach=False)
+                                                      allure_attach=False)
             sta_table_dict = {}
             sta_table_dict["station name"] = list(self.station_data.keys())
             for i in sta_rows:
@@ -966,6 +966,19 @@ class lf_tests(lf_libs):
                             str(int(idx) + 1) + "'" + " NA " + radio.split(".")[2]]
             self.temp_raw_lines.append(station_data)
             print(self.temp_raw_lines)
+
+    def rate_limiting_test(self, mode="BRIDGE", vlan_id=100, batch_size="1,5,10,20,40,64,128",
+                           instance_name="wct_instance", download_rate="1Gbps", influx_tags="",
+                           upload_rate="1Gbps", protocol="TCP-IPv4", duration="60000", stations="",
+                           create_stations=False,
+                           sort="interleave", raw_lines=[], move_to_influx=False, dut_data={}, ssid_name=None,
+                           num_stations={}, add_stations=True):
+        self.wifi_capacity(mode=mode, vlan_id=vlan_id, batch_size=batch_size, instance_name=instance_name,
+                           download_rate=download_rate,
+                           influx_tags=influx_tags, upload_rate=upload_rate, protocol=protocol, duration=duration,
+                           stations=stations, create_stations=create_stations, sort=sort, raw_lines=raw_lines,
+                           move_to_influx=move_to_influx,
+                           dut_data=dut_data, ssid_name=ssid_name, num_stations=num_stations, add_stations=add_stations)
 
     def wifi_capacity(self, mode="BRIDGE", vlan_id=100, batch_size="1,5,10,20,40,64,128",
                       instance_name="wct_instance", download_rate="1Gbps", influx_tags="",
