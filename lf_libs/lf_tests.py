@@ -125,7 +125,7 @@ class lf_tests(lf_libs):
                                     channel = data[dut]["channel"]
                                     if data[dut]["sniff_radio_2g"] is not None and channel is not None:
                                         self.start_sniffer(radio_channel=channel,
-                                                           radio=data[dut]["sniff_radio_2g"].split(".")[2],
+                                                           radio=data[dut]["sniff_radio_2g"],
                                                            duration=10)
                                         time.sleep(10)
                                         self.stop_sniffer()
@@ -135,17 +135,18 @@ class lf_tests(lf_libs):
                                     channel = data[dut]["channel"]
                                     if data[dut]["sniff_radio_5g"] is not None and channel is not None:
                                         self.start_sniffer(radio_channel=channel,
-                                                           radio=data[dut]["sniff_radio_5g"].split(".")[2],
+                                                           radio=data[dut]["sniff_radio_5g"],
                                                            duration=10)
                                         time.sleep(10)
                                         self.stop_sniffer()
                             elif band == "sixg":
                                 if dict(dut_data.get(identifier)["radio_data"]).keys().__contains__("6G") and \
                                         dict(dut_data.get(identifier)["radio_data"])["6G"] is not None:
-                                    channel = data[dut]["channel"]
+                                    channel = self.lf_sixg_lookup_validation(int(data[dut]["channel"]))
+                                    logging.info("LF sixg channel: " + str(channel))
                                     if data[dut]["sniff_radio_6g"] is not None and channel is not None:
                                         self.start_sniffer(radio_channel=channel,
-                                                           radio=data[dut]["sniff_radio_6g"].split(".")[2],
+                                                           radio=data[dut]["sniff_radio_6g"],
                                                            duration=10)
                                         time.sleep(10)
                                         self.stop_sniffer()
@@ -162,7 +163,7 @@ class lf_tests(lf_libs):
                             channel = data[dut]["channel"]
                             if data[dut]["sniff_radio_2g"] is not None and channel is not None:
                                 self.start_sniffer(radio_channel=channel,
-                                                   radio=data[dut]["sniff_radio_2g"].split(".")[2],
+                                                   radio=data[dut]["sniff_radio_2g"],
                                                    duration=runtime_secs)
                             logging.info("started-sniffer")
                             for obj in sta_connect_obj:
@@ -178,7 +179,7 @@ class lf_tests(lf_libs):
                             channel = data[dut]["channel"]
                             if data[dut]["sniff_radio_5g"] is not None and channel is not None:
                                 self.start_sniffer(radio_channel=channel,
-                                                   radio=data[dut]["sniff_radio_5g"].split(".")[2],
+                                                   radio=data[dut]["sniff_radio_5g"],
                                                    duration=runtime_secs)
                             for obj in sta_connect_obj:
                                 obj.start()
@@ -189,10 +190,11 @@ class lf_tests(lf_libs):
                     elif band == "sixg":
                         if dict(dut_data.get(identifier)["radio_data"]).keys().__contains__("6G") and \
                                 dict(dut_data.get(identifier)["radio_data"])["6G"] is not None:
-                            channel = data[dut]["channel"]
+                            channel = self.lf_sixg_lookup_validation(int(data[dut]["channel"]))
+                            logging.info("LF sixg channel: " + str(channel))
                             if data[dut]["sniff_radio_6g"] is not None and channel is not None:
                                 self.start_sniffer(radio_channel=channel,
-                                                   radio=data[dut]["sniff_radio_6g"].split(".")[2],
+                                                   radio=data[dut]["sniff_radio_6g"],
                                                    duration=runtime_secs)
                             for obj in sta_connect_obj:
                                 obj.start()
@@ -359,7 +361,7 @@ class lf_tests(lf_libs):
                                     channel = dict(dut_data.get(identifier)["radio_data"])["2G"]["channel"]
                                     if data[dut]["sniff_radio_2g"] is not None and channel is not None:
                                         self.start_sniffer(radio_channel=channel,
-                                                           radio=data[dut]["sniff_radio_2g"].split(".")[2],
+                                                           radio=data[dut]["sniff_radio_2g"],
                                                            duration=10)
                                         time.sleep(10)
                                         self.stop_sniffer()
@@ -369,7 +371,7 @@ class lf_tests(lf_libs):
                                     channel = dict(dut_data.get(identifier)["radio_data"])["5G"]["channel"]
                                     if data[dut]["sniff_radio_5g"] is not None and channel is not None:
                                         self.start_sniffer(radio_channel=channel,
-                                                           radio=data[dut]["sniff_radio_5g"].split(".")[2],
+                                                           radio=data[dut]["sniff_radio_5g"],
                                                            duration=10)
                                         time.sleep(10)
                                         self.stop_sniffer()
@@ -379,7 +381,7 @@ class lf_tests(lf_libs):
                                     channel = dict(dut_data.get(identifier)["radio_data"])["6G"]["channel"]
                                     if data[dut]["sniff_radio_6g"] is not None and channel is not None:
                                         self.start_sniffer(radio_channel=channel,
-                                                           radio=data[dut]["sniff_radio_6g"].split(".")[2],
+                                                           radio=data[dut]["sniff_radio_6g"],
                                                            duration=10)
                                         time.sleep(10)
                                         self.stop_sniffer()
@@ -419,7 +421,7 @@ class lf_tests(lf_libs):
                             channel = dict(dut_data.get(identifier)["radio_data"])["2G"]["channel"]
                             if data[dut]["sniff_radio_2g"] is not None and channel is not None:
                                 self.start_sniffer(radio_channel=channel,
-                                                   radio=data[dut]["sniff_radio_2g"].split(".")[2],
+                                                   radio=data[dut]["sniff_radio_2g"],
                                                    duration=runtime_secs)
                             logging.info("started-sniffer")
                             for obj in eap_connect_objs:
@@ -434,7 +436,7 @@ class lf_tests(lf_libs):
                             channel = dict(dut_data.get(identifier)["radio_data"])["5G"]["channel"]
                             if data[dut]["sniff_radio_5g"] is not None and channel is not None:
                                 self.start_sniffer(radio_channel=channel,
-                                                   radio=data[dut]["sniff_radio_5g"].split(".")[2],
+                                                   radio=data[dut]["sniff_radio_5g"],
                                                    duration=runtime_secs)
                             for obj in eap_connect_objs:
                                 obj.start(obj.sta_list, True, True, wait_time=1)
@@ -448,7 +450,7 @@ class lf_tests(lf_libs):
                             channel = dict(dut_data.get(identifier)["radio_data"])["6G"]["channel"]
                             if data[dut]["sniff_radio_6g"] is not None and channel is not None:
                                 self.start_sniffer(radio_channel=channel,
-                                                   radio=data[dut]["sniff_radio_6g"].split(".")[2],
+                                                   radio=data[dut]["sniff_radio_6g"],
                                                    duration=runtime_secs)
                             for obj in eap_connect_objs:
                                 obj.start(obj.sta_list, True, True, wait_time=1)
