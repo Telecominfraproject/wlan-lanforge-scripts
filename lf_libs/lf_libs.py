@@ -480,8 +480,8 @@ class lf_libs:
                 ret = self.get_wan_upstream_ports()
                 for dut in r_val:
                     if ret.keys().__contains__(dut) and ret[dut] is not None:
-                        upstream_data = (ret[dut] + "." + str(vlan_id)).split(".")
-                        r_val[dut]["upstream_port"] = ret[dut] + "." + str(vlan_id)
+                        upstream_data = (ret[dut] + "." + str(vlan_id[0])).split(".")
+                        r_val[dut]["upstream_port"] = ret[dut] + "." + str(vlan_id[0])
                         upstream_resource = upstream_data[1]
                         r_val[dut]["upstream_resource"] = upstream_resource
                         upstream_data.pop(0)
@@ -1370,7 +1370,77 @@ class lf_libs:
             else:
                 pass
 
-
+    def lf_sixg_lookup_validation(self, channel=None):
+        """
+        This method will return ap equaivalent 6g channel for lanforge.
+        channel should be ap 6g channel
+        """
+        ap_lanforge_6g_channel_dict = {
+            1: 191,
+            5: 195,
+            9: 199,
+            13: 203,
+            17: 207,
+            21: 211,
+            25: 215,
+            29: 219,
+            33: 223,
+            37: 227,
+            41: 231,
+            45: 235,
+            49: 239,
+            53: 243,
+            57: 247,
+            61: 251,
+            65: 255,
+            69: 259,
+            73: 262,
+            77: 266,
+            81: 270,
+            85: 274,
+            89: 278,
+            93: 282,
+            97: 286,
+            101: 290,
+            105: 294,
+            109: 298,
+            113: 302,
+            117: 306,
+            121: 310,
+            125: 314,
+            129: 318,
+            133: 322,
+            137: 326,
+            141: 330,
+            145: 334,
+            149: 339,
+            153: 343,
+            157: 347,
+            161: 351,
+            165: 355,
+            169: 359,
+            173: 363,
+            177: 367,
+            181: 371,
+            185: 375,
+            189: 379,
+            193: 383,
+            197: 387,
+            201: 391,
+            205: 395,
+            209: 399,
+            213: 403,
+            217: 407,
+            221: 411,
+            225: 415,
+            229: 419,
+            233: 423
+        }
+        if channel is not None:
+            channel = int(channel)
+            return ap_lanforge_6g_channel_dict[channel]
+        else:
+            return None
 
 
 
