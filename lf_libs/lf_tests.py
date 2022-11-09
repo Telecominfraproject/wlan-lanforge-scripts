@@ -1011,7 +1011,7 @@ class lf_tests(lf_libs):
                 else:
                     vlan_raw_lines = self.add_vlan(vlan_ids=vlan_id, build=True)
                     ret = self.get_wan_upstream_ports()
-                    upstream_port = ret[identifier] + "." + str(vlan_id)
+                    upstream_port = ret[identifier] + "." + str(vlan_id[0])
             logging.info("Upstream data: " + str(upstream_port))
             sets = [["DUT_NAME", dut]]
 
@@ -1145,7 +1145,7 @@ class lf_tests(lf_libs):
                 else:
                     self.add_vlan(vlan_ids=vlan_id)
                     ret = self.get_wan_upstream_ports()
-                    upstream_port = ret[identifier] + "." + str(vlan_id)
+                    upstream_port = ret[identifier] + "." + str(vlan_id[0])
             logging.info("Upstream data: " + str(upstream_port))
 
             if raw_lines is None:
