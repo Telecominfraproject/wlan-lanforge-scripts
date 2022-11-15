@@ -209,7 +209,7 @@ class lf_tests(lf_libs):
                     time.sleep(runtime_secs)
         pass_fail_result = []
         for obj in sta_connect_obj:
-            sta_rows = ["4way time (us)", "channel", "cx time (us)", "dhcp (ms)", "ip", "signal"]
+            sta_rows = ["4way time (us)", "channel", "cx time (us)", "dhcp (ms)", "ip", "signal", "mac"]
             station_data = self.get_station_data(sta_name=obj.station_names, rows=sta_rows,
                                                  allure_attach=False)
             sta_table_dict = {}
@@ -293,7 +293,7 @@ class lf_tests(lf_libs):
                 result = "FAIL"
         for obj in sta_connect_obj:
             try:
-                print("1." + str(obj.resource) + "." + str(obj.radio))
+                # print("1." + str(obj.resource) + "." + str(obj.radio))
                 self.get_supplicant_logs(radio=str(obj.radio))
             except Exception as e:
                 logging.error("client_cpnnectivity_tests() -- Error in getting Supplicant Logs:" + str(e))
@@ -465,7 +465,7 @@ class lf_tests(lf_libs):
                     time.sleep(runtime_secs)
         pass_fail_result = []
         for obj in eap_connect_objs:
-            sta_rows = ["4way time (us)", "channel", "cx time (us)", "dhcp (ms)", "ip", "signal"]
+            sta_rows = ["4way time (us)", "channel", "cx time (us)", "dhcp (ms)", "ip", "signal", "mac"]
             self.station_data = self.get_station_data(sta_name=obj.sta_list, rows=sta_rows,
                                                       allure_attach=False)
             sta_table_dict = {}
@@ -542,7 +542,7 @@ class lf_tests(lf_libs):
                     pass_fail_result.append(temp_dict)
         for obj in eap_connect_objs:
             try:
-                print("1." + str(obj.resource) + "." + str(obj.radio))
+                # print("1." + str(obj.resource) + "." + str(obj.radio))
                 self.get_supplicant_logs(radio=str(obj.radio))
             except Exception as e:
                 logging.error("client_cpnnectivity_tests() -- Error in getting Supplicant Logs:" + str(e))
