@@ -1197,6 +1197,35 @@ class lf_tests(lf_libs):
             dataplane_obj_list.append(dataplane_obj)
         return dataplane_obj_list
 
+    def country_code_channel_division(self, ssid="[BLANK]", passkey='[BLANK]', security="wpa2", mode="BRIDGE",
+                                      band='twog', num_sta=1, vlan_id=100, channel='1', channel_width=20,
+                                      country_num=392, country='United States(US)', dut_data={}):
+        # self.local_realm = realm.Realm(lfclient_host=self.lanforge_ip, lfclient_port=self.lanforge_port)
+
+        radio = self.wave2_5g_radios[0] if band == "fiveg" else self.wave2_2g_radios[0]
+        self.set_radio_channel(radio=radio, channel=0, country=country_num)
+        station = self.client_connect(ssid=ssid, passkey=passkey, security=security, mode=mode, band=band,
+                                      num_sta=num_sta, vlan_id=vlan_id, dut_data=dut_data)
+        if station[list(station.keys())[0]]['ip']:
+            allure.attach(name="Definition",
+                          body="Country code channel test intends to verify stability of Wi-Fi device " \
+                               "where the AP is configured with different countries with different channels.")
+            allure.attach(name="Procedure",
+                          body=f"This test case definition states that we need to push the basic {mode.lower()} mode config on the AP to "
+                               f"be tested by configuring it with {country} on {channel_width}MHz channel width and "
+                               f"channel {channel}. Create a client on {'5' if band == 'fiveg' else '2.4'} GHz radio. Pass/ fail criteria: "
+                               f"The client created on {'5' if band == 'fiveg' else '2.4'} GHz radio should get associated to the AP")
+            allure.attach(name="Details",
+                          body=f"Country code : {country[country.find('(') + 1:-1]}\n"
+                               f"Bandwidth : {channel_width}Mhz\n"
+                               f"Channel : {channel}\n")
+
+            self.client_disconnect(clear_all_sta=True)
+            self.set_radio_channel(radio=radio, country=840)
+            return True
+        else:
+            return False
+
 
 if __name__ == '__main__':
     basic = {

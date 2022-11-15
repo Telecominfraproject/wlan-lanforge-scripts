@@ -932,7 +932,8 @@ class lf_libs:
         except Exception as e:
             logging.error(e)
 
-    def set_radio_channel(self, radio="1.1.wiphy0", channel="AUTO"):
+    def set_radio_channel(self, radio="1.1.wiphy0", channel="AUTO", country=None):
+        # country_code = US(840)
         try:
             radio = radio.split(".")
             shelf = radio[0]
@@ -946,6 +947,11 @@ class lf_libs:
                 "mode": "NA",
                 "channel": channel
             }
+            try:
+                if country: # update the dictionary
+                    data["country"] = country
+            except Exception as e:
+                logging.error(f"{e}\nunable to change lanforge radio country code")
             local_realm_obj.json_post("/cli-json/set_wifi_radio", _data=data)
             time.sleep(2)
         except Exception as e:
