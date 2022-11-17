@@ -1121,12 +1121,6 @@ class lf_tests(lf_libs):
         dataplane_obj_list = []
         for dut in self.dut_data:
             identifier = dut["identifier"]
-            station_data = self.client_connect(ssid=ssid, passkey=passkey, security=security, mode=mode, band=band,
-                                               vlan_id=vlan_id, num_sta=num_sta, scan_ssid=scan_ssid, sta_mode=sta_mode,
-                                               station_data=station_data,
-                                               allure_attach=allure_attach, identifier=identifier,
-                                               allure_name=allure_name, client_type=client_type, dut_data=dut_data)
-
             if mode == "BRIDGE":
                 ret = self.get_wan_upstream_ports()
                 upstream_port = ret[identifier]
@@ -1143,10 +1137,15 @@ class lf_tests(lf_libs):
                     logging.error("VLAN ID is Unspecified in the VLAN Case")
                     pytest.skip("VLAN ID is Unspecified in the VLAN Case")
                 else:
-                    self.add_vlan(vlan_ids=vlan_id)
+                    # self.add_vlan(vlan_ids=vlan_id)
                     ret = self.get_wan_upstream_ports()
                     upstream_port = ret[identifier] + "." + str(vlan_id[0])
             logging.info("Upstream data: " + str(upstream_port))
+            station_data = self.client_connect(ssid=ssid, passkey=passkey, security=security, mode=mode, band=band,
+                                               vlan_id=vlan_id, num_sta=num_sta, scan_ssid=scan_ssid, sta_mode=sta_mode,
+                                               station_data=station_data,
+                                               allure_attach=allure_attach, identifier=identifier,
+                                               allure_name=allure_name, client_type=client_type, dut_data=dut_data)
 
             if raw_lines is None:
                 raw_lines = [['pkts: 142;256;512;1024;MTU;4000'], ['directions: DUT Transmit;DUT Receive'],
