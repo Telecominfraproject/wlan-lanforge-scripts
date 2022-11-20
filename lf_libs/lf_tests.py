@@ -567,15 +567,22 @@ class lf_tests(lf_libs):
         if mpsk_data is None:
             mpsk_data = {100: {"num_stations": num_sta, "passkey": "OpenWifi1"},
                          200: {"num_stations": num_sta, "passkey": "OpenWifi2"}}
-        logging.info("Creating VLAN's")
-        # create VLAN's
-        vlans = list(mpsk_data.keys())
-        if "default" in vlans:
-            vlans.remove("default")
-        self.add_vlan(vlan_ids=list(mpsk_data.keys()))
 
-        logging.info("Wait until VLAN's bring up")
-        time.sleep(10)
+        logging.info("Creating VLAN's as per MPSK data")
+        # create VLAN's
+        vlan_ids = list(mpsk_data.keys())
+        if "default" in vlan_ids:
+            vlan_ids.remove("default")
+        data = self.setup_interfaces(ssid=ssid, passkey=passkey, encryption=encryption,
+                                     band=band, vlan_id=vlan_ids, mode="VLAN", num_sta=num_sta, dut_data_=dut_data)
+        if data == {}:
+            pytest.skip("Skipping This Test")
+
+        logging.info("Setup interface data:\n" + json.dumps(str(data), indent=2))
+
+        allure.attach(name="Interface Info: \n", body=json.dumps(str(data), indent=2),
+                      attachment_type=allure.attachment_type.JSON)
+
         # query and fetch vlan Ip Address
         port_data = self.json_get(_req_url="/port?fields=alias,port+type,ip,mac")['interfaces']
         # Fail if Vlan don't have IP
@@ -619,6 +626,13 @@ class lf_tests(lf_libs):
                 self.client_disconnect(station_name=list(sta_data[key].keys()))
 
         logging.info("station data: " + str(sta_data))
+
+        for dut in dut_data.keys():
+            supplicant = data[str(dut)]['station_data'].keys()
+            try:
+                self.get_supplicant_logs(radio=str(supplicant))
+            except Exception as e:
+                logging.error(f"Error in getting Supplicant Logs: {str(e)}")
 
         # check Pass/Fail
         table_heads = ["station name", "configured vlan-id", "expected IP Range", "allocated IP", "mac address",
