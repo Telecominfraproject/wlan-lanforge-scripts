@@ -313,7 +313,7 @@ class lf_tests(lf_libs):
                                             ieee80211w=1, wep_key="NA", ca_cert="NA", eap="TTLS", identity="nolaradius",
                                             d_vlan=False, cleanup=True,
                                             num_sta=1, mode="BRIDGE", vlan_id=[None], band="twog",
-                                            allure_attach=True, runtime_secs=40):
+                                            allure_attach=True, runtime_secs=40, pk_passwd="whatever"):
         self.check_band_ap(band=band)
         logging.info("DUT Data:\n" + json.dumps(str(dut_data), indent=2))
         allure.attach(name="DUT Data:\n", body=json.dumps(str(dut_data), indent=2),
@@ -399,11 +399,11 @@ class lf_tests(lf_libs):
                     obj_eap_connect.key_mgmt = key_mgmt
                     obj_eap_connect.station_profile.set_command_flag("add_sta", "80211u_enable", 0)
                     obj_eap_connect.eap = eap
-                    obj_eap_connect.identity = "user"
-                    obj_eap_connect.ttls_passwd = "password"
+                    obj_eap_connect.identity = identity
+                    obj_eap_connect.ttls_passwd = ttls_passwd
                     obj_eap_connect.private_key = "/home/lanforge/client.p12"
                     obj_eap_connect.ca_cert = "/home/lanforge/ca.pem"
-                    obj_eap_connect.pk_passwd = "whatever"
+                    obj_eap_connect.pk_passwd = pk_passwd
                     obj_eap_connect.ieee80211w = 1
 
                 obj_eap_connect.ssid = data[dut]["ssid"]
