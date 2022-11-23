@@ -618,7 +618,7 @@ class lf_tests(lf_libs):
                                                              station_data=["ip", "alias", "mac", "port type"],
                                                              allure_attach=True, dut_data=dut_data)
                 self.client_disconnect(station_name=list(sta_data[non_vlan_sta].keys()))
-            if "passkey" in mpsk_data[key] and mpsk_data[key]["passkey"] is not None:
+            else:
                 sta_data[key] = self.client_connect(ssid=ssid, passkey=mpsk_data[key]["passkey"], security=encryption,
                                                     mode=mode, band=band,
                                                     vlan_id=[None], num_sta=num_sta, scan_ssid=True,
@@ -629,11 +629,12 @@ class lf_tests(lf_libs):
         logging.info("station data: " + str(sta_data))
 
         for dut in dut_data.keys():
-            supplicant = data[str(dut)]['station_data'].keys()
+            supplicants = list(data[str(dut)]['station_data'].keys())
             try:
-                self.get_supplicant_logs(radio=str(supplicant))
+                for supplicant in supplicants:
+                    self.get_supplicant_logs(radio=str(supplicant))
             except Exception as e:
-                logging.error(f"Error in getting Supplicant Logs: {str(e)}")
+                logging.error(f"Error in getting Supplicant logs: {str(e)}")
 
         # check Pass/Fail
         table_heads = ["station name", "configured vlan-id", "expected IP Range", "allocated IP", "mac address",
