@@ -988,7 +988,7 @@ class lf_tests(lf_libs):
                            upload_rate="1Gbps", protocol="TCP-IPv4", duration="60000", stations="",
                            create_stations=False,
                            sort="interleave", raw_lines=[], move_to_influx=False, dut_data={}, ssid_name=None,
-                           num_stations={}, add_stations=True):
+                           num_stations={}, add_stations=True, passkey=None, up_rate=None, down_rate=None):
         self.wifi_capacity(mode=mode, vlan_id=vlan_id, batch_size=batch_size, instance_name=instance_name,
                            download_rate=download_rate,
                            influx_tags=influx_tags, upload_rate=upload_rate, protocol=protocol, duration=duration,
