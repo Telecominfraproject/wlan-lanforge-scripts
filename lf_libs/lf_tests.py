@@ -574,6 +574,7 @@ class lf_tests(lf_libs):
         vlan_ids = list(mpsk_data.keys())
         if "default" in vlan_ids:
             vlan_ids.remove("default")
+
         data = self.setup_interfaces(ssid=ssid, passkey=passkey, encryption=encryption,
                                      band=band, vlan_id=vlan_ids, mode="VLAN", num_sta=num_sta, dut_data_=dut_data)
         if data == {}:
@@ -581,8 +582,6 @@ class lf_tests(lf_libs):
 
         logging.info("Setup interface data:\n" + json.dumps(str(data), indent=2))
 
-        allure.attach(name="Interface Info: \n", body=json.dumps(str(data), indent=2),
-                      attachment_type=allure.attachment_type.JSON)
 
         # query and fetch vlan Ip Address
         port_data = self.json_get(_req_url="/port?fields=alias,port+type,ip,mac")['interfaces']
@@ -766,7 +765,7 @@ class lf_tests(lf_libs):
                         [sta_data[i][item]['alias'], str(i), f'{exp1[0]}.{exp1[1]}.X.X', sta_data[i][item]['ip'],
                          sta_data[i][item]['mac'],
                          f'{pf}'])
-            elif str(i) == "WAN Upstream":
+            elif str(i) == "WAN Upstream" and mode == "BRIDGE":
                 for item in sta_data[i]:
                     exp2 = sta_data[i][item]['ip'].split('.')
                     ip2 = vlan_data[str(i)]['subnet'].split('.')
@@ -780,10 +779,21 @@ class lf_tests(lf_libs):
                         [sta_data[i][item]['alias'], str(i), vlan_data[str(i)]['subnet'],
                          sta_data[i][item]['ip'], sta_data[i][item]['mac'],
                          f'{pf}'])
+            elif str(i) == "WAN Upstream" and mode == "NAT-WAN":
+                for item in sta_data[i]:
+                    exp3 = sta_data[i][item]['ip'].split('.')
+                    if exp3[0] == '192' and exp3[1] == '168':
+                        pf = 'PASS'
+                        logging.info(f"PASS: Station got IP from WAN Upstream")
+                    else:
+                        pf = 'FAIL'
+                        logging.info(f"FAIL: Station did not got IP from WAN Upstream")
+                    table_data.append(
+                        [sta_data[i][item]['alias'], 'WAN upstream', f'192.168.X.X', sta_data[i][item]['ip'],
+                         sta_data[i][item]['mac'], f'{pf}'])
             elif str(i) == "LAN Upstream":
                 for item in sta_data[i]:
                     exp3 = sta_data[i][item]['ip'].split('.')
-                    ip3 = vlan_data[str(i)]['ip'].split('.')
                     if exp3[0] == '192' and exp3[1] == '168':
                         pf = 'PASS'
                         logging.info(f"PASS: Station got IP from LAN Upstream")
