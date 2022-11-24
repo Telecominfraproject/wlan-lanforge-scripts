@@ -1465,12 +1465,14 @@ class lf_libs:
         atten_obj = Attenuator_modify(self.manager_ip, self.manager_http_port, serno, idx, val)
         atten_obj.build()
 
-    def read_csv_individual_station_throughput(self, dir_name, option, individual_station_throughput=True, kpi_csv=False,
+    def read_csv_individual_station_throughput(self, dir_name, option, individual_station_throughput=True,
+                                               kpi_csv=False,
                                                file_name="/csv-data/data-Combined_bps__60_second_running_average-1.csv",
                                                batch_size="0"):
         try:
-            df = pd.read_csv("../reports/" + str(dir_name) + file_name,
-                            sep=r'\t', engine='python')
+            df = pd.read_csv(
+                "../reports/" + str(dir_name) + file_name,
+                sep=r'\t', engine='python')
             print("csv file opened")
         except FileNotFoundError:
             print("csv file does not exist")
@@ -1479,8 +1481,8 @@ class lf_libs:
         if kpi_csv:
             count = 0
             dict_data = {"Down": {}, "Up": {}, "Both": {}}
-            csv_short_dis = df.loc[:,"short-description"]
-            csv_num_score = df.loc[:,"numeric-score"]
+            csv_short_dis = df.loc[:, "short-description"]
+            csv_num_score = df.loc[:, "numeric-score"]
             for i in range(len(batch_size.split(","))):
                 dict_data["Down"][csv_short_dis[count + 0]] = csv_num_score[count + 0]
                 dict_data["Up"][csv_short_dis[count + 1]] = csv_num_score[count + 1]
@@ -1509,12 +1511,17 @@ class lf_libs:
     def create_layer3(self, side_a_min_rate, side_a_max_rate, side_b_min_rate, side_b_max_rate,
                       traffic_type, sta_list, side_b=""):
         # checked
-        if side_b == "":
-            side_b = self.wan_ports
         print(sta_list)
         print(type(sta_list))
-        print(side_b)
-        print(type(side_b))
+        if side_b == "":
+            side_b = self.wan_ports
+            side_b_ = list(side_b.keys())
+            side_b = side_b_[0]
+            print(side_b)
+            print(type(side_b))
+        else:
+            print(side_b)
+            print(type(side_b))
         local_realm = realm.Realm(lfclient_host=self.manager_ip, lfclient_port=self.manager_http_port)
         cx_profile = local_realm.new_l3_cx_profile()
         cx_profile.host = self.manager_ip
@@ -1554,6 +1561,30 @@ class lf_libs:
         if name != None:
             allure.attach(name=name, body=str(data_table))
 
+    def client_connect_using_radio(self, ssid="[BLANK]", passkey="[BLANK]", security="wpa2", mode="BRIDGE",
+                                   vlan_id=100, radio=None, sta_mode=0,
+                                   station_name=[]):
+        self.client_connect = CreateStation(_host=self.manager_ip, _port=self.manager_http_port, _mode=sta_mode,
+                                            _sta_list=station_name, _password=passkey, _ssid=ssid, _security=security)
+
+        # self.client_connect.station_profile.sta_mode = sta_mode
+        self.client_connect.upstream_resource = 1
+        if mode == "BRIDGE":
+            self.client_connect.upstream_port = self.wan_ports
+        elif mode == "NAT":
+            self.client_connect.upstream_port = self.wan_ports
+        else:
+            self.client_connect.upstream_port = self.wan_ports + "." + str(vlan_id)
+
+        self.client_connect.radio = radio
+        self.client_connect.build()
+        # self.client_connect.wait_for_ip(station_name, timeout_sec=100)
+        # print(self.client_connect.wait_for_ip(station_name))
+        if self.client_connect.wait_for_ip(station_name, timeout_sec=100):
+            self.client_connect._pass("ALL Stations got IP's", print_=True)
+            return self.client_connect
+        else:
+            return False
 
 
 
