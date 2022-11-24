@@ -7,6 +7,7 @@ import sys
 import time
 import string
 import random
+import threading
 from itertools import islice
 import paramiko
 from datetime import datetime
@@ -609,30 +610,141 @@ class lf_tests(lf_libs):
             non_vlan_sta = "LAN upstream"
             upstream_port = self.dut_data[0]["lan_port"]
             vlan_data[non_vlan_sta] = self.lan_ports[upstream_port]
-        for key in list(mpsk_data.keys()):
-            if key == "default":
-                sta_data[non_vlan_sta] = self.client_connect(ssid=ssid, passkey=passkey, security=encryption, mode=mode,
-                                                             band=band,
-                                                             vlan_id=[None], num_sta=num_sta, scan_ssid=True,
-                                                             station_data=["ip", "alias", "mac", "port type"],
-                                                             allure_attach=True, dut_data=dut_data)
-                self.client_disconnect(station_name=list(sta_data[non_vlan_sta].keys()))
-            if "passkey" in mpsk_data[key] and mpsk_data[key]["passkey"] is not None:
-                sta_data[key] = self.client_connect(ssid=ssid, passkey=mpsk_data[key]["passkey"], security=encryption,
-                                                    mode=mode, band=band,
-                                                    vlan_id=[None], num_sta=num_sta, scan_ssid=True,
-                                                    station_data=["ip", "alias", "mac", "port type"],
-                                                    allure_attach=True, dut_data=dut_data)
-                self.client_disconnect(station_name=list(sta_data[key].keys()))
 
-        logging.info("station data: " + str(sta_data))
-
-        for dut in dut_data.keys():
-            supplicant = data[str(dut)]['station_data'].keys()
-            try:
-                self.get_supplicant_logs(radio=str(supplicant))
-            except Exception as e:
-                logging.error(f"Error in getting Supplicant Logs: {str(e)}")
+        # run mpsk test scenario
+        for dut in data:
+            for radio in data[dut]["station_data"]:
+                for dut_ in self.dut_data:
+                    identifier = dut_["identifier"]
+                    if dut_data.keys().__contains__(identifier):
+                        if band == "twog":
+                            if dict(dut_data.get(identifier)["radio_data"]).keys().__contains__("2G") and \
+                                    dict(dut_data.get(identifier)["radio_data"])["2G"] is not None:
+                                sniffer_channel = dict(dut_data.get(identifier)["radio_data"])["2G"]["channel"]
+                                if data[dut]["sniff_radio_2g"] is not None and sniffer_channel is not None:
+                                    self.start_sniffer(radio_channel=sniffer_channel,
+                                                       radio=data[dut]["sniff_radio_2g"],
+                                                       duration=60)
+                                logging.info("started-sniffer")
+                                for key in list(mpsk_data.keys()):
+                                    if key == "default":
+                                        sta_data[non_vlan_sta] = self.client_connect(ssid=ssid, passkey=passkey,
+                                                                                     security=encryption, mode=mode,
+                                                                                     band=band,
+                                                                                     vlan_id=[None], num_sta=num_sta,
+                                                                                     scan_ssid=True,
+                                                                                     station_data=["ip", "alias", "mac",
+                                                                                                   "port type"],
+                                                                                     allure_attach=True,
+                                                                                     dut_data=dut_data)
+                                        self.client_disconnect(station_name=list(sta_data[non_vlan_sta].keys()))
+                                    else:
+                                        sta_data[key] = self.client_connect(ssid=ssid,
+                                                                            passkey=mpsk_data[key]["passkey"],
+                                                                            security=encryption,
+                                                                            mode=mode, band=band,
+                                                                            vlan_id=[None], num_sta=num_sta,
+                                                                            scan_ssid=True,
+                                                                            station_data=["ip", "alias", "mac",
+                                                                                          "port type"],
+                                                                            allure_attach=True, dut_data=dut_data)
+                                        self.client_disconnect(station_name=list(sta_data[key].keys()))
+                                logging.info("napping %s sec" % 60)
+                                time.sleep(60)
+                                if data[dut]["sniff_radio_2g"] is not None and sniffer_channel is not None:
+                                    self.stop_sniffer()
+                        elif band == "fiveg":
+                            if dict(dut_data.get(identifier)["radio_data"]).keys().__contains__("5G") and \
+                                    dict(dut_data.get(identifier)["radio_data"])["5G"] is not None:
+                                sniffer_channel = dict(dut_data.get(identifier)["radio_data"])["5G"]["channel"]
+                                if data[dut]["sniff_radio_5g"] is not None and sniffer_channel is not None:
+                                    self.start_sniffer(radio_channel=sniffer_channel,
+                                                       radio=data[dut]["sniff_radio_5g"],
+                                                       duration=60)
+                                for key in list(mpsk_data.keys()):
+                                    if key == "default":
+                                        sta_data[non_vlan_sta] = self.client_connect(ssid=ssid, passkey=passkey,
+                                                                                     security=encryption, mode=mode,
+                                                                                     band=band,
+                                                                                     vlan_id=[None], num_sta=num_sta,
+                                                                                     scan_ssid=True,
+                                                                                     station_data=["ip", "alias", "mac",
+                                                                                                   "port type"],
+                                                                                     allure_attach=True,
+                                                                                     dut_data=dut_data)
+                                        self.client_disconnect(station_name=list(sta_data[non_vlan_sta].keys()))
+                                    else:
+                                        sta_data[key] = self.client_connect(ssid=ssid,
+                                                                            passkey=mpsk_data[key]["passkey"],
+                                                                            security=encryption,
+                                                                            mode=mode, band=band,
+                                                                            vlan_id=[None], num_sta=num_sta,
+                                                                            scan_ssid=True,
+                                                                            station_data=["ip", "alias", "mac",
+                                                                                          "port type"],
+                                                                            allure_attach=True, dut_data=dut_data)
+                                        self.client_disconnect(station_name=list(sta_data[key].keys()))
+                                logging.info("napping %s sec" % 60)
+                                time.sleep(60)
+                                if data[dut]["sniff_radio_5g"] is not None and sniffer_channel is not None:
+                                    self.stop_sniffer()
+                        elif band == "sixg":
+                            if dict(dut_data.get(identifier)["radio_data"]).keys().__contains__("6G") and \
+                                    dict(dut_data.get(identifier)["radio_data"])["6G"] is not None:
+                                sniffer_channel = dict(dut_data.get(identifier)["radio_data"])["6G"]["channel"]
+                                if data[dut]["sniff_radio_6g"] is not None and sniffer_channel is not None:
+                                    self.start_sniffer(radio_channel=sniffer_channel,
+                                                       radio=data[dut]["sniff_radio_6g"],
+                                                       duration=60)
+                                for key in list(mpsk_data.keys()):
+                                    if key == "default":
+                                        sta_data[non_vlan_sta] = self.client_connect(ssid=ssid, passkey=passkey,
+                                                                                     security=encryption, mode=mode,
+                                                                                     band=band,
+                                                                                     vlan_id=[None], num_sta=num_sta,
+                                                                                     scan_ssid=True,
+                                                                                     station_data=["ip", "alias", "mac",
+                                                                                                   "port type"],
+                                                                                     allure_attach=True,
+                                                                                     dut_data=dut_data)
+                                        self.client_disconnect(station_name=list(sta_data[non_vlan_sta].keys()))
+                                    else:
+                                        sta_data[key] = self.client_connect(ssid=ssid,
+                                                                            passkey=mpsk_data[key]["passkey"],
+                                                                            security=encryption,
+                                                                            mode=mode, band=band,
+                                                                            vlan_id=[None], num_sta=num_sta,
+                                                                            scan_ssid=True,
+                                                                            station_data=["ip", "alias", "mac",
+                                                                                          "port type"],
+                                                                            allure_attach=True, dut_data=dut_data)
+                                        self.client_disconnect(station_name=list(sta_data[key].keys()))
+                                logging.info("napping %s sec" % 60)
+                                time.sleep(60)
+                                if data[dut]["sniff_radio_6g"] is not None and sniffer_channel is not None:
+                                    self.stop_sniffer()
+                    else:
+                        for key in list(mpsk_data.keys()):
+                            if key == "default":
+                                sta_data[non_vlan_sta] = self.client_connect(ssid=ssid, passkey=passkey, security=encryption, mode=mode,
+                                                                             band=band,
+                                                                             vlan_id=[None], num_sta=num_sta, scan_ssid=True,
+                                                                             station_data=["ip", "alias", "mac", "port type"],
+                                                                             allure_attach=True, dut_data=dut_data)
+                                self.client_disconnect(station_name=list(sta_data[non_vlan_sta].keys()))
+                            else:
+                                sta_data[key] = self.client_connect(ssid=ssid, passkey=mpsk_data[key]["passkey"], security=encryption,
+                                                                    mode=mode, band=band,
+                                                                    vlan_id=[None], num_sta=num_sta, scan_ssid=True,
+                                                                    station_data=["ip", "alias", "mac", "port type"],
+                                                                    allure_attach=True, dut_data=dut_data)
+                                self.client_disconnect(station_name=list(sta_data[key].keys()))
+                logging.info("station data: " + str(sta_data))
+                # fetch supplicant logs from lanforge
+                try:
+                    self.get_supplicant_logs(radio=str(radio))
+                except Exception as e:
+                    logging.error(f"Error in getting Supplicant logs: {str(e)}")
 
         # check Pass/Fail
         table_heads = ["station name", "configured vlan-id", "expected IP Range", "allocated IP", "mac address",
@@ -1210,16 +1322,62 @@ class lf_tests(lf_libs):
             dataplane_obj_list.append(dataplane_obj)
         return dataplane_obj_list
 
+    def multi_asso_disasso(self, band="2G", num_stations=16, dut_data={}, idx=0, mode="BRIDGE", vlan=1,
+                           instance_name="wct_instance"):
+        def thread_fun(station_list):
+            print(station_list)
+            time.sleep(60)
+            self.local_realm.admin_down(sta_list=station_list)
+            print("stations down")
+            time.sleep(10)
+            self.admin_up(sta_list=station_list)
+            print("stations up")
+        radio, traffic_rate = (self.wave2_5g_radios, '8Mbps') if band == "5G" else (self.wave2_2g_radios, '4Mbps')
+        per_radio_sta = int(num_stations / len(radio))
+        rem = num_stations % len(radio)
+        logging.info("Total stations per radio: " + str(per_radio_sta))
+        num_stations = lambda rem: per_radio_sta+1 if rem else per_radio_sta
+        identifier = list(dut_data.keys())[0]
+        for i in radio:
+            station_data = ["profile_link " + i.split(".")[0] + "." + i.split(".")[1] +
+                                " STA-AUTO " + str(num_stations(rem)) + " 'DUT: " + identifier + " Radio-" +
+                                str(int(idx) + 1) + "'" + " NA " + i.split(".")[2]]
+            rem = 0
+            self.temp_raw_lines.append(station_data)
+            logging.debug("Raw Line : " + str(station_data))
+
+        self.chamber_view(raw_lines="custom")
+        sta_list = []
+        for rad in radio:
+            self.set_radio_channel(radio=rad, antenna=4)
+        for u in self.json_get("/port/?fields=port+type,alias")['interfaces']:
+            if list(u.values())[0]['port type'] in ['WIFI-STA']:
+                sta_list.append(list(u.keys())[0])
+
+        self.local_realm.admin_up(sta_list=sta_list)
+        sel_stations = ",".join(sta_list[0:8])
+        val = [['ul_rate_sel: Per-Station Upload Rate:']]
+        thr1 = threading.Thread(target=thread_fun, args=(sta_list[8:16],))
+        thr1.start()
+        wct_obj = self.wifi_capacity(instance_name=instance_name, mode=mode, vlan_id=vlan, download_rate="0Gbps",
+                                     stations=sel_stations, raw_lines=val, batch_size="8", upload_rate=traffic_rate,
+                                     protocol="UDP-IPv4", duration="120000", create_stations=False, dut_data=dut_data,
+                                     sort = "interleave",)
+
+        report_name = wct_obj.report_name[0]['LAST']["response"].split(":::")[1].split("/")[-1]
+        self.attach_report_graphs(report_name=report_name)
+        csv_val = get_test_library.read_csv_individual_station_throughput(dir_name=report_name, option="upload")
+        print(type(csv_val))
+        print(csv_val)
+
     def country_code_channel_division(self, ssid="[BLANK]", passkey='[BLANK]', security="wpa2", mode="BRIDGE",
                                       band='twog', num_sta=1, vlan_id=100, channel='1', channel_width=20,
                                       country_num=392, country='United States(US)', dut_data={}):
-        # self.local_realm = realm.Realm(lfclient_host=self.lanforge_ip, lfclient_port=self.lanforge_port)
-
-        radio = self.wave2_5g_radios[0] if band == "fiveg" else self.wave2_2g_radios[0]
-        self.set_radio_channel(radio=radio, channel=0, country=country_num)
-        station = self.client_connect(ssid=ssid, passkey=passkey, security=security, mode=mode, band=band,
-                                      num_sta=num_sta, vlan_id=vlan_id, dut_data=dut_data)
-        if station[list(station.keys())[0]]['ip']:
+        try:
+            radio = self.wave2_5g_radios[0] if band == "fiveg" else self.wave2_2g_radios[0]
+            self.set_radio_channel(radio=radio, channel=0, country=country_num)
+            station = self.client_connect(ssid=ssid, passkey=passkey, security=security, mode=mode, band=band,
+                                          num_sta=num_sta, vlan_id=vlan_id, dut_data=dut_data)
             allure.attach(name="Definition",
                           body="Country code channel test intends to verify stability of Wi-Fi device " \
                                "where the AP is configured with different countries with different channels.")
@@ -1232,12 +1390,26 @@ class lf_tests(lf_libs):
                           body=f"Country code : {country[country.find('(') + 1:-1]}\n"
                                f"Bandwidth : {channel_width}Mhz\n"
                                f"Channel : {channel}\n")
-
-            self.client_disconnect(clear_all_sta=True)
-            self.set_radio_channel(radio=radio, country=840)
-            return True
-        else:
+            if station[list(station.keys())[0]]['ip'] != '0.0.0.0':
+                if str(station[list(station.keys())[0]]['channel']) != str(channel):
+                    logging.warning(f"Station Falling back to channel {station[list(station.keys())[0]]['channel']}")
+                    return False
+                else:
+                    logging.info(f"Station connected to channel {station[list(station.keys())[0]]['channel']}")
+                    return True
+            else:
+                logging.warning(f"Station didn't get IP")
+                return False
+        except Exception as e:
+            logging.error(f"{e}")
             return False
+        finally:
+            try:
+                self.client_disconnect(clear_all_sta=True)
+                self.set_radio_channel(radio=radio, country=840)
+            except Exception as e:
+                logging.error(f"{e}")
+                return False
 
 
 if __name__ == '__main__':
