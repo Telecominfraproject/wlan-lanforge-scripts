@@ -938,7 +938,7 @@ class lf_libs:
         except Exception as e:
             logging.error(e)
 
-    def set_radio_channel(self, radio="1.1.wiphy0", channel="AUTO", country=None):
+    def set_radio_channel(self, radio="1.1.wiphy0", channel="AUTO", country=None, antenna=None):
         # country_code = US(840)
         try:
             radio = radio.split(".")
@@ -956,6 +956,8 @@ class lf_libs:
             try:
                 if country: # update the dictionary
                     data["country"] = country
+                if antenna:
+                    data["antenna"] = antenna
             except Exception as e:
                 logging.error(f"{e}\nunable to change lanforge radio country code")
             local_realm_obj.json_post("/cli-json/set_wifi_radio", _data=data)
@@ -1280,6 +1282,46 @@ class lf_libs:
             allure.attach.file(source=relevant_path + i,
                                name=i,
                                attachment_type="image/png", extension=None)
+
+    def read_csv_individual_station_throughput(self, dir_name, option, individual_station_throughput=True, kpi_csv=False,
+                                               file_name="/csv-data/data-Combined_bps__60_second_running_average-1.csv",
+                                               batch_size="0"):
+        try:
+            df = pd.read_csv("../reports/" + str(dir_name) + file_name,
+                            sep=r'\t', engine='python')
+            logging.info("csv file opened")
+        except FileNotFoundError:
+            logging.info("csv file does not exist")
+            return False
+
+        if kpi_csv:
+            count = 0
+            dict_data = {"Down": {}, "Up": {}, "Both": {}}
+            csv_short_dis = df.loc[:,"short-description"]
+            csv_num_score = df.loc[:,"numeric-score"]
+            for i in range(len(batch_size.split(","))):
+                dict_data["Down"][csv_short_dis[count + 0]] = csv_num_score[count + 0]
+                dict_data["Up"][csv_short_dis[count + 1]] = csv_num_score[count + 1]
+                dict_data["Both"][csv_short_dis[count + 2]] = csv_num_score[count + 2]
+                count += 3
+
+        if individual_station_throughput:
+            dict_data = {}
+            if option == "download":
+                csv_sta_names = df.iloc[[0]].values.tolist()
+                csv_throughput_values = df.iloc[[1]].values.tolist()
+            elif option == "upload":
+                csv_sta_names = df.iloc[[0]].values.tolist()
+                csv_throughput_values = df.iloc[[2]].values.tolist()
+            else:
+                print("Provide proper option: download or upload")
+                return
+
+            sta_list = csv_sta_names[0][0][:-1].replace('"', '').split(",")
+            th_list = list(map(float, csv_throughput_values[0][0].split(",")))
+            for i in range(len(sta_list)):
+                dict_data[sta_list[i]] = th_list[i]
+        return dict_data
 
     def attach_report_kpi(self, report_name=None, file_name="kpi_file"):
         if report_name[-1] == "/":
