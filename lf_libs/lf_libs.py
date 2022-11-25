@@ -972,6 +972,7 @@ class lf_libs:
         sta_dict = {}
         try:
             for sta in sta_name:
+                time.sleep(4)
                 sta_url = "port/" + str(sta.split(".")[0]) + "/" + str(sta.split(".")[1]) + "/" + str(sta.split(".")[2])
                 station_info = self.json_get(sta_url)
                 dict_data = station_info["interface"]
@@ -1213,7 +1214,7 @@ class lf_libs:
         time.sleep(2)
         self.chamberview_object.show_text_blob(None, None, True)  # Show changes on GUI
         self.chamberview_object.sync_cv()
-        time.sleep(10)
+        time.sleep(15)
         return self.chamberview_object, self.scenario
 
     def setup_radius_server(self, user=""):
