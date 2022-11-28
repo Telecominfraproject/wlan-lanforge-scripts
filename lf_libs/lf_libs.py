@@ -974,13 +974,21 @@ class lf_libs:
         sta_dict = {}
         try:
             for sta in sta_name:
-                time.sleep(4)
                 sta_url = "port/" + str(sta.split(".")[0]) + "/" + str(sta.split(".")[1]) + "/" + str(sta.split(".")[2])
                 station_info = self.json_get(sta_url)
                 dict_data = station_info["interface"]
                 temp_dict = {}
                 for i in rows:
                     temp_dict[i] = dict_data[i]
+                    if i == "channel":
+                        if dict_data[i] == "-1":
+                            self.local_realm.reset_port(sta)
+                            time.sleep(5)
+                            sta_url_ = "port/" + str(sta.split(".")[0]) + "/" + str(sta.split(".")[1]) + "/" + str(
+                                sta.split(".")[2])
+                            station_info_ = self.json_get(sta_url_)
+                            dict_data_ = station_info_["interface"]
+                            temp_dict[i] = dict_data_[i]
                 sta_dict[sta] = temp_dict
         except Exception as e:
             logging.error(e)
