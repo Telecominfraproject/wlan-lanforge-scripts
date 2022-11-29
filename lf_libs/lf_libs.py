@@ -988,6 +988,7 @@ class lf_libs:
                                 sta.split(".")[2])
                             station_info_ = self.json_get(sta_url_)
                             dict_data_ = station_info_["interface"]
+                            logging.info("station data after port reset" + str(dict_data_))
                             temp_dict[i] = dict_data_[i]
                 sta_dict[sta] = temp_dict
         except Exception as e:
