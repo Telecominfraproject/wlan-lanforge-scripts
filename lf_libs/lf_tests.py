@@ -819,6 +819,8 @@ class lf_tests(lf_libs):
                        vlan_id=[None], num_sta=None, scan_ssid=True, sta_mode=0,
                        station_data=["4way time (us)", "channel", "cx time (us)", "dhcp (ms)", "ip", "signal"],
                        allure_attach=True, identifier=None, allure_name="station data", client_type=None, dut_data={}):
+        # pre cleanup
+        self.pre_cleanup()
         self.check_band_ap(band=band)
         if identifier is None:
             identifier = self.dut_data[0]["identifier"]
