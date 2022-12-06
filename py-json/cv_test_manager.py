@@ -333,10 +333,13 @@ class cv_test(Realm):
         not_running = 0
         while True:
             cmd = "cv get_and_close_dialog"
-            dialog = self.run_cv_cmd(cmd)
-            if dialog[0]["LAST"]["response"] != "NO-DIALOG":
-                logger.info("Popup Dialog:\n")
-                logger.info(dialog[0]["LAST"]["response"])
+            try:
+                dialog = self.run_cv_cmd(cmd)
+                if dialog[0]["LAST"]["response"] != "NO-DIALOG":
+                    logger.info("Popup Dialog:\n")
+                    logger.info(dialog[0]["LAST"]["response"])
+            except Exception as e:
+                logger.info(str(e))
 
             check = self.get_report_location(instance_name)
             location = json.dumps(check[0]["LAST"]["response"])
