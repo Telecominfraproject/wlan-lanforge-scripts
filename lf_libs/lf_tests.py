@@ -611,14 +611,14 @@ class lf_tests(lf_libs):
         for key in list(mpsk_data.keys()):
             if key == "default":
                 sta_data[non_vlan_sta] = self.client_connect(ssid=ssid, passkey=passkey, security=encryption, mode=mode,
-                                                             band=band,
+                                                             band=band, pre_cleanup=False,
                                                              vlan_id=[None], num_sta=num_sta, scan_ssid=True,
                                                              station_data=["ip", "alias", "mac", "port type"],
                                                              allure_attach=True, dut_data=dut_data)
                 self.client_disconnect(station_name=list(sta_data[non_vlan_sta].keys()))
             else:
                 sta_data[key] = self.client_connect(ssid=ssid, passkey=mpsk_data[key]["passkey"], security=encryption,
-                                                    mode=mode, band=band,
+                                                    mode=mode, band=band, pre_cleanup=False,
                                                     vlan_id=[None], num_sta=num_sta, scan_ssid=True,
                                                     station_data=["ip", "alias", "mac", "port type"],
                                                     allure_attach=True, dut_data=dut_data)
@@ -705,11 +705,12 @@ class lf_tests(lf_libs):
             logging.info("ALL Stations got IP as Expected")
 
     def client_connect(self, ssid="[BLANK]", passkey="[BLANK]", security="wpa2", mode="BRIDGE", band="twog",
-                       vlan_id=[None], num_sta=None, scan_ssid=True, sta_mode=0,
+                       vlan_id=[None], num_sta=None, scan_ssid=True, sta_mode=0, pre_cleanup=True,
                        station_data=["4way time (us)", "channel", "cx time (us)", "dhcp (ms)", "ip", "signal"],
                        allure_attach=True, identifier=None, allure_name="station data", client_type=None, dut_data={}):
         # pre cleanup
-        self.pre_cleanup()
+        if pre_cleanup:
+            self.pre_cleanup()
         self.check_band_ap(band=band)
         if identifier is None:
             identifier = self.dut_data[0]["identifier"]
