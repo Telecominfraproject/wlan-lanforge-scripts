@@ -781,7 +781,7 @@ class lf_tests(lf_libs):
         pass_fail = []
         for obj in client_connect_obj:
             obj.build()
-            result = obj.wait_for_ip(station_list=obj.sta_list, timeout_sec=100)
+            result = obj.wait_for_ip(station_list=obj.sta_list, timeout_sec=240)
             pass_fail.append(result)
             station_data_ = self.get_station_data(sta_name=obj.sta_list, rows=station_data,
                                                   allure_attach=False)
