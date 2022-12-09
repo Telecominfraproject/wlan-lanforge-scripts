@@ -1517,6 +1517,43 @@ class lf_libs:
         atten_obj = Attenuator_modify(self.manager_ip, self.manager_http_port, serno, idx, val)
         atten_obj.build()
 
+    def attenuator_serial_radio(self, ssid="[BLANK]", passkey="[BLANK]", security="wpa2", mode="BRIDGE", atn_val=400,
+                                   vlan_id=100, sta_mode=0, station_name=[], lf_tools_obj=None, radio='1.1.wiphy0'):
+        radio = radio
+        # index 0 of atten_serial_radio will ser no of 1st 2g radio and index 1 will ser no of 2nd and 3rd 2g radio
+        atten_serial_radio = []
+        atten_serial = self.attenuator_serial()
+        self.Client_Connect_Using_Radio(ssid=ssid, passkey=passkey, security=security, mode=mode,
+                                        vlan_id=vlan_id, radio=radio, sta_mode=sta_mode, station_name=station_name)
+        signal1 = self.json_get(_req_url=f'/port/1/1/{station_name[0]}?fields=signal')['interface']['signal']
+        atten_sr = atten_serial[0].split(".")
+        for i in range(4):
+            self.attenuator_modify(int(atten_sr[2]), i, atn_val)
+            time.sleep(0.5)
+        signal2 = self.json_get(_req_url=f'/port/1/1/{station_name[0]}?fields=signal')['interface']['signal']
+        if abs(int(signal2.split(" ")[0])) - abs(int(signal1.split(" ")[0])) >= 5:
+            atten_serial_radio = atten_serial
+        else:
+            atten_serial_radio = atten_serial[::-1]
+        self.client_disconnect(station_name=station_name)
+        return atten_serial_radio
+
+    def read_kpi_file(self, column_name, dir_name):
+        if column_name == None:
+            df = pd.read_csv("../reports/" + str(dir_name) + "/kpi.csv", sep=r'\t', engine='python')
+            if df.empty == True:
+                return "empty"
+            else:
+                return df
+        else:
+            df = pd.read_csv("../reports/" + str(dir_name) + "/kpi.csv", sep=r'\t', usecols=column_name,
+                             engine='python')
+            if df.empty == True:
+                return "empty"
+            else:
+                result = df[column_name].values.tolist()
+                return result
+
     def read_csv_individual_station_throughput(self, dir_name, option, individual_station_throughput=True,
                                                kpi_csv=False,
                                                file_name="/csv-data/data-Combined_bps__60_second_running_average-1.csv",
@@ -1614,8 +1651,7 @@ class lf_libs:
             allure.attach(name=name, body=str(data_table))
 
     def client_connect_using_radio(self, ssid="[BLANK]", passkey="[BLANK]", security="wpa2", mode="BRIDGE",
-                                   vlan_id=100, radio=None, sta_mode=0,
-                                   station_name=[]):
+                                   vlan_id=100, radio=None, sta_mode=0, station_name=[]):
         self.client_connect = CreateStation(_host=self.manager_ip, _port=self.manager_http_port, _mode=sta_mode,
                                             _sta_list=station_name, _password=passkey, _ssid=ssid, _security=security)
 

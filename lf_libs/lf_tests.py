@@ -52,6 +52,8 @@ lf_dataplane_test = importlib.import_module("py-scripts.lf_dataplane_test")
 DataplaneTest = lf_dataplane_test.DataplaneTest
 ttlstest = importlib.import_module("py-scripts.test_ipv4_ttls")
 TTLSTest = ttlstest.TTLSTest
+tr398v2test = importlib.import_module("py-scripts.lf_tr398v2_test")
+TR398v2Test = tr398v2test.TR398v2Test
 
 
 class lf_tests(lf_libs):
@@ -1385,6 +1387,7 @@ class lf_tests(lf_libs):
                 self.client_disconnect(clear_all_sta=True, clean_l3_traffic=True)
             except Exception as e:
                 logging.error(f"{e}")
+                return False, f"{e}"
 
     def country_code_channel_division(self, ssid="[BLANK]", passkey='[BLANK]', security="wpa2", mode="BRIDGE",
                                       band='twog', num_sta=1, vlan_id=100, channel='1', channel_width=20,
@@ -1427,6 +1430,128 @@ class lf_tests(lf_libs):
                 logging.error(f"{e}")
                 return False
 
+    def tr398(self,radios_2g=[], radios_5g=[], radios_ax=[], dut_name="TIP", dut_5g="", dut_2g="", mode="BRIDGE",
+              vlan_id=1, skip_2g=True, skip_5g=False, instance_name="", test=None, move_to_influx=False,dut_data={},
+              ssid_name='', security_key='[BLANK]', security="open"):
+        #User can select one or more TR398 tests
+        try:
+            if type(test) == str:
+                test = test.split(",")
+            self.client_disconnect(clean_l3_traffic=True)
+            raw_line = []
+            skip_twog, skip_fiveg = '1' if skip_2g else '0', '1' if skip_5g else '0'
+            if mode == "BRIDGE" or mode == "NAT":
+                upstream_port = list(self.lanforge_data['wan_ports'].keys())[0]
+            else:
+                upstream_port = list(self.lanforge_data['wan_ports'].keys())[0] + "." + str(vlan_id)
+            atten_serial = self.attenuator_serial_radio(ssid=ssid_name, passkey=security_key, security=security, sta_mode=0,
+                                                        station_name=['sta0000'])
+
+            enable_tests = [['rxsens: 0'], ['max_cx: 0'], ['max_tput: 0'], ['peak_perf: 0'], ['max_tput_bi: 0'],
+                            ['dual_band_tput: 0'],
+                            ['multi_band_tput: 0'], ['atf: 0'], ['atf3: 0'], ['qos3: 0'], ['lat3: 0'], ['mcast3: 0'],
+                            ['rvr: 0'],
+                            ['spatial: 0'], ['multi_sta: 0'], ['reset: 0'], ['mu_mimo: 0'], ['stability: 0'],
+                            ['ap_coex: 0'], ['acs: 0']]
+
+            rad_atten = [[f'atten-0: {atten_serial[0]}.0'], [f'atten-1: {atten_serial[0]}.1'], [f'atten-2: {atten_serial[0]}.2'],
+                         [f'atten-3: {atten_serial[0]}.3'], [f'atten-4: {atten_serial[1]}.0'], [f'atten-5: {atten_serial[1]}.1'],
+                         [f'atten-8: {atten_serial[1]}.2'], [f'atten-9: {atten_serial[1]}.3']]
+
+            skip_band = [['Skip 2.4Ghz Tests', f'{skip_twog}'], ['Skip 5Ghz Tests', f'{skip_fiveg}'],
+                         ['2.4Ghz Channel', 'AUTO'], ['5Ghz Channel', 'AUTO'], ['Skip N/AC Tests', '1'],
+                         ['Skip AX Tests', '1']]
+            for t in test:
+                if [f"{t}: 0"] in enable_tests:
+                    enable_tests[enable_tests.index([f"{t}: 0"])] = [f"{t}: 1"]
+            if len(radios_2g) >= 3 and len(radios_5g) >= 3:
+                for i in range(6):
+                    if i == 0 or i == 2:
+                        raw_line.append([f'radio-{i}: {radios_5g[0] if i == 0 else radios_5g[1]}'])
+                    if i == 1 or i == 3:
+                        raw_line.append([f'radio-{i}: {radios_2g[0] if i == 1 else radios_2g[1]}'])
+                    if i == 4 or i == 5:
+                        raw_line.append([f'radio-{i}: {radios_5g[2] if i == 4 else radios_2g[2]}'])
+            elif len(radios_2g) >= 2 and len(radios_5g) >= 2 and len(radios_ax) >= 2:
+                for i in range(6):
+                    if i == 0 or i == 2:
+                        raw_line.append([f'radio-{i}: {radios_5g[0] if i == 0 else radios_5g[1]}'])
+                    if i == 1 or i == 3:
+                        raw_line.append([f'radio-{i}: {radios_2g[0] if i == 1 else radios_2g[1]}'])
+                    if i == 4 or i == 5:
+                        raw_line.append([f'radio-{i}: {radios_ax[0] if i == 4 else radios_ax[1]}'])
+
+            if len(raw_line) != 6:
+                raw_line = [['radio-0: 1.1.5 wiphy1'], ['radio-1: 1.1.4 wiphy0'], ['radio-2: 1.1.7 wiphy3'],
+                            ['radio-3: 1.1.6 wiphy2'], ['radio-4: 1.1.8 wiphy4'], ['radio-5: 1.1.9 wiphy5']]
+            raw_line.extend(enable_tests + rad_atten)
+            self.update_dut_ssid(dut_data=dut_data)
+            instance_name = "tr398-instance-{}".format(str(random.randint(0, 100000)))
+
+            # if not os.path.exists("tr398-test-config.txt"):
+            with open("tr398-test-config.txt", "wt") as f:
+                for i in raw_line:
+                    f.write(str(i[0]) + "\n")
+                f.close()
+
+            self.cvtest_obj = TR398v2Test(lf_host=self.manager_ip,
+                                        lf_port=self.manager_http_port,
+                                        lf_user="lanforge",
+                                        lf_password="lanforge",
+                                        instance_name=instance_name,
+                                        config_name="cv_dflt_cfg",
+                                        upstream=upstream_port,
+                                        pull_report=True,
+                                        local_lf_report_dir=self.local_report_path,
+                                        load_old_cfg=False,
+                                        dut2=dut_2g,
+                                        dut5=dut_5g,
+                                        raw_lines_file="tr398-test-config.txt",
+                                        enables=[],
+                                        disables=[],
+                                        raw_lines=[],
+                                        sets=skip_band,
+                                        test_rig=dut_name
+                                        )
+            self.cvtest_obj.test_name = "TR-398 Issue 2"
+            self.cvtest_obj.result = True
+            self.cvtest_obj.setup()
+            self.cvtest_obj.run()
+            if os.path.exists("tr398-test-config.txt"):
+                os.remove("tr398-test-config.txt")
+
+            if move_to_influx:
+                try:
+                    report_name = "../reports/" + self.cvtest_obj.report_name[0]['LAST']["response"].split(":::")[1].split("/")[-1]
+                    influx = CSVtoInflux(influx_host=self.influx_params["influx_host"],
+                                         influx_port=self.influx_params["influx_port"],
+                                         influx_org=self.influx_params["influx_org"],
+                                         influx_token=self.influx_params["influx_token"],
+                                         influx_bucket=self.influx_params["influx_bucket"],
+                                         path=report_name)
+
+                    influx.glob()
+                except Exception as e:
+                    print(e)
+                    pass
+            report_name = self.cvtest_obj[0].report_name[0]['LAST']["response"].split(":::")[1].split("/")[-1] + "/"
+            self.attach_report_graphs(report_name=report_name)
+            result = self.read_kpi_file(column_name=["pass/fail"], dir_name=report_name)
+            allure.attach.file(source="../reports/" + report_name + "/kpi.csv",
+                               name=f"{test}_CSV", attachment_type=allure.attachment_type.CSV)
+            if result[0][0] == "PASS":
+                return True, "Test Passed"
+            else:
+                return False, "Test Failed"
+        except Exception as e:
+            logging.error(f"{e}")
+            return False, f"{e}"
+        finally:
+            try:
+                self.client_disconnect(clear_all_sta=True, clean_l3_traffic=True)
+            except Exception as e:
+                logging.error(f"{e}")
+                return False, f"{e}"
 
 if __name__ == '__main__':
     basic = {
