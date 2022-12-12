@@ -3,7 +3,7 @@ import logging
 import os
 import sys
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 import allure
 import paramiko
 import pytest
@@ -1301,8 +1301,14 @@ class lf_libs:
                             sep=r'\t', engine='python')
             logging.info("csv file opened")
         except FileNotFoundError:
-            logging.info("csv file does not exist")
-            return False
+            logging.info(f"csv file {file_name} does not exist\nTrying {file_name.replace('_bps__','_Mbps__')}")
+            try:
+                df = pd.read_csv("../reports/" + str(dir_name) + file_name.replace('_bps__','_Mbps__'),
+                                 sep=r'\t', engine='python')
+                logging.info("csv file opened")
+            except FileNotFoundError:
+                logging.info(f"csv file {file_name} does not exist")
+                return False
 
         if kpi_csv:
             count = 0
@@ -1518,12 +1524,12 @@ class lf_libs:
         atten_obj.build()
 
     def attenuator_serial_radio(self, ssid="[BLANK]", passkey="[BLANK]", security="wpa2", mode="BRIDGE", atn_val=400,
-                                   vlan_id=100, sta_mode=0, station_name=[], lf_tools_obj=None, radio='1.1.wiphy0'):
+                                   vlan_id=100, sta_mode=0, station_name=[], radio='1.1.wiphy0'):
         radio = radio
-        # index 0 of atten_serial_radio will ser no of 1st 2g radio and index 1 will ser no of 2nd and 3rd 2g radio
+        # index 0 of atten_serial_radio will ser no of 1st 2g/5g radio and index 1 will ser no of 2nd and 3rd 2g/5g radio
         atten_serial_radio = []
         atten_serial = self.attenuator_serial()
-        self.Client_Connect_Using_Radio(ssid=ssid, passkey=passkey, security=security, mode=mode,
+        self.client_connect_using_radio(ssid=ssid, passkey=passkey, security=security, mode=mode,
                                         vlan_id=vlan_id, radio=radio, sta_mode=sta_mode, station_name=station_name)
         signal1 = self.json_get(_req_url=f'/port/1/1/{station_name[0]}?fields=signal')['interface']['signal']
         atten_sr = atten_serial[0].split(".")
@@ -1554,51 +1560,49 @@ class lf_libs:
                 result = df[column_name].values.tolist()
                 return result
 
-    def read_csv_individual_station_throughput(self, dir_name, option, individual_station_throughput=True,
-                                               kpi_csv=False,
-                                               file_name="/csv-data/data-Combined_bps__60_second_running_average-1.csv",
-                                               batch_size="0"):
+    def monitor(self, duration_sec, monitor_interval, created_cx, col_names, iterations, side_a_min_rate=0, side_b_min_rate=0):
         try:
-            df = pd.read_csv(
-                "../reports/" + str(dir_name) + file_name,
-                sep=r'\t', engine='python')
-            print("csv file opened")
-        except FileNotFoundError:
-            print("csv file does not exist")
-            return False
+            duration_sec = self.local_realm.parse_time(duration_sec).seconds
+        except:
+            if (duration_sec is None) or (duration_sec <= 1):
+                raise ValueError("L3CXProfile::monitor wants duration_sec > 1 second")
+            if (duration_sec <= monitor_interval):
+                raise ValueError("L3CXProfile::monitor wants duration_sec > monitor_interval")
+        if created_cx == None:
+            raise ValueError("Monitor needs a list of Layer 3 connections")
+        if (monitor_interval is None):
+            raise ValueError("L3CXProfile::monitor wants monitor_interval ")
 
-        if kpi_csv:
-            count = 0
-            dict_data = {"Down": {}, "Up": {}, "Both": {}}
-            csv_short_dis = df.loc[:, "short-description"]
-            csv_num_score = df.loc[:, "numeric-score"]
-            for i in range(len(batch_size.split(","))):
-                dict_data["Down"][csv_short_dis[count + 0]] = csv_num_score[count + 0]
-                dict_data["Up"][csv_short_dis[count + 1]] = csv_num_score[count + 1]
-                dict_data["Both"][csv_short_dis[count + 2]] = csv_num_score[count + 2]
-                count += 3
+        # monitor columns
+        start_time = datetime.now()
+        end_time = start_time + timedelta(seconds=duration_sec)
+        # bps-rx-a (download) and bps-rx-b(upload) values are taken
+        self.bps_rx_a, self.bps_rx_b, self.bps_rx, index = [], [], {}, -1
+        bps_rx_a_avg, bps_rx_b_avg = [], []
+        [(self.bps_rx_a.append([]), self.bps_rx_b.append([])) for i in range(len(created_cx))]
+        for test in range(1 + iterations):
+            while datetime.now() < end_time:
+                index += 1
+                response = list(self.json_get('/cx/%s?fields=%s' % (','.join(created_cx), ",".join(col_names))).values())[2:]
+                self.bps_rx[index] = list(map(lambda i: [float(f"{x / (1E6):.2f}") for x in i.values()], response))
+                time.sleep(monitor_interval)
+        # bps_rx list is calculated
+        print("rx rate values are with [bps-rx-a, bps-rx-b] :-\n", self.bps_rx, "\n\n")
+        for index, key in enumerate(self.bps_rx):
+            for i in range(len(self.bps_rx[key])):
+                if side_b_min_rate != '0' and side_b_min_rate != 0:
+                    self.bps_rx_a[i].append(self.bps_rx[key][i][0])
+                if side_a_min_rate != '0' and side_a_min_rate != 0:
+                    self.bps_rx_b[i].append(self.bps_rx[key][i][1])
+        print(f"bps-rx-a values-: \n{self.bps_rx_a}\nbps-rx-b values-: \n{self.bps_rx_b}")
+        if side_a_min_rate != '0' and side_a_min_rate != 0:
+            bps_rx_b_avg = [float(f"{sum(i) / len(i): .2f}") for i in self.bps_rx_b]
+        if side_b_min_rate != '0' and side_b_min_rate != 0:
+            bps_rx_a_avg = [float(f"{sum(i) / len(i): .2f}") for i in self.bps_rx_a]
+        return bps_rx_a_avg, bps_rx_b_avg
 
-        if individual_station_throughput:
-            dict_data = {}
-            if option == "download":
-                csv_sta_names = df.iloc[[0]].values.tolist()
-                csv_throughput_values = df.iloc[[1]].values.tolist()
-            elif option == "upload":
-                csv_sta_names = df.iloc[[0]].values.tolist()
-                csv_throughput_values = df.iloc[[2]].values.tolist()
-            else:
-                print("Provide proper option: download or upload")
-                return
-
-            sta_list = csv_sta_names[0][0][:-1].replace('"', '').split(",")
-            th_list = list(map(float, csv_throughput_values[0][0].split(",")))
-            for i in range(len(sta_list)):
-                dict_data[sta_list[i]] = th_list[i]
-
-        return dict_data
-
-    def create_layer3(self, side_a_min_rate, side_a_max_rate, side_b_min_rate, side_b_max_rate,
-                      traffic_type, sta_list, side_b=""):
+    def create_layer3(self, side_a_min_rate=0, side_a_max_rate=0, side_b_min_rate=0, side_b_max_rate=0,
+                      traffic_type="", sta_list=[], side_b="", start_cx=True, name_prefix=None):
         # checked
         print(sta_list)
         print(type(sta_list))
@@ -1620,12 +1624,14 @@ class lf_libs:
         cx_profile.side_a_max_bps = side_a_max_rate
         cx_profile.side_b_min_bps = side_b_min_rate
         cx_profile.side_b_max_bps = side_b_max_rate
-
+        if name_prefix:
+            cx_profile.name_prefix = name_prefix
         # create
-        cx_profile.create(endp_type=traffic_type, side_a=sta_list,
-                               side_b=side_b,
-                               sleep_time=0)
-        cx_profile.start_cx()
+        cx_profile.create(endp_type=traffic_type, side_a=sta_list, side_b=side_b, sleep_time=0)
+        if start_cx:
+            cx_profile.start_cx()
+        else:
+            pass
 
     def l3_cleanup(self):
         local_realm = realm.Realm(lfclient_host=self.manager_ip, lfclient_port=self.manager_http_port)
@@ -1637,6 +1643,25 @@ class lf_libs:
         layer3_names = [item["name"] for item in layer3_result.values() if "_links" in item]
         print(layer3_names)
         return layer3_names
+
+    def start_cx_list(self, created_cx=None, check_run_status=True):
+        local_realm = realm.Realm(lfclient_host=self.manager_ip, lfclient_port=self.manager_http_port)
+        cx_profile = local_realm.new_l3_cx_profile()
+        cx_profile.host = self.manager_ip
+        cx_profile.port = self.manager_http_port
+        cx_profile.created_cx = created_cx
+        cx_profile.start_cx()
+        time.sleep(20)
+        if check_run_status:
+            timeout = 50
+            while timeout:
+                timeout -= 1
+                check_run_state = list(self.json_get('/cx/%s?fields=%s' % (','.join(
+                                  cx_profile.created_cx.keys()), ",".join(['bps rx a', 'bps rx b']))).values())[2:]
+                for i in check_run_state:
+                    if list(i.values()).count(0) != len(i):
+                        timeout = 0
+                        break
 
     def allure_report_table_format(self, dict_data=None, key=None, value=None, name=None):#, value_on_same_table=True):
         report_obj = Report()
