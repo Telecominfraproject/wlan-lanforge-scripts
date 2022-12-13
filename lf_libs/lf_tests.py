@@ -1329,6 +1329,7 @@ class lf_tests(lf_libs):
                                f" Enable {traffic_direction} {traffic_rate} Mbps UDP flow from DUT to each of the 8 traffic stations" \
                                "Disassociate the other 8 stations. Wait for 30 seconds, after that Re-associate the 8 stations.")
 
+            self.add_vlan(vlan_ids=vlan)
             for i in radio:
                 station_data = ["profile_link " + i.split(".")[0] + "." + i.split(".")[1] +
                                 " STA-AUTO " + str(num_stations(rem)) + " 'DUT: " + identifier + " Radio-" +
@@ -1356,7 +1357,7 @@ class lf_tests(lf_libs):
                                          download_rate=downld_rate,add_stations=False,
                                          stations=sel_stations, raw_lines=val, batch_size="8", upload_rate=upld_rate,
                                          protocol="UDP-IPv4", duration="120000", create_stations=False,
-                                         dut_data=dut_data,
+                                         dut_data=dut_data, create_vlan=False,
                                          sort="interleave", )
 
             report_name = wct_obj[0].report_name[0]['LAST']["response"].split(":::")[1].split("/")[-1] + "/"
@@ -1463,8 +1464,7 @@ class lf_tests(lf_libs):
                          [f'atten-8: {atten_serial[1]}.2'], [f'atten-9: {atten_serial[1]}.3']]
 
             skip_band = [['Skip 2.4Ghz Tests', f'{skip_twog}'], ['Skip 5Ghz Tests', f'{skip_fiveg}'],
-                         ['2.4Ghz Channel', 'AUTO'], ['5Ghz Channel', 'AUTO'], ['Skip N/AC Tests', '1'],
-                         ['Skip AX Tests', '1']]
+                         ['2.4Ghz Channel', 'AUTO'], ['5Ghz Channel', 'AUTO'], ['Skip AX Tests', '1']]
             for t in test:
                 if [f"{t}: 0"] in enable_tests:
                     enable_tests[enable_tests.index([f"{t}: 0"])] = [f"{t}: 1"]
