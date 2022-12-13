@@ -1523,26 +1523,43 @@ class lf_libs:
         atten_obj = Attenuator_modify(self.manager_ip, self.manager_http_port, serno, idx, val)
         atten_obj.build()
 
+    def get_station_signal(self, station_name="", timeout=10):
+        while timeout:
+            signal = self.json_get(_req_url=f'/port/1/1/{station_name}?fields=signal')['interface']['signal']
+            if signal != '0 dBm':
+                break
+            else:
+                timeout -= 1
+                time.sleep(1)
+        if signal == '0 dBm':
+            return False
+        else:
+            return signal
+
     def attenuator_serial_radio(self, ssid="[BLANK]", passkey="[BLANK]", security="wpa2", mode="BRIDGE", atn_val=400,
-                                   vlan_id=100, sta_mode=0, station_name=[], radio='1.1.wiphy0'):
+                                   vlan_id=100, sta_mode=0, station_name=[], radio='1.1.wiphy0', timeout=20):
         radio = radio
         # index 0 of atten_serial_radio will ser no of 1st 2g/5g radio and index 1 will ser no of 2nd and 3rd 2g/5g radio
         atten_serial_radio = []
         atten_serial = self.attenuator_serial()
         self.client_connect_using_radio(ssid=ssid, passkey=passkey, security=security, mode=mode,
                                         vlan_id=vlan_id, radio=radio, sta_mode=sta_mode, station_name=station_name)
-        signal1 = self.json_get(_req_url=f'/port/1/1/{station_name[0]}?fields=signal')['interface']['signal']
+        signal1 = self.get_station_signal(station_name[0],timeout)
         atten_sr = atten_serial[0].split(".")
-        for i in range(4):
-            self.attenuator_modify(int(atten_sr[2]), i, atn_val)
-            time.sleep(0.5)
-        signal2 = self.json_get(_req_url=f'/port/1/1/{station_name[0]}?fields=signal')['interface']['signal']
-        if abs(int(signal2.split(" ")[0])) - abs(int(signal1.split(" ")[0])) >= 5:
-            atten_serial_radio = atten_serial
-        else:
-            atten_serial_radio = atten_serial[::-1]
-        self.client_disconnect(station_name=station_name)
-        return atten_serial_radio
+        self.attenuator_modify(int(atten_sr[2]), "all", atn_val)
+        time.sleep(0.5)
+        signal2 = self.get_station_signal(station_name[0],timeout)
+        try:
+            if abs(int(signal2.split(" ")[0])) - abs(int(signal1.split(" ")[0])) >= 5:
+                atten_serial_radio = atten_serial
+            else:
+                atten_serial_radio = atten_serial[::-1]
+            return atten_serial_radio
+        except Exception as e:
+            logging.error(f"{e}")
+            return False
+        finally:
+            self.client_disconnect(station_name=station_name)
 
     def read_kpi_file(self, column_name, dir_name):
         if column_name == None:
