@@ -54,6 +54,8 @@ ttlstest = importlib.import_module("py-scripts.test_ipv4_ttls")
 TTLSTest = ttlstest.TTLSTest
 tr398v2test = importlib.import_module("py-scripts.lf_tr398v2_test")
 TR398v2Test = tr398v2test.TR398v2Test
+rvr = importlib.import_module("py-scripts.lf_rvr_test")
+rvr_test = rvr.RvrTest
 
 
 class lf_tests(lf_libs):
@@ -64,7 +66,8 @@ class lf_tests(lf_libs):
     def __init__(self, lf_data={}, dut_data={}, log_level=logging.DEBUG, run_lf=False, influx_params=None,
                  local_report_path="../reports/"):
         super().__init__(lf_data, dut_data, run_lf, log_level)
-        self.local_report_path = local_report_path
+        self.local_report_path = local_report_path,
+        self.influx_params = influx_params
 
     def client_connectivity_test(self, ssid="[BLANK]", passkey="[BLANK]", bssid="[BLANK]", dut_data={},
                                  security="open", extra_securities=[], sta_mode=0,
@@ -558,9 +561,6 @@ class lf_tests(lf_libs):
                 break
 
         return result, description
-
-    def rate_vs_range_test(self):
-        pass
 
     def multiband_performance_test(self):
         pass
@@ -1666,6 +1666,61 @@ class lf_tests(lf_libs):
                 logging.error(f"{e}")
                 return False, f"{e}"
 
+    def rate_vs_range_test(self, station_name=None, mode="BRIDGE", vlan_id=100, download_rate="85%", dut_name="TIP",
+                           upload_rate="0", duration="1m", instance_name="test_demo", raw_lines=None,move_to_influx=False):
+        for dut in self.dut_data:
+            if mode == "BRIDGE" or mode == "NAT-WAN":
+                upstream_port = dut["wan_port"]
+            elif mode == "NAT-LAN":
+                upstream_port = dut["lan_port"]
+            elif mode == "VLAN":
+                if vlan_id is None:
+                    logging.error("VLAN ID is Unspecified in the VLAN Case")
+                    pytest.skip("VLAN ID is Unspecified in the VLAN Case")
+                else:
+                    # self.add_vlan(vlan_ids=vlan_id, build=True)
+                    upstream_port = dut["wan_port"] + "." + str(vlan_id[0])
+            logging.info("Upstream data: " + str(upstream_port))
+
+        rvr_obj = rvr_test(lf_host=self.manager_ip,
+                           lf_port=self.manager_http_port,
+                           ssh_port=self.manager_ssh_port,
+                           lf_user="lanforge",
+                           local_lf_report_dir=self.local_report_path,
+                           lf_password="lanforge",
+                           instance_name=instance_name,
+                           config_name="rvr_config",
+                           upstream=upstream_port,
+                           pull_report=True,
+                           load_old_cfg=False,
+                           upload_speed=upload_rate,
+                           download_speed=download_rate,
+                           duration=duration,
+                           station=station_name,
+                           dut=dut_name,
+                           raw_lines=raw_lines)
+        rvr_obj.run()
+        if move_to_influx:
+            try:
+                report_name = self.rvr_obj.report_name[0]['LAST']["response"].split(":::")[1].split("/")[-1]
+                influx = CSVtoInflux(influx_host=self.influx_params["influx_host"],
+                                     influx_port=self.influx_params["influx_port"],
+                                     influx_org=self.influx_params["influx_org"],
+                                     influx_token=self.influx_params["influx_token"],
+                                     influx_bucket=self.influx_params["influx_bucket"],
+                                     path=report_name)
+
+                influx.glob()
+            except Exception as e:
+                print(e)
+                pass
+        report_name = rvr_obj.report_name[0]['LAST']["response"].split(":::")[1].split("/")[-1] + "/"
+        time.sleep(10)
+        logging.info("report_name: " + str(report_name))
+        self.attach_report_graphs(report_name=report_name,pdf_name= "Rate vs Range Test PDF Report")
+        self.attach_report_kpi(report_name=report_name)
+
+        return rvr_obj, report_name
 
 if __name__ == '__main__':
     basic = {
