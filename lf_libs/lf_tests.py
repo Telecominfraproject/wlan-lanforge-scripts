@@ -1683,22 +1683,22 @@ class lf_tests(lf_libs):
             logging.info("Upstream data: " + str(upstream_port))
 
         rvr_obj = rvr_test(lf_host=self.manager_ip,
-                           lf_port=self.manager_http_port,
-                           ssh_port=self.manager_ssh_port,
-                           lf_user="lanforge",
-                           local_lf_report_dir=self.local_report_path,
-                           lf_password="lanforge",
-                           instance_name=instance_name,
-                           config_name="rvr_config",
-                           upstream=upstream_port,
-                           pull_report=True,
-                           load_old_cfg=False,
-                           upload_speed=upload_rate,
-                           download_speed=download_rate,
-                           duration=duration,
-                           station=station_name,
-                           dut=dut_name,
-                           raw_lines=raw_lines)
+                               lf_port=self.manager_http_port,
+                               ssh_port=self.manager_ssh_port,
+                               lf_user="lanforge",
+                               local_lf_report_dir="../reports/",
+                               lf_password="lanforge",
+                               instance_name=instance_name,
+                               config_name="rvr_config",
+                               upstream=upstream_port,
+                               pull_report=True,
+                               load_old_cfg=False,
+                               upload_speed=upload_rate,
+                               download_speed=download_rate,
+                               duration=duration,
+                               station=station_name,
+                               dut=dut_name,
+                               raw_lines=raw_lines)
         rvr_obj.run()
         if move_to_influx:
             try:
@@ -1714,7 +1714,8 @@ class lf_tests(lf_libs):
             except Exception as e:
                 print(e)
                 pass
-        report_name = rvr_obj.report_name[0]['LAST']["response"].split(":::")[1].split("/")[-1] + "/"
+        #fetch the report
+        report_name = rvr_obj.report_name[0]['LAST']["response"].split(":::")[1].split("/")[-1]
         time.sleep(10)
         logging.info("report_name: " + str(report_name))
         self.attach_report_graphs(report_name=report_name,pdf_name= "Rate vs Range Test PDF Report")
