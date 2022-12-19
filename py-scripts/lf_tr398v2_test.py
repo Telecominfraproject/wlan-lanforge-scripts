@@ -324,6 +324,7 @@ class TR398v2Test(cvtest):
         self.sets = sets
         self.local_lf_report_dir = local_lf_report_dir
         self.test_rig = test_rig
+        self.blob_text = "TR-398v2-"
 
     def setup(self):
         # Nothing to do at this time.
@@ -334,7 +335,7 @@ class TR398v2Test(cvtest):
         time.sleep(2)
         self.sync_cv()
 
-        blob_test = "TR398v2-"
+        blob_test = self.blob_text
 
         self.rm_text_blob(self.config_name, blob_test)  # To delete old config with same name
         self.show_text_blob(None, None, False)

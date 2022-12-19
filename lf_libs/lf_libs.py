@@ -1538,7 +1538,6 @@ class lf_libs:
 
     def attenuator_serial_radio(self, ssid="[BLANK]", passkey="[BLANK]", security="wpa2", mode="BRIDGE", atn_val=400,
                                    vlan_id=100, sta_mode=0, station_name=[], radio='1.1.wiphy0', timeout=20):
-        radio = radio
         # index 0 of atten_serial_radio will ser no of 1st 2g/5g radio and index 1 will ser no of 2nd and 3rd 2g/5g radio
         atten_serial_radio = []
         atten_serial = self.attenuator_serial()

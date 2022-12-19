@@ -25,8 +25,8 @@ from datetime import datetime
 
 sys.path.append(os.path.join(os.path.abspath(__file__ + "../../../")))
 
-wifi_monitor = importlib.import_module("py-json.wifi_monitor_profile")
-WiFiMonitor = wifi_monitor.WifiMonitor
+wifi_monitor_profile = importlib.import_module("py-json.wifi_monitor_profile")
+WiFiMonitor = wifi_monitor_profile.WifiMonitor
 lfcli_base = importlib.import_module("py-json.LANforge.lfcli_base")
 LFCliBase = lfcli_base.LFCliBase
 realm = importlib.import_module("py-json.realm")
@@ -48,7 +48,7 @@ class LfPcap(Realm):
                  _debug_on=False
                  ):
         # uncomment the follwoing line to use wifi monitor functions
-        # super().__init__(lfclient_host=host, lfclient_port=port, debug_=_debug_on)
+        super().__init__(lfclient_host=host, lfclient_port=port, debug_=_debug_on)
         self.host = host,
         self.port = port
         self.debug = _debug_on
@@ -63,7 +63,7 @@ class LfPcap(Realm):
         self.remote_cap_host = _live_remote_cap_host
         self.remote_cap_interface = _live_remote_cap_interface
         # uncomment the follwoing line to use wifi monitor functions
-        # self.wifi_monitor = WiFiMonitor(self.lfclient_url, local_realm=self, debug_=self.debug)
+        self.wifi_monitor = WiFiMonitor(self.lfclient_url, local_realm=self, debug_=self.debug)
 
     def read_pcap(self, pcap_file, apply_filter=None):
         self.pcap_file = pcap_file
