@@ -68,7 +68,7 @@ class lf_tests(lf_libs):
     def __init__(self, lf_data={}, dut_data={}, log_level=logging.DEBUG, run_lf=False, influx_params=None,
                  local_report_path="../reports/"):
         super().__init__(lf_data, dut_data, run_lf, log_level)
-        self.local_report_path = local_report_path,
+        self.local_report_path = local_report_path
         self.influx_params = influx_params
 
     def client_connectivity_test(self, ssid="[BLANK]", passkey="[BLANK]", bssid="[BLANK]", dut_data={},
@@ -1200,7 +1200,7 @@ class lf_tests(lf_libs):
                     print(e)
                     pass
             report_name = wificapacity_obj.report_name[0]['LAST']["response"].split(":::")[1].split("/")[-1] + "/"
-            time.sleep(600)
+            time.sleep(10)
             logging.info("report_name: " + str(report_name))
             self.attach_report_graphs(report_name=report_name)
             self.attach_report_kpi(report_name=report_name)
