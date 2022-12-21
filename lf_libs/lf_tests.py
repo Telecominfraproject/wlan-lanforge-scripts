@@ -1331,7 +1331,8 @@ class lf_tests(lf_libs):
                                f" Enable {traffic_direction} {traffic_rate} Mbps UDP flow from DUT to each of the 8 traffic stations" \
                                "Disassociate the other 8 stations. Wait for 30 seconds, after that Re-associate the 8 stations.")
 
-            self.add_vlan(vlan_ids=vlan)
+            if mode == "VLAN":
+                self.add_vlan(vlan_ids=vlan)
             for i in radio:
                 station_data = ["profile_link " + i.split(".")[0] + "." + i.split(".")[1] +
                                 " STA-AUTO " + str(num_stations(rem)) + " 'DUT: " + identifier + " Radio-" +
@@ -1363,8 +1364,11 @@ class lf_tests(lf_libs):
                                          sort="interleave", )
 
             report_name = wct_obj[0].report_name[0]['LAST']["response"].split(":::")[1].split("/")[-1] + "/"
-            # self.attach_report_graphs(report_name=report_name)
-            csv_val = self.read_csv_individual_station_throughput(dir_name=report_name, option=traffic_direction)
+            file_name = "/csv-data/data-Combined_bps__60_second_running_average-1.csv"
+            if not os.path.exists(f"../reports/{report_name}{file_name}"):
+                file_name = file_name.replace('_bps__','_Mbps__')
+            csv_val = self.read_csv_individual_station_throughput(dir_name=report_name, option=traffic_direction,
+                                                                  file_name=file_name)
             logging.info(csv_val)
             pass_value = int(traffic_rate[0]) * 0.99
             logging.info(csv_val)
@@ -1375,13 +1379,10 @@ class lf_tests(lf_libs):
                 return False, "csv file does not exist"
             else:
                 pass_fail = [1 if i >= pass_value else 0 for i in csv_val.values()]
-                try:
-                    allure.attach.file(source="../reports/" + report_name + "/csv-data/data-Combined_bps__60_second_running_average-1.csv",
-                    name="Throughput CSV file", attachment_type=allure.attachment_type.CSV)
-                except FileNotFoundError as e:
-                    allure.attach.file(
-                        source="../reports/" + report_name + "/csv-data/data-Combined_Mbps__60_second_running_average-1.csv",
-                        name="Throughput CSV file", attachment_type=allure.attachment_type.CSV)
+                allure.attach.file(source="../reports/" + report_name + file_name, name="Throughput CSV file",
+                                   attachment_type=allure.attachment_type.CSV)
+                self.allure_report_table_format(dict_data=csv_val, key="Stations", value="Throughput values",
+                                                name="Test_results")
                 if pass_fail.count(0) == 0:
                     return True, "Test passed"
                 else:
