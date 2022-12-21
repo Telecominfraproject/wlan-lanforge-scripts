@@ -1311,11 +1311,13 @@ class lf_tests(lf_libs):
             # clean l3 traffics which won't get cleaned by deleting old scenario in CV
             self.client_disconnect(clean_l3_traffic=True)
             radio = self.wave2_5g_radios if band == "5G" else self.wave2_2g_radios
-            upld_rate, downld_rate = "0Gbps", "0Gbps"
+            upld_rate, downld_rate, val = "0Gbps", "0Gbps", []
             if traffic_direction == "upload":
                 upld_rate = traffic_rate
+                val = [['ul_rate_sel: Per-Station Upload Rate:']]
             elif traffic_direction == "download":
                 downld_rate = traffic_rate
+                val = [['dl_rate_sel: Per-Station Download Rate:']]
             per_radio_sta = int(num_stations / len(radio))
             rem = num_stations % len(radio)
             logging.info("Total stations per radio: " + str(per_radio_sta))
@@ -1353,7 +1355,6 @@ class lf_tests(lf_libs):
             for i in sta_list:
                 self.local_realm.admin_up(i)
             sel_stations = ",".join(sta_list[0:8])
-            val = [['ul_rate_sel: Per-Station Upload Rate:']]
             thr1 = threading.Thread(target=thread_fun, args=(sta_list[8:16],))
             thr1.start()
             wct_obj = self.wifi_capacity(instance_name=instance_name, mode=mode, vlan_id=vlan,
