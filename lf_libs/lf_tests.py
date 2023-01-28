@@ -1804,7 +1804,7 @@ class lf_tests(lf_libs):
     def dualbandperformancetest(self, ssid_5G="[BLANK]", ssid_2G="[BLANK]", mode="BRIDGE", vlan_id=100, dut_name="TIP",
                                 instance_name="test_demo", dut_5g="", dut_2g="", influx_tags="", move_to_influx=False,
                                 create_vlan=True, dut_data={}):
-        instance_name = ''.join(random.choices(string.ascii_uppercase + string.digits, k=S))
+        instance_name = ''.join(random.choices(string.ascii_uppercase + string.digits, k=12))
 
         if mode == "BRIDGE" or mode == "NAT-WAN":
             upstream_port = list(self.lanforge_data['wan_ports'].keys())[0]
