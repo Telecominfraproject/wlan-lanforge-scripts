@@ -1801,7 +1801,7 @@ class lf_tests(lf_libs):
 
         return rvr_obj, report_name
 
-    def dualbandperformancetest(self, ssid_5G="[BLANK]", ssid_2G="[BLANK]", mode="BRIDGE", vlan_id=100, dut_name="TIP",
+    def dual_band_performance_test(self, ssid_5G="[BLANK]", ssid_2G="[BLANK]", mode="BRIDGE", vlan_id=100, dut_name="TIP",
                                 instance_name="test_demo", dut_5g="", dut_2g="", influx_tags="", move_to_influx=False,
                                 create_vlan=True, dut_data={}):
         try:
