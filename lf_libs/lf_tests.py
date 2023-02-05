@@ -1745,7 +1745,8 @@ class lf_tests(lf_libs):
                 return False, f"{e}"
 
     def rate_vs_range_test(self, station_name=None, mode="BRIDGE", vlan_id=100, download_rate="85%", dut_name="TIP",
-                           upload_rate="0", duration="1m", instance_name="test_demo", raw_lines=None,move_to_influx=False):
+                           upload_rate="0", duration="1m", instance_name="test_demo", raw_lines=None,
+                           move_to_influx=False, create_vlan=True):
         for dut in self.dut_data:
             if mode == "BRIDGE" or mode == "NAT-WAN":
                 upstream_port = dut["wan_port"]
@@ -1756,8 +1757,11 @@ class lf_tests(lf_libs):
                     logging.error("VLAN ID is Unspecified in the VLAN Case")
                     pytest.skip("VLAN ID is Unspecified in the VLAN Case")
                 else:
-                    # self.add_vlan(vlan_ids=vlan_id, build=True)
-                    upstream_port = dut["wan_port"] + "." + str(vlan_id[0])
+                    if create_vlan:
+                        self.add_vlan(vlan_ids=vlan_id, build=True)
+                    else:
+                        self.add_vlan(vlan_ids=vlan_id, build=False)
+                upstream_port = dut["wan_port"] + "." + str(vlan_id[0])
             logging.info("Upstream data: " + str(upstream_port))
 
         rvr_obj = rvr_test(lf_host=self.manager_ip,
@@ -1882,7 +1886,7 @@ class lf_tests(lf_libs):
     def multi_station_performance(self, ssid_name=None, security_key=None, mode="BRIDGE", vlan=1, band="twog", antenna=1,
                                   instance_name="", set_att_db="10db",download_rate="0Gbps",upload_rate="1Gbps",
                                   batch_size="",protocol="UDP-IPv4",duration="120000",expected_throughput=35,
-                                  traffic_type="udp_upload",create_vlan=True):
+                                  traffic_type="udp_upload",sniff_radio=False, create_vlan=True,dut_data=None):
         global station_name,radio_prefix, set_value, set_value1, type
         self.chamber_view()
         self.client_disconnect(clean_l3_traffic=True)
@@ -1917,10 +1921,12 @@ class lf_tests(lf_libs):
             print(sta)
             data = {"shelf": shelf, "resource": resource, "radio": values[2], "antenna": antenna}
             self.json_post(_req_url="cli-json/set_wifi_radio", data=data)
-            sta_ip = self.client_connect_using_radio(ssid=ssid_name, passkey=security_key,radio=radio_name, station_name=sta)
+            sta_ip = self.client_connect_using_radio(ssid=ssid_name, passkey=security_key, mode=mode, band=band,
+                                                     radio=radio_name,station_name=sta, vlan_id=[vlan],
+                                                     dut_data=dut_data, sniff_radio=sniff_radio)
             if not sta_ip:
-                print("test failed due to no station ip")
-                return False, "Test Failed, due to no station ip"
+                logging.info("Test Failed, due to station has no ip")
+                return False, "TEST FAILED, due to station has no ip"
 
         elif batch_size == "3,6" or batch_size == "3,6,9":
             sta = []
@@ -1949,11 +1955,12 @@ class lf_tests(lf_libs):
                 data = {"shelf": shelf, "resource": resource, "radio": values[2], "antenna": antenna}
                 self.json_post(_req_url="cli-json/set_wifi_radio", data=data)
                 time.sleep(0.5)
-                sta_ip = self.client_connect_using_radio(ssid=ssid_name,passkey=security_key,radio=radio_name,
-                                                         station_name=sta[i])
+                sta_ip = self.client_connect_using_radio(ssid=ssid_name,passkey=security_key,mode=mode, band=band,
+                                                         radio=radio_name, station_name=sta[i], vlan_id=[vlan],
+                                                         dut_data=dut_data, sniff_radio=sniff_radio)
                 if not sta_ip:
-                    print("test failed due to no station ip")
-                    return False, "Test Failed, due to no station ip"
+                    logging.info("Test Failed, due to station has no ip")
+                    return False, "TEST FAILED, due to station has no ip"
                 time.sleep(0.5)
         # attenuator setup for different db
         if set_att_db == "10db":
@@ -1990,12 +1997,11 @@ class lf_tests(lf_libs):
                     self.attenuator_modify(int(atten_sr2[2]), i, set_value1)
                     time.sleep(0.5)
         # wifi_capacity test
-        wct_obj = self.wifi_capacity(instance_name=instance_name, mode=mode, vlan_id=vlan,
+        wct_obj = self.wifi_capacity(instance_name=instance_name, mode=mode, vlan_id=[vlan],
                                                  download_rate=download_rate, batch_size=batch_size,
                                                  upload_rate=upload_rate, protocol=protocol, duration=duration,
                                                  sort="linear",create_vlan=create_vlan)
         report_name = wct_obj[0].report_name[0]['LAST']["response"].split(":::")[1].split("/")[-1]
-        self.attach_report_graphs(report_name=report_name)
         csv_val = self.read_csv_individual_station_throughput(dir_name=report_name, option=None,
                                                                           individual_station_throughput=False,
                                                                           kpi_csv=True,
@@ -2026,13 +2032,13 @@ class lf_tests(lf_libs):
 
     def spacial_consistency(self, ssid_name=None, security_key=None, security="wpa2", mode="BRIDGE", band="twog",
                             vlan=1, dut_data=None, num_sta=1, spatial_streams=1, instance_name="", pass_value=None,
-                            attenuations=None):
+                            attenuations=None, create_vlan=True):
         logging.info("Cleanup existing clients and traffic")
         chamber_view_obj, dut_name = self.chamber_view()
         self.client_disconnect(clean_l3_traffic=True)
         # client connect
         station = self.client_connect(ssid=ssid_name, security=security, passkey=security_key, mode=mode,
-                                      band=band, num_sta=num_sta, vlan_id=vlan, dut_data=dut_data)
+                                      band=band, num_sta=num_sta, vlan_id=[vlan], dut_data=dut_data)
         sta_name = list(station.keys())
         ser_no = self.attenuator_serial()
         print(ser_no)
@@ -2045,9 +2051,8 @@ class lf_tests(lf_libs):
         if station:
             # rvr test
             rvr_o, report_name = self.rate_vs_range_test(station_name=sta_name[0], mode=mode, download_rate="100%",
-                                                         instance_name=instance_name, duration="60000",
-                                                         vlan_id=vlan,
-                                                         dut_name=dut_name, raw_lines=val)
+                                                         instance_name=instance_name, duration="60000", vlan_id=[vlan],
+                                                         dut_name=dut_name, raw_lines=val, create_vlan=create_vlan)
             entries = os.listdir("../reports/" + report_name + '/')
             print("entries", entries)
             self.client_disconnect(clear_all_sta=True, clean_l3_traffic=True)
@@ -2087,18 +2092,18 @@ class lf_tests(lf_libs):
                 allure.attach(name="CSV Data", body="csv file does not exist")
                 return False, "TEST FAILED, , CSV file does not exist"
         else:
-            logging.info("TEST FAILED due to no station ip")
-            return False, "TEST FAILED due to no station ip"
+            logging.info("Test Failed, due to station has no ip")
+            return False, "TEST FAILED, due to station has no ip"
 
     def rate_vs_range(self, ssid_name=None, security_key=None, security="wpa2", mode="BRIDGE", band="twog", vlan=1,
                       dut_data=None, num_sta=1, spatial_streams=2, direction="DUT Transmit", instance_name="",
-                      pass_value=None, attenuations=None):
+                      pass_value=None, attenuations=None, create_vlan=True):
         logging.info("Cleanup existing clients and traffic")
         chamber_view_obj, dut_name = self.chamber_view()
         self.client_disconnect(clean_l3_traffic=True)
         # client connect
         station = self.client_connect(ssid=ssid_name, security=security, passkey=security_key, mode=mode, band=band,
-                                      num_sta=num_sta, vlan_id=vlan, dut_data=dut_data)
+                                      num_sta=num_sta, vlan_id=[vlan], dut_data=dut_data)
         sta_name = list(station.keys())
         ser_no = self.attenuator_serial()
         print(ser_no)
@@ -2110,11 +2115,9 @@ class lf_tests(lf_libs):
                ['chamber: 0'], ['tt_deg: 0']]
         if station:
             # rvr test
-            rvr_o, report_name = self.rate_vs_range_test(station_name=sta_name[0], mode=mode,
-                                                         download_rate="100%",
-                                                         duration='30000',
-                                                         instance_name=instance_name, vlan_id=vlan,
-                                                         dut_name=dut_name, raw_lines=val)
+            rvr_o, report_name = self.rate_vs_range_test(station_name=sta_name[0], mode=mode,download_rate="100%",
+                                                         duration='30000',instance_name=instance_name, vlan_id=[vlan],
+                                                         dut_name=dut_name, raw_lines=val, create_vlan=create_vlan)
             entries = os.listdir("../reports/" + report_name + '/')
             print("entries", entries)
             print("Test Completed... Cleaning up Stations")
@@ -2159,8 +2162,8 @@ class lf_tests(lf_libs):
                 allure.attach(name="CSV Data", body="csv file does not exist")
                 return False, "TEST FAILED, CSV file does not exist"
         else:
-            logging.info("TEST FAILED,  due to no station ip")
-            return False, "TEST FAILED, due to no station ip"
+            logging.info("Test Failed, due to station has no ip")
+            return False, "TEST FAILED, due to station has no ip"
 
 if __name__ == '__main__':
     basic = {
