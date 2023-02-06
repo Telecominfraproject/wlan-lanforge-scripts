@@ -1698,8 +1698,7 @@ class lf_libs:
         # if pre_cleanup:
         #     self.pre_cleanup()
         global upstream_port, sniffer_channel
-
-        if mode == "BRIDGE" or "NAT-WAN":
+        if mode == "BRIDGE" or mode == "NAT-WAN":
             port_data = self.wan_ports
             port = list(port_data.keys())
             upstream_port = port[0]
@@ -1713,7 +1712,6 @@ class lf_libs:
                     up = self.get_wan_upstream_ports()
                     upstream = list(up.values())
                     upstream_port = upstream[0] + "." + str(vlan_id[0])
-                    print("upstream_port:", upstream_port)
                 else:
                     self.add_vlan(vlan_ids=vlan_id, build=False)
         print("upstream_port1:", upstream_port)
@@ -1723,7 +1721,10 @@ class lf_libs:
         client_connect.upstream_port = upstream_port
         client_connect.upstream_resource = 1
         client_connect.radio = radio
-
+        # allure attach for port info
+        port_data = self.json_get(_req_url="port?fields=ip")
+        port_info = {key: value for d in port_data["interfaces"] for key, value in d.items()}
+        self.allure_report_table_format(dict_data=port_info, key="Port Names", value="ip", name="Port info")
         if sniff_radio:
             for dut_ in self.dut_data:
                 identifier = dut_["identifier"]
@@ -1750,7 +1751,7 @@ class lf_libs:
                     if radio is not None and sniffer_channel is not None:
                         self.stop_sniffer()
                 else:
-                    print("missing identifier.")
+                    logging.info("missing identifier.")
         else:
             client_connect.build()
         # fetch supplicant logs from lanforge
