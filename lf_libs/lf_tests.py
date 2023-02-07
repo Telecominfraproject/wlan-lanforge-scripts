@@ -1957,7 +1957,8 @@ class lf_tests(lf_libs):
                 time.sleep(0.5)
                 sta_ip = self.client_connect_using_radio(ssid=ssid_name,passkey=security_key,mode=mode, band=band,
                                                          radio=radio_name, station_name=sta[i], vlan_id=[vlan],
-                                                         dut_data=dut_data, sniff_radio=sniff_radio)
+                                                         dut_data=dut_data, sniff_radio=sniff_radio, create_vlan=create_vlan)
+                create_vlan=False
                 if not sta_ip:
                     logging.info("Test Failed, due to station has no ip")
                     return False, "TEST FAILED, due to station has no ip"
@@ -2000,7 +2001,7 @@ class lf_tests(lf_libs):
         wct_obj = self.wifi_capacity(instance_name=instance_name, mode=mode, vlan_id=[vlan],
                                                  download_rate=download_rate, batch_size=batch_size,
                                                  upload_rate=upload_rate, protocol=protocol, duration=duration,
-                                                 sort="linear",create_vlan=create_vlan)
+                                                 sort="linear",create_vlan=False)
         report_name = wct_obj[0].report_name[0]['LAST']["response"].split(":::")[1].split("/")[-1]
         csv_val = self.read_csv_individual_station_throughput(dir_name=report_name, option=None,
                                                                           individual_station_throughput=False,
