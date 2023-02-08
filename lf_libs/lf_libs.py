@@ -1735,12 +1735,14 @@ class lf_libs:
                         sniffer_channel = dict(dut_data.get(identifier)["radio_data"])["5G"]["channel"]
                     elif band == "sixg":
                         sniffer_channel = dict(dut_data.get(identifier)["radio_data"])["6G"]["channel"]
+                    sniff_radio = self.setup_sniffer(band=band, station_radio_data={radio:1}) # to setup sniffer radio
+                    print("sniffer_radio", sniff_radio)
                     if radio is not None and sniffer_channel is not None:
-                        self.start_sniffer(radio_channel=sniffer_channel, radio=radio, duration=60)
+                        self.start_sniffer(radio_channel=sniffer_channel, radio=sniff_radio, duration=60)
                     logging.info("started-sniffer")
                     client_connect.build()
-                    logging.info("napping 30 sec")
-                    time.sleep(30)
+                    logging.info("napping 10 sec")
+                    time.sleep(10)
                     # station data
                     sta_length = len(station_name)
                     for i in range(sta_length):
