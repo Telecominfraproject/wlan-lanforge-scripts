@@ -2032,8 +2032,8 @@ class lf_tests(lf_libs):
                 return False, "TEST FAILED, Actual throughput (%sMbps) is lesser than Expected (%sMbps)" % (str(list(csv_val[type].values())[-1]),str(pass_value))
 
     def spacial_consistency(self, ssid_name=None, security_key=None, security="wpa2", mode="BRIDGE", band="twog",
-                            vlan=1, dut_data=None, num_sta=1, spatial_streams=1, instance_name="", pass_value=None,
-                            attenuations=None, create_vlan=True):
+                            vlan=1, dut_data=None, num_sta=1, download_rate="100%", upload_rate="0", spatial_streams=1,
+                            instance_name="", pass_value=None, attenuations=None, create_vlan=True):
         logging.info("Cleanup existing clients and traffic")
         chamber_view_obj, dut_name = self.chamber_view()
         self.client_disconnect(clean_l3_traffic=True)
@@ -2051,9 +2051,9 @@ class lf_tests(lf_libs):
                ['tt_deg: 0..+60..300']]
         if station:
             # rvr test
-            rvr_o, report_name = self.rate_vs_range_test(station_name=sta_name[0], mode=mode, download_rate="100%",
-                                                         instance_name=instance_name, duration="60000", vlan_id=[vlan],
-                                                         dut_name=dut_name, raw_lines=val, create_vlan=create_vlan)
+            rvr_o, report_name = self.rate_vs_range_test(station_name=sta_name[0], mode=mode, download_rate=download_rate,
+                                                         upload_rate=upload_rate, instance_name=instance_name, duration="60000",
+                                                         vlan_id=[vlan], dut_name=dut_name, raw_lines=val,create_vlan=create_vlan)
             entries = os.listdir("../reports/" + report_name + '/')
             print("entries", entries)
             self.client_disconnect(clear_all_sta=True, clean_l3_traffic=True)
