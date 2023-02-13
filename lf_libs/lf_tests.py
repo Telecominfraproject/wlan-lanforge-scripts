@@ -2166,6 +2166,122 @@ class lf_tests(lf_libs):
             logging.info("Test Failed, due to station has no ip")
             return False, "TEST FAILED, due to station has no ip"
 
+    def client_isolation(self, ssid1=None, ssid2=None, passkey=None, security=None, mode="BRIDGE", band_2g=None,
+                         band_5g=None, dut_data=None, num_sta=None, side_a_min_rate=None, side_a_max_rate=None, side_b_min_rate=None,
+                         side_b_max_rate=None, sniff_radio=True):
+        band = radio_name = station_name = radio_names = station_name1= station_name2 = station_result = layer3_result = None
+        if band_5g is None and band_2g is not None:
+            band = "twog"
+            radio_name = self.wave2_2g_radios[0]
+            station_name = self.twog_prefix
+        elif band_2g is None and band_5g is not None:
+            band = "fiveg"
+            radio_name = self.wave2_5g_radios[0]
+            station_name = self.fiveg_prefix
+        elif band_2g and band_5g is not None:
+            radio_name1 = self.wave2_2g_radios[0]
+            radio_name2 = self.wave2_5g_radios[0]
+            station_name1 = self.twog_prefix
+            station_name2 = self.fiveg_prefix
+            band = [band_2g, band_5g]
+            radio_names = [radio_name1, radio_name2]
+        else:
+            logging.info("band is not selected.")
+        allure.attach(name="Min Tx rate -A", body=f"{side_a_min_rate} bytes")
+        allure.attach(name="Min Tx rate -B", body=f"{side_b_min_rate} bytes")
+        # allure.attach(name="Max Tx rate -A", body=f"{side_a_max_rate} bytes")
+        # allure.attach(name="Max Tx rate -B", body=f"{side_b_max_rate} bytes")
+
+        sta = []
+        ssids = [ssid1, ssid2]
+        if num_sta>1:
+            if band_2g and band_5g is not None:
+                for i in range(1):
+                    sta.append(station_name1 + str(i))
+                    sta.append(station_name2 + str(i))
+                for i in range(num_sta):
+                    station_result = self.client_connect_using_radio(ssid=ssids[i], passkey=passkey,
+                                                                                  security=security, mode=mode,
+                                                                                  band=band[i], radio=radio_names[i],
+                                                                                  station_name=[sta[i]],
+                                                                                  dut_data=dut_data,
+                                                                                  sniff_radio=True)
+                layer3_result = self.create_layer3(side_a_min_rate=side_a_min_rate, side_a_max_rate=side_a_max_rate,
+                                                                side_b_min_rate=side_b_min_rate, side_b_max_rate=side_b_max_rate,
+                                                                traffic_type="lf_udp", sta_list=[sta[0]], side_b=sta[1])
+            else:
+                for i in range(2):
+                    sta.append(station_name + str(i))
+                    station_result = self.client_connect_using_radio(ssid=ssids[i], passkey=passkey, band=band,security=security,
+                                                                      mode=mode, radio=radio_name,station_name=[sta[i]],
+                                                                      dut_data=dut_data, sniff_radio=sniff_radio)
+                layer3_result = self.create_layer3(side_a_min_rate=side_a_min_rate, side_a_max_rate=side_a_max_rate,
+                                                    side_b_min_rate=side_b_min_rate, side_b_max_rate=side_b_max_rate,
+                                                    traffic_type="lf_udp", sta_list=sta, side_b=sta[1])
+        elif num_sta==1:
+            station_result = self.client_connect_using_radio(ssid=ssid1, passkey=passkey, band=band, security=security,
+                                                             mode=mode, radio=radio_name, station_name=[station_name],
+                                                             dut_data=dut_data, sniff_radio=sniff_radio)
+            layer3_result = self.create_layer3(side_a_min_rate=side_a_min_rate, side_a_max_rate=side_a_max_rate,
+                                                            side_b_min_rate=side_b_min_rate, side_b_max_rate=side_b_max_rate,
+                                                            traffic_type="lf_udp", sta_list=[station_name], side_b="")
+        logging.info("waiting for 20 seconds")
+        time.sleep(20)
+        cx_list = self.get_cx_list()
+        rx_data = self.json_get(_req_url=f"cx/{cx_list[0]}")
+        rx_drop_a = rx_data[f"{cx_list[0]}"]["rx drop % a"]
+        rx_drop_b = rx_data[f"{cx_list[0]}"]["rx drop % b"]
+        bps_rx_a = rx_data[f"{cx_list[0]}"]["bps rx a"]
+        bps_rx_b = rx_data[f"{cx_list[0]}"]["bps rx b"]
+        self.allure_report_table_format(dict_data=rx_data[f"{cx_list[0]}"], key="layer3 column names", value="Values",
+                                        name="Layer-3 Data")
+        self.client_disconnect(clear_all_sta=True, clean_l3_traffic=True)
+        if len(sta) == 0:
+            up = self.get_wan_upstream_ports()
+            upstream = list(up.values())
+            upstream_port = upstream[0]
+            table_columns = [station_name, upstream_port]
+        else:
+            table_columns = [sta[0], sta[1]]
+        table_data = {"Station Name": table_columns, "bps rx a": [bps_rx_a, bps_rx_b],
+                      "rx drop %": [rx_drop_a, rx_drop_b]}
+        table = tabulate(table_data, headers='keys', tablefmt='fancy_grid', showindex=True)
+        print(table)
+
+        if not station_result:
+            allure.attach(name="Test Result", body="TEST FAILED, due to station has no ip")
+            return False, "TEST FAILED, due to station has no ip"
+        else:
+            logging.info("Station creation passed. Successful.")
+            if layer3_result is None:
+                logging.info("Layer3 traffic ran.")
+                if ssid1 == ssid2:
+                    if ((bps_rx_a == 0  and bps_rx_b == 0) and (rx_drop_a == 100 and rx_drop_b == 100)) or ((bps_rx_a != 0 and bps_rx_b != 0) and (rx_drop_a != 100 and rx_drop_b != 100)):
+                        allure.attach(name="Test Result", body="TEST PASSED" + "\n\n" + str(table))
+                        return True, "TEST PASS"
+                    else:
+                        allure.attach(name="Test Result",
+                                      body="TEST FAILED, Stations should not ping each other, when isolation enabled or"
+                                           "rx-drop should not be 100% when isolation disabled in same ssid" + "\n\n" + str(table))
+                        return False, "TEST FAILED, Stations should not ping each other, when isolation enabled or " \
+                                      "rx-drop should not be 100% when isolation disabled in same ssid"
+                elif band_2g and band_5g is not None:
+                    if (bps_rx_a == 0 and bps_rx_b != 0) or (bps_rx_a !=0 and bps_rx_b == 0):
+                        allure.attach(name="Test Result", body="TEST PASSED" + "\n\n" + str(table))
+                        return True, "TEST PASS"
+                    else:
+                        allure.attach(name="Test Result", body="TEST FAILED " + "\n\n" + str(table))
+                        return False, "TEST FAILED, Traffic not ran properly"
+                else:
+                    if rx_drop_a and rx_drop_b == 100 or 0:
+                        allure.attach(name="Test Result", body="TEST FAILED, Rx drop should not be 100% or 0%" + "\n\n" + str(table))
+                        return False, "TEST FAILED, Rx drop should not be 100% or 0%"
+                    else:
+                        allure.attach(name="Test Result", body="TEST PASSED" + "\n\n" + str(table))
+                        return True, "TEST PASS"
+            else:
+                logging.info("Layer3 not ran properly.")
+
 if __name__ == '__main__':
     basic = {
         "target": "tip_2x",
