@@ -1872,7 +1872,7 @@ class lf_tests(lf_libs):
             self.attach_report_graphs(report_name=report_name, pdf_name="Dual Band Performance Test")
             result = self.read_kpi_file(column_name=["pass/fail"], dir_name=report_name)
             allure.attach.file(source="../reports/" + report_name + "/kpi.csv",
-                               name=f"dual_band_CSV", attachment_type=allure.attachment_type.CSV)
+                               name=f"dual_band_CSV", attachment_type="CSV")
             if result[0][0] == "PASS":
                 return True, "Test Passed"
             else:
