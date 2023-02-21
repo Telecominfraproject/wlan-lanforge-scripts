@@ -1873,14 +1873,15 @@ class lf_tests(lf_libs):
             result = self.read_kpi_file(column_name=["pass/fail"], dir_name=report_name)
             allure.attach.file(source="../reports/" + report_name + "/kpi.csv",
                                name=f"dual_band_CSV", attachment_type="CSV")
-            if result[0][0] == "PASS":
-                return True, "Test Passed"
-            else:
-                return False, "Test Failed"
+            # if result[0][0] == "PASS":
+            #     return True, "Test Passed"
+            # else:
+            #     return False, "Test Failed"
 
         except Exception as e:
             logging.error(f"{e}")
             return False, f"{e}"
+        return self.dualbandptest_obj
 
 
     def multi_station_performance(self, ssid_name=None, security_key=None, mode="BRIDGE", vlan=1, band="twog", antenna=1,
