@@ -915,13 +915,17 @@ class lf_libs:
         self.pcap_obj.monitor.admin_down()
         time.sleep(2)
         self.pcap_obj.cleanup()
-        lf_report.pull_reports(hostname=self.manager_ip, port=self.manager_ssh_port, username="lanforge",
-                               password="lanforge",
-                               report_location="/home/lanforge/" + self.pcap_name,
-                               report_dir=".")
-        allure.attach.file(source=self.pcap_name,
-                           name="pcap_file", attachment_type=allure.attachment_type.PCAP)
-        logging.info("pcap file name: " + str(self.pcap_name))
+        try:
+            lf_report.pull_reports(hostname=self.manager_ip, port=self.manager_ssh_port, username="lanforge",
+                                   password="lanforge",
+                                   report_location="/home/lanforge/" + self.pcap_name,
+                                   report_dir=".")
+            allure.attach.file(source=self.pcap_name,
+                               name="pcap_file", attachment_type=allure.attachment_type.PCAP)
+            logging.info("pcap file name: " + str(self.pcap_name))
+        except Exception as e:
+            logging.error(e)
+
         return self.pcap_name
 
     def check_ssid_available_scan_result(self, scan_ssid_data=None, ssid=None):
