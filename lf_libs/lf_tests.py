@@ -764,7 +764,8 @@ class lf_tests(lf_libs):
             if band == "sixg":
                 if dict(dut_data.get(identifier)["radio_data"]).keys().__contains__("6G") and \
                         dict(dut_data.get(identifier)["radio_data"])["6G"] is not None:
-                    sniffer_channel = dict(dut_data.get(identifier)["radio_data"])["6G"]["channel"]
+                    sniffer_channel = self.lf_sixg_lookup_validation(int(dict(dut_data.get(identifier)["radio_data"])["6G"]["channel"]))
+                    logging.info("LF sixg channel: " + str(sniffer_channel))
                     if data[identifier]["sniff_radio_6g"] is not None and sniffer_channel is not None:
                         self.start_sniffer(radio_channel=sniffer_channel,
                                            radio=data[identifier]["sniff_radio_6g"],
