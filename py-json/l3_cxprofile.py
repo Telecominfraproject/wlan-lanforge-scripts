@@ -453,7 +453,7 @@ class L3CXProfile(LFCliBase):
         self.created_endp.clear()
 
     def create(self, endp_type, side_a, side_b, sleep_time=0.03, suppress_related_commands=None, debug_=False,
-               tos=None, timeout=300):
+               tos=None, timeout=300, prefix=None):
         # Returns a 2-member array, list of cx, list of endp on success.
         # If endpoints creation fails, returns False, False
         # if Endpoints creation is OK, but CX creation fails, returns False, list of endp
@@ -474,6 +474,9 @@ class L3CXProfile(LFCliBase):
                 "side_a_min_bps, side_a_max_bps, side_b_min_bps, and side_b_max_bps must all be set to a value")
             raise ValueError(
                 "side_a_min_bps, side_a_max_bps, side_b_min_bps, and side_b_max_bps must all be set to a value")
+
+        if prefix is not None:
+            self.name_prefix = prefix
 
         if type(side_a) == list and type(side_b) != list:
             side_b_info = self.local_realm.name_to_eid(side_b)

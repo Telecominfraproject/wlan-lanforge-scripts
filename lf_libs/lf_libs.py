@@ -1622,19 +1622,12 @@ class lf_libs:
         return bps_rx_a_avg, bps_rx_b_avg
 
     def create_layer3(self, side_a_min_rate=0, side_a_max_rate=0, side_b_min_rate=0, side_b_max_rate=0,
-                      traffic_type="", sta_list=[], side_b="", start_cx=True, name_prefix=None):
+                      traffic_type="", sta_list=[], side_b="", start_cx=True, prefix=None):
         # checked
-        print(sta_list)
-        print(type(sta_list))
         if side_b == "":
             side_b = self.wan_ports
             side_b_ = list(side_b.keys())
             side_b = side_b_[0]
-            print(side_b)
-            print(type(side_b))
-        else:
-            print(side_b)
-            print(type(side_b))
         local_realm = realm.Realm(lfclient_host=self.manager_ip, lfclient_port=self.manager_http_port)
         cx_profile = local_realm.new_l3_cx_profile()
         cx_profile.host = self.manager_ip
@@ -1644,14 +1637,17 @@ class lf_libs:
         cx_profile.side_a_max_bps = side_a_max_rate
         cx_profile.side_b_min_bps = side_b_min_rate
         cx_profile.side_b_max_bps = side_b_max_rate
-        if name_prefix:
-            cx_profile.name_prefix = name_prefix
+        if prefix:
+            cx_profile.name_prefix = prefix
         # create
-        cx_profile.create(endp_type=traffic_type, side_a=sta_list, side_b=side_b, sleep_time=0)
+        cx_profile.create(endp_type=traffic_type, side_a=sta_list, side_b=side_b, sleep_time=0, prefix=prefix)
         if start_cx:
             cx_profile.start_cx()
-        else:
-            pass
+
+    def start_cx(self):
+        local_realm = realm.Realm(lfclient_host=self.manager_ip, lfclient_port=self.manager_http_port)
+        cx_profile = local_realm.new_l3_cx_profile()
+        cx_profile.start_cx()
 
     def l3_cleanup(self):
         local_realm = realm.Realm(lfclient_host=self.manager_ip, lfclient_port=self.manager_http_port)
@@ -1692,7 +1688,7 @@ class lf_libs:
             data_table = report_obj.table2(table=dict_table, headers='keys')
         except Exception as e:
             print(e)
-        if name != None:
+        if name is not None:
             allure.attach(name=name, body=str(data_table))
 
     def client_connect_using_radio(self, ssid="[BLANK]", passkey="[BLANK]", security="wpa2", mode="BRIDGE", band=None,
