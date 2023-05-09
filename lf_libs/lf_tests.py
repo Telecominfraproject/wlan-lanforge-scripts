@@ -1207,6 +1207,12 @@ class lf_tests(lf_libs):
             logging.info("report_name: " + str(report_name))
             self.attach_report_graphs(report_name=report_name)
             self.attach_report_kpi(report_name=report_name)
+            numeric_score = self.read_kpi_file(column_name=["numeric-score"], dir_name=report_name)
+            logging.info("Numeric-score: " + str(numeric_score))
+            if len(numeric_score) < 5:
+                if int(numeric_score[0][0]) == 0 and int(numeric_score[1][0]) == 0 and int(numeric_score[-1][0]) > 0 and int(numeric_score[-2][0]) > 0:
+                    pytest.fail("Station did not get an ip")
+
             wificapacity_obj_list.append(wificapacity_obj)
         return wificapacity_obj_list
 
