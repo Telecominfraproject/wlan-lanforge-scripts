@@ -973,13 +973,13 @@ class lf_tests(lf_libs):
             for idx_ in dut_data[dut]["ssid_data"]:
                 temp_band = dut_data[dut]["ssid_data"][idx_]["band"]
                 if band == "2G":
-                    if temp_band != "2G":
+                    if temp_band.lower() == "twog":
                         temp_band = "2G"
                 elif band == "5G":
-                    if temp_band != "5G":
+                    if temp_band.lower() == "fiveg":
                         temp_band = "5G"
                 elif band == "6G":
-                    if temp_band != "6G":
+                    if temp_band.lower() == "sixg":
                         temp_band = "6G"
                 if band == temp_band and ssid_name == \
                         dut_data[dut]["ssid_data"][idx_]["ssid"]:
