@@ -1214,6 +1214,10 @@ class lf_tests(lf_libs):
             if len(numeric_score) < 5:
                 if int(numeric_score[0][0]) < max_num_stations and int(numeric_score[1][0]) < max_num_stations and int(numeric_score[-1][0]) > 0 and int(numeric_score[-2][0]) > 0:
                     pytest.fail("Station did not get an ip")
+            else:
+                if int(numeric_score[0][0]) == 0 and int(numeric_score[1][0]) == 0 and int(
+                        numeric_score[2][0]) == 0:
+                    pytest.fail("Did not report traffic")
 
             wificapacity_obj_list.append(wificapacity_obj)
         return wificapacity_obj_list
