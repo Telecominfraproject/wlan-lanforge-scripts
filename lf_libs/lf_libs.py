@@ -677,7 +677,7 @@ class lf_libs:
                     r_val[dut["identifier"]]["passkey"] = passkey
                     r_val[dut["identifier"]]["encryption"] = encryption
                     r_val[dut["identifier"]]["bssid"] = bssid
-                    # r_val[dut["identifier"]]["channel"] = dut_data_[dut["identifier"]]["radio_data"][temp_band]["channel"]
+                    r_val[dut["identifier"]]["channel"] = dut_data_[dut["identifier"]]["radio_data"][temp_band]["channel"]
                     if str(encryption).upper() == "OPEN":
                         ssid_data.append(['ssid_idx=0 ssid=' + ssid +
                                           ' bssid=' + str(bssid).upper()])
