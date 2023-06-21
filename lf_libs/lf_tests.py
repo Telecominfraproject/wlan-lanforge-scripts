@@ -1220,6 +1220,19 @@ class lf_tests(lf_libs):
                     pytest.fail("Did not report traffic")
 
             wificapacity_obj_list.append(wificapacity_obj)
+            # Admin down
+            exist_sta = []
+            for u in self.json_get("/port/?fields=port+type,alias")['interfaces']:
+                if list(u.values())[0]['port type'] not in ['Ethernet', 'WIFI-Radio', 'NA']:
+                    exist_sta.append(list(u.values())[0]['alias'])
+            if len(exist_sta) == 0:
+                logging.info("Existing stations are not available")
+            else:
+                for port_eid in exist_sta:
+                    # admin down
+                    self.local_realm.admin_down(port_eid)
+                    time.sleep(0.3)
+
         return wificapacity_obj_list
 
     def dataplane_throughput_test(self, ssid="[BLANK]", passkey="[BLANK]", security="wpa2", num_sta=1, mode="BRIDGE",
@@ -1325,7 +1338,11 @@ class lf_tests(lf_libs):
 
             # clean l3 traffics which won't get cleaned by deleting old scenario in CV
             self.client_disconnect(clean_l3_traffic=True)
-            radio = self.wave2_5g_radios if band == "5G" else self.wave2_2g_radios
+            all_radio_5g = self.wave2_5g_radios + self.wave1_radios + self.mtk_radios + self.ax200_radios + self.ax210_radios
+            logging.info("All 5g radios" + str(all_radio_5g))
+            all_radio_2g = self.wave2_2g_radios + self.wave1_radios + self.mtk_radios + self.ax200_radios + self.ax210_radios
+            logging.info("All 2g radios" + str(all_radio_2g))
+            radio = all_radio_5g if band == "5G" else all_radio_2g
             upld_rate, downld_rate, val = "0Gbps", "0Gbps", []
             if traffic_direction == "upload":
                 upld_rate = traffic_rate
@@ -1336,7 +1353,7 @@ class lf_tests(lf_libs):
             per_radio_sta = int(num_stations / len(radio))
             rem = num_stations % len(radio)
             logging.info("Total stations per radio: " + str(per_radio_sta))
-            num_stations = lambda rem: per_radio_sta + 1 if rem else per_radio_sta
+            num_stations = lambda rem: per_radio_sta + rem if rem else per_radio_sta
             identifier = list(dut_data.keys())[0]
             allure.attach(name="Definition",
                           body="Multiple association/disassociation stability test intends to measure stability of Wi-Fi device " \
