@@ -1680,7 +1680,19 @@ class lf_tests(lf_libs):
                                "of data_rates 40% of throughput_1 and 40% of throughput_4 as throughput_7")
             self.client_disconnect(clear_all_sta=True, clean_l3_traffic=True)
             sta = list(map(lambda i: f"sta000{i}",range(3)))
-            radios, sta_mode = (self.wave2_5g_radios, [1,9]) if band == "fiveg" else (self.wave2_2g_radios, [2,11])
+            all_radio_5g = self.wave2_5g_radios + self.wave1_radios + self.mtk_radios + self.ax200_radios + self.ax210_radios
+            logging.info("All 5g radios" + str(all_radio_5g))
+            all_radio_2g = self.wave2_2g_radios + self.wave1_radios + self.mtk_radios + self.ax200_radios + self.ax210_radios
+            logging.info("All 2g radios" + str(all_radio_2g))
+            if len(all_radio_5g) < 3:
+                pytest.fail("3 Radios are not available")
+            else:
+                radio_5g = all_radio_5g[:3]
+            if len(all_radio_2g) < 3:
+                pytest.fail("3 Radios are not available")
+            else:
+                radio_2g = all_radio_2g[:3]
+            radios, sta_mode = (radio_5g, [1, 9]) if band == "fiveg" else (radio_2g, [2, 11])
             thrpt = {"sta0_tcp_dl": None, "sta1_tcp_dl": None, "sta1_tcp_dl_atn": None, "sta2_tcp_dl": None,
                      "sta0+1_udp": None, "sta0+1_udp_atn": None, "sta0+2": None}
             no_of_iter = list(thrpt.keys())
@@ -1721,8 +1733,14 @@ class lf_tests(lf_libs):
                             thrpt[thrpt_key] = self.read_kpi_file(column_name=["numeric-score"], dir_name=report_name)[0][0]
                     if l3_trf:
                         self.client_disconnect(clean_l3_traffic=True)
+                        for i in sta[0:1]:
+                            self.local_realm.admin_up(i)
+                            time.sleep(0.3)
                         self.create_layer3(sta_list=sta[0:1], traffic_type=proto, side_a_min_rate=0,
                                            side_b_min_rate=int(down[0]), start_cx=False)
+                        for i in sta[1:2]:
+                            self.local_realm.admin_up(i)
+                            time.sleep(0.3)
                         self.create_layer3(sta_list=sta[1:2], traffic_type=proto, side_a_min_rate=0,
                                            side_b_min_rate=int(down[1]), start_cx=False)
                         created_cx = {}
@@ -1924,10 +1942,10 @@ class lf_tests(lf_libs):
         batch_size = batch_size
         if band == "twog":
             station_name = self.twog_prefix
-            radio_prefix = self.wave2_2g_radios
+            radio_prefix = self.wave2_2g_radios + self.wave1_radios + self.mtk_radios + self.ax200_radios + self.ax210_radios
         elif band == "fiveg":
             station_name = self.fiveg_prefix
-            radio_prefix = self.wave2_5g_radios
+            radio_prefix = self.wave2_5g_radios + self.wave1_radios + self.mtk_radios + self.ax200_radios + self.ax210_radios
         print("station_name:", station_name)
         print("radio:", radio_prefix)
 
