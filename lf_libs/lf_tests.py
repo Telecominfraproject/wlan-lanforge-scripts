@@ -2080,7 +2080,7 @@ class lf_tests(lf_libs):
                 logging.info("TEST FAILED, Actual throughput is lesser than Expected.")
                 return False, "TEST FAILED, Actual throughput (%sMbps) is lesser than Expected (%sMbps)" % (str(list(csv_val[type].values())[-1]),str(pass_value))
 
-    def spacial_consistency(self, ssid_name=None, security_key=None, security="wpa2", mode="BRIDGE", band="twog",
+    def spatial_consistency(self, ssid_name=None, security_key=None, security="wpa2", mode="BRIDGE", band="twog",
                             vlan=1, dut_data=None, num_sta=1, download_rate="100%", upload_rate="0", spatial_streams=1,
                             instance_name="", pass_value=None, attenuations=None, create_vlan=True):
         logging.info("Cleanup existing clients and traffic")
