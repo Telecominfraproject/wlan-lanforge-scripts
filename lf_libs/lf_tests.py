@@ -17,6 +17,7 @@ import pytest
 import csv
 from scp import SCPClient
 from tabulate import tabulate
+import re
 
 sys.path.append(os.path.join(os.path.abspath(__file__ + "../../../")))
 lfcli_base = importlib.import_module("py-json.LANforge.lfcli_base")
@@ -2388,6 +2389,96 @@ class lf_tests(lf_libs):
                         return True, "TEST PASS"
             else:
                 logging.info("Layer3 not ran properly.")
+
+    def advanced_captive_portal(self, ssid="[BLANK]", security="wpa2", dut_data={}, passkey="[BLANK]", mode="BRIDGE",
+                                band="twog", num_sta=1, vlan_id=[None], json_post_data='', get_testbed_details={},
+                                tip_2x_obj=None):
+        self.check_band_ap(band=band)
+        pass_fail = "PASS"
+        description = ""
+        logging.info("DUT DATA: " + str(dut_data))
+        for dut in self.dut_data:
+            station_result = self.client_connect_using_radio(ssid=ssid, passkey=passkey, security=security, mode=mode,
+                                                             band=band, vlan_id=vlan_id, radio="1.1.wiphy0", sta_mode=0,
+                                                             station_name=["sta0000"],
+                                                             dut_data=dut_data)
+            sta = "sta0000"
+            sta_data = self.json_get(_req_url="port/1/1/%s" % sta)
+            self.allure_report_table_format(dict_data=sta_data["interface"], key="Station Data",
+                                            value="Value", name="%s info" % sta)
+            if not station_result:
+                allure.attach(name="Test Result", body="TEST FAILED, due to station has no ip")
+                return "FAIL", "TEST FAILED, due to station has no ip"
+            logging.info("sta " + str(sta))
+            # Finding captive portal url ip
+            if tip_2x_obj is not None:
+                logging.info("AP idx: " + str(self.dut_data.index(dut)))
+                cmd_output = tip_2x_obj.get_dut_library_object().run_generic_command(cmd="ifconfig up0v0",
+                                                                                     idx=self.dut_data.index(dut),
+                                                                                     attach_allure=False)
+                logging.info("cmd output: " + str(cmd_output))
+                ip_pattern = re.compile(r"inet addr:(\d+\.\d+\.\d+\.\d+)")
+                match = ip_pattern.search(cmd_output)
+                inet_ip_addr = match.group(1)
+                logging.info("inet ip addr: " + str(inet_ip_addr))
+            cmd = f'/home/lanforge/vrf_exec.bash {sta} curl -X POST -H "Content-Type:application/json" -d "{json_post_data}" http://{inet_ip_addr}/hotspot'
+            logging.info("cmd: " + str(cmd))
+            # SSH connection parameters
+            hostname = get_testbed_details["traffic_generator"]["details"]["manager_ip"]
+            port = get_testbed_details["traffic_generator"]["details"]["ssh_port"]
+            username = 'root'
+            password = 'lanforge'
+            ping_host = "google.com"
+            ping_count = 10
+            logging.info(
+                f"hostname: {hostname} port: {port} username: {username} password: {password} ping_host: {ping_host}")
+            ping_command = f"/home/lanforge/vrf_exec.bash {sta} ping -c {ping_count} {ping_host}"
+            validate_captive_string = '<div class="card-header">uCentral - Captive Portal</div>'
+            validate_ping_string = "0% packet loss"
+            client = paramiko.SSHClient()
+            client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            try:
+                client.connect(hostname, port=port, username=username, password=password)
+                # Before captive portal Validate client internet connectivity
+                logging.info("cmd: " + str(ping_command))
+                stdin, stdout, stderr = client.exec_command(ping_command)
+                before_captive_ping_output = stdout.read().decode()
+                logging.info("Before_captive_ping_output: " + str(before_captive_ping_output))
+                allure.attach(name="Before captive portal authentication station ping response (google.com)",
+                              body=str(before_captive_ping_output))
+                if "100% packet loss" in before_captive_ping_output:
+                    logging.info("Before captive portal authentication client do not have internet connectivity")
+                elif validate_ping_string in before_captive_ping_output:
+                    pytest.fail("Before captive portal authentication client already has internet access")
+                logging.info("cmd: " + str(cmd))
+                stdin, stdout, stderr = client.exec_command(cmd)
+                time.sleep(5)
+                captive_output = stdout.read().decode()
+                logging.info("Captive portal authentication logs: " + str(captive_output))
+                allure.attach(name="Response from captive portal: ",
+                              body=captive_output, attachment_type=allure.attachment_type.HTML)
+                if validate_captive_string in captive_output:
+                    logging.info("Captive portal authentication successful")
+                else:
+                    pytest.fail("Captive portal authentication Failed")
+                logging.info("cmd: " + str(ping_command))
+                stdin, stdout, stderr = client.exec_command(ping_command)
+                after_captive_ping_output = stdout.read().decode()
+                logging.info("After captive portal authentication station ping response (google.com: " + str(
+                    after_captive_ping_output))
+                allure.attach(name="After captive portal authentication station ping response (google.com)",
+                              body=str(after_captive_ping_output))
+                if validate_ping_string in after_captive_ping_output:
+                    logging.info("Client got internet access")
+                else:
+                    pytest.fail("After captive portal authentication doesn't have internet connectivity")
+                # Close the SSH connection
+                client.close()
+            except Exception as e:
+                logging.error(f"{e}")
+                pass_fail = "FAIL"
+                description = f"{e}"
+        return pass_fail, description
 
 
 if __name__ == '__main__':
