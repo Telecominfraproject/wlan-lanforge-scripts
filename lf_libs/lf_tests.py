@@ -2457,9 +2457,11 @@ class lf_tests(lf_libs):
                 logging.info("Captive portal authentication logs: " + str(captive_output))
                 allure.attach(name="Response from captive portal: ",
                               body=captive_output, attachment_type=allure.attachment_type.HTML)
-                if validate_captive_string in captive_output:
+                if validate_captive_string in captive_output and "Invalid credentials" not in captive_output:
                     logging.info("Captive portal authentication successful")
                 else:
+                    if "Invalid credentials" in captive_output:
+                        pytest.fail("Invalid credentials")
                     pytest.fail("Captive portal authentication Failed")
                 logging.info("cmd: " + str(ping_command))
                 stdin, stdout, stderr = client.exec_command(ping_command)
