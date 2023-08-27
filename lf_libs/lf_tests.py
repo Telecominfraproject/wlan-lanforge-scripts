@@ -2394,6 +2394,7 @@ class lf_tests(lf_libs):
                                 band="twog", num_sta=1, vlan_id=[None], json_post_data='', get_testbed_details={},
                                 tip_2x_obj=None):
         self.check_band_ap(band=band)
+        self.pre_cleanup()
         pass_fail = "PASS"
         description = ""
         logging.info("DUT DATA: " + str(dut_data))
