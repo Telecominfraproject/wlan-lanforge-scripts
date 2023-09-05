@@ -1284,6 +1284,7 @@ class lf_tests(lf_libs):
                 raw_lines = [['pkts: 142;256;512;1024;MTU;4000'], ['directions: DUT Transmit;DUT Receive'],
                              ['traffic_types: UDP;TCP'],
                              ["show_3s: 1"], ["show_ll_graphs: 1"], ["show_log: 1"]]
+            sets = [['Maximize Unused Attenuators', '0']]
 
             dataplane_obj = DataplaneTest(lf_host=self.manager_ip,
                                           lf_port=self.manager_http_port,
@@ -1302,6 +1303,7 @@ class lf_tests(lf_libs):
                                           dut=identifier,
                                           station=list(station_data.keys())[0],
                                           test_tag=influx_tags,
+                                          sets=sets,
                                           raw_lines=raw_lines)
 
             dataplane_obj.setup()
