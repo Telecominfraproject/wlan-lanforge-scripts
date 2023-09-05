@@ -1541,12 +1541,12 @@ class lf_libs:
             return signal
 
     def attenuator_serial_radio(self, ssid="[BLANK]", passkey="[BLANK]", security="wpa2", mode="BRIDGE", atn_val=400,
-                                   vlan_id=100, sta_mode=0, station_name=[], radio='1.1.wiphy0', timeout=20):
+                                   vlan_id=100, client_type=0, station_name=[], radio='1.1.wiphy0', timeout=20):
         # index 0 of atten_serial_radio will ser no of 1st 2g/5g radio and index 1 will ser no of 2nd and 3rd 2g/5g radio
         atten_serial_radio = []
         atten_serial = self.attenuator_serial()
         self.client_connect_using_radio(ssid=ssid, passkey=passkey, security=security, mode=mode,
-                                        vlan_id=vlan_id, radio=radio, sta_mode=sta_mode, station_name=station_name)
+                                        vlan_id=vlan_id, radio=radio, client_type=client_type, station_name=station_name)
         signal1 = self.get_station_signal(station_name[0],timeout)
         atten_sr = atten_serial[0].split(".")
         self.attenuator_modify(int(atten_sr[2]), "all", atn_val)
@@ -1692,7 +1692,7 @@ class lf_libs:
             allure.attach(name=name, body=str(data_table))
 
     def client_connect_using_radio(self, ssid="[BLANK]", passkey="[BLANK]", security="wpa2", mode="BRIDGE", band=None,
-                                   vlan_id=[None], radio=None, sta_mode=0, station_name=[], dut_data=None,
+                                   vlan_id=[None], radio=None, client_type=0, station_name=[], dut_data=None,
                                    sniff_radio=False, create_vlan=True):
         # pre cleanup
         # if pre_cleanup:
@@ -1716,7 +1716,7 @@ class lf_libs:
                     self.add_vlan(vlan_ids=vlan_id, build=False)
         print("upstream_port1:", upstream_port)
 
-        client_connect = CreateStation(_host=self.manager_ip, _port=self.manager_http_port, _mode=sta_mode,
+        client_connect = CreateStation(_host=self.manager_ip, _port=self.manager_http_port, _mode=client_type,
                                        _sta_list=station_name, _password=passkey, _ssid=ssid, _security=security)
         client_connect.upstream_port = upstream_port
         client_connect.upstream_resource = 1

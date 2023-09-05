@@ -77,7 +77,7 @@ class lf_tests(lf_libs):
         self.influx_params = influx_params
 
     def client_connectivity_test(self, ssid="[BLANK]", passkey="[BLANK]", bssid="[BLANK]", dut_data={},
-                                 security="open", extra_securities=[], sta_mode=0,
+                                 security="open", extra_securities=[], client_type=0,
                                  num_sta=1, mode="BRIDGE", vlan_id=[None], band="twog",
                                  allure_attach=True, runtime_secs=40):
         self.check_band_ap(band=band)
@@ -101,7 +101,7 @@ class lf_tests(lf_libs):
                 obj_sta_connect = StaConnect2(self.manager_ip, self.manager_http_port, outfile="shivam",
                                               _cleanup_on_exit=False)
 
-                obj_sta_connect.sta_mode = sta_mode
+                obj_sta_connect.sta_mode = client_type
                 obj_sta_connect.upstream_resource = data[dut]["upstream_resource"]
                 obj_sta_connect.upstream_port = data[dut]["upstream"]
                 self.enable_verbose_debug(radio=radio, enable=True)
@@ -222,7 +222,7 @@ class lf_tests(lf_libs):
                     time.sleep(runtime_secs)
         pass_fail_result = []
         for obj in sta_connect_obj:
-            sta_rows = ["4way time (us)", "channel", "cx time (us)", "dhcp (ms)", "ip", "signal", "mac"]
+            sta_rows = ["4way time (us)", "channel", "cx time (us)", "dhcp (ms)", "ip", "signal", "mac", "mode"]
             station_data = self.get_station_data(sta_name=obj.station_names, rows=sta_rows,
                                                  allure_attach=False)
             sta_table_dict = {}
@@ -321,7 +321,7 @@ class lf_tests(lf_libs):
         return result, description
 
     def enterprise_client_connectivity_test(self, ssid="[BLANK]", passkey="[BLANK]", bssid="[BLANK]", dut_data={},
-                                            security="open", extra_securities=[], sta_mode=0, key_mgmt="WPA-EAP",
+                                            security="open", extra_securities=[], client_type=0, key_mgmt="WPA-EAP",
                                             pairwise="NA", group="NA", wpa_psk="DEFAULT", ttls_passwd="nolastart",
                                             ieee80211w=1, wep_key="NA", ca_cert="NA", eap="TTLS", identity="nolaradius",
                                             d_vlan=False, cleanup=True,
@@ -348,7 +348,7 @@ class lf_tests(lf_libs):
             for radio in data[dut]["station_data"]:
                 obj_eap_connect = TTLSTest(host=self.manager_ip, port=self.manager_http_port,
                                            sta_list=data[dut]["station_data"][radio], vap=False, _debug_on=True)
-                obj_eap_connect.station_profile.sta_mode = sta_mode
+                obj_eap_connect.station_profile.sta_mode = client_type
                 obj_eap_connect.upstream_resource = data[dut]["upstream_resource"]
                 obj_eap_connect.l3_cx_obj_udp.upstream_resource = data[dut]["upstream_resource"]
                 obj_eap_connect.l3_cx_obj_tcp.upstream_resource = data[dut]["upstream_resource"]
@@ -478,7 +478,7 @@ class lf_tests(lf_libs):
                     time.sleep(runtime_secs)
         pass_fail_result = []
         for obj in eap_connect_objs:
-            sta_rows = ["4way time (us)", "channel", "cx time (us)", "dhcp (ms)", "ip", "signal", "mac"]
+            sta_rows = ["4way time (us)", "channel", "cx time (us)", "dhcp (ms)", "ip", "signal", "mac", "mode"]
             self.station_data = self.get_station_data(sta_name=obj.sta_list, rows=sta_rows,
                                                       allure_attach=False)
             sta_table_dict = {}
@@ -714,9 +714,9 @@ class lf_tests(lf_libs):
             logging.info("ALL Stations got IP as Expected")
 
     def client_connect(self, ssid="[BLANK]", passkey="[BLANK]", security="wpa2", mode="BRIDGE", band="twog",
-                       vlan_id=[None], num_sta=None, scan_ssid=True, sta_mode=0, pre_cleanup=True,
-                       station_data=["4way time (us)", "channel", "cx time (us)", "dhcp (ms)", "ip", "signal"],
-                       allure_attach=True, identifier=None, allure_name="station data", client_type=None, dut_data={}):
+                       vlan_id=[None], num_sta=None, scan_ssid=True, client_type=0, pre_cleanup=True,
+                       station_data=["4way time (us)", "channel", "cx time (us)", "dhcp (ms)", "ip", "signal", "mode"],
+                       allure_attach=True, identifier=None, allure_name="station data", dut_data={}):
         # pre cleanup
         if pre_cleanup:
             self.pre_cleanup()
@@ -781,7 +781,7 @@ class lf_tests(lf_libs):
                                            _password=data[identifier]["passkey"],
                                            _ssid=data[identifier]["ssid"],
                                            _security=data[identifier]["encryption"])
-            client_connect.station_profile.sta_mode = sta_mode
+            client_connect.station_profile.sta_mode = client_type
             client_connect.upstream_resource = data[identifier]["upstream_resource"]
             client_connect.upstream_port = data[identifier]["upstream"]
             client_connect.radio = radio
@@ -1243,13 +1243,13 @@ class lf_tests(lf_libs):
 
     def dataplane_throughput_test(self, ssid="[BLANK]", passkey="[BLANK]", security="wpa2", num_sta=1, mode="BRIDGE",
                                   vlan_id=[None],
-                                  download_rate="85%", band="twog", scan_ssid=True, sta_mode=0,
+                                  download_rate="85%", band="twog", scan_ssid=True,
                                   upload_rate="0", duration="15s", instance_name="test_demo", raw_lines=None,
                                   influx_tags="",
                                   move_to_influx=False,
                                   station_data=["4way time (us)", "channel", "cx time (us)", "dhcp (ms)", "ip",
-                                                "signal"],
-                                  allure_attach=True, allure_name="station data", client_type=None, dut_data={}):
+                                                "signal", "mode"],
+                                  allure_attach=True, allure_name="station data", client_type=0, dut_data={}):
         instance_name = ''.join(random.choices(string.ascii_uppercase + string.digits, k=12))
         dataplane_obj_list = []
         for dut in self.dut_data:
@@ -1275,7 +1275,7 @@ class lf_tests(lf_libs):
                     upstream_port = ret[identifier] + "." + str(vlan_id[0])
             logging.info("Upstream data: " + str(upstream_port))
             station_data = self.client_connect(ssid=ssid, passkey=passkey, security=security, mode=mode, band=band,
-                                               vlan_id=vlan_id, num_sta=num_sta, scan_ssid=scan_ssid, sta_mode=sta_mode,
+                                               vlan_id=vlan_id, num_sta=num_sta, scan_ssid=scan_ssid,
                                                station_data=station_data,
                                                allure_attach=allure_attach, identifier=identifier,
                                                allure_name=allure_name, client_type=client_type, dut_data=dut_data)
@@ -1742,12 +1742,12 @@ class lf_tests(lf_libs):
                     # mode = 2/1 will create legacy client
                     create_sta = self.client_connect_using_radio(ssid=ssid, passkey=passkey, security=security,
                                                                  radio=radios[i], station_name=[sta[i]],
-                                                                 sta_mode=sta_mode[0])
+                                                                 client_type=sta_mode[0])
                 else:
                     # mode = 11/9 will create bgn-AC/an-AC client
                     create_sta = self.client_connect_using_radio(ssid=ssid, passkey=passkey, security=security,
                                                                  radio=radios[i], station_name=[sta[i]],
-                                                                 sta_mode=sta_mode[1])
+                                                                 client_type=sta_mode[1])
                 if create_sta == False:
                     logging.info(f"Test failed due to no IP for {sta[i]}")
                     assert False, f"Test failed due to no IP for {sta[i]}"
@@ -2400,7 +2400,7 @@ class lf_tests(lf_libs):
         logging.info("DUT DATA: " + str(dut_data))
         for dut in self.dut_data:
             station_result = self.client_connect_using_radio(ssid=ssid, passkey=passkey, security=security, mode=mode,
-                                                             band=band, vlan_id=vlan_id, radio="1.1.wiphy0", sta_mode=0,
+                                                             band=band, vlan_id=vlan_id, radio="1.1.wiphy0", client_type=0,
                                                              station_name=["sta0000"],
                                                              dut_data=dut_data)
             sta = "sta0000"
