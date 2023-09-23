@@ -2392,6 +2392,84 @@ class lf_tests(lf_libs):
             else:
                 logging.info("Layer3 not ran properly.")
 
+    def strict_forwarding(self, ssids=[], num_stations_per_ssid=1, security="wpa2", dut_data={}, passkey="[BLANK]",
+                          mode="BRIDGE", side_a_min_rate=6291456, side_a_max_rate=6291456, side_b_min_rate=0,
+                          side_b_max_rate=0,
+                          band="twog", vlan_id=[None]):
+        self.check_band_ap(band=band)
+        self.pre_cleanup()
+        # Dict for per ssid station list
+        ssid_num_sta = {}
+        sta_list = []
+        k = 0
+        # logic for creting dict of per ssid sta list
+        for i in ssids:
+            for j in range(num_stations_per_ssid):
+                sta_list.append("sta000" + str(k))
+                k = k + 1
+            ssid_num_sta[i] = sta_list
+            sta_list = []
+        logging.info("DUT DATA: " + str(dut_data))
+        allure.attach(name="Min Tx rate -A", body=f"{side_a_min_rate} bytes")
+        allure.attach(name="Min Tx rate -B", body=f"{side_b_min_rate} bytes")
+        i = 0
+        sta_list = []
+        for dut in self.dut_data:
+            for ssid in ssids:
+                if num_stations_per_ssid > 1:
+                    station_result = self.client_connect(ssid=ssid, passkey=passkey, security=security, mode=mode,
+                                                         band=band, vlan_id=vlan_id,
+                                                         client_type=0, pre_cleanup=True,
+                                                         num_sta=len(ssid_num_sta[ssid]),
+                                                         dut_data=dut_data)
+                    sta_list = sta_list + list(station_result.keys())
+                else:
+                    station_result = self.client_connect_using_radio(ssid=ssid, passkey=passkey, security=security,
+                                                                     mode=mode,
+                                                                     band=band, vlan_id=vlan_id,
+                                                                     client_type=0, radio="wiphy" + str(i),
+                                                                     station_name=ssid_num_sta[ssid],
+                                                                     dut_data=dut_data)
+                    sta = ssid_num_sta[ssid][0]
+                    logging.info("sta: " + str(sta))
+                    sta_data = self.json_get(_req_url="port/1/1/%s" % sta)
+                    self.allure_report_table_format(dict_data=sta_data["interface"], key="Station Data",
+                                                    value="Value", name="%s info" % sta)
+                    if not station_result:
+                        allure.attach(name="Test Result", body="TEST FAILED, due to station has no ip")
+                        return False, "TEST FAILED, due to station has no ip"
+                    i = i + 1
+                    sta_list = sta_list + ssid_num_sta[ssid]
+            logging.info("station data: " + str(sta_list))
+            layer3_result = self.create_layer3(side_a_min_rate=side_a_min_rate, side_a_max_rate=side_a_max_rate,
+                                               side_b_min_rate=side_b_min_rate, side_b_max_rate=side_b_max_rate,
+                                               traffic_type="lf_tcp", sta_list=[sta_list[0]],
+                                               side_b=sta_list[1])
+            logging.info("waiting for 20 seconds")
+            time.sleep(20)
+            cx_list = self.get_cx_list()
+            rx_data = self.json_get(_req_url=f"cx/{cx_list[0]}")
+            rx_drop_a = rx_data[f"{cx_list[0]}"]["rx drop % a"]
+            rx_drop_b = rx_data[f"{cx_list[0]}"]["rx drop % b"]
+            bps_rx_a = rx_data[f"{cx_list[0]}"]["bps rx a"]
+            bps_rx_b = rx_data[f"{cx_list[0]}"]["bps rx b"]
+            table_columns = [sta_list[0], sta_list[1]]
+            self.allure_report_table_format(dict_data=rx_data[f"{cx_list[0]}"], key="layer3 column names",
+                                            value="Values",
+                                            name="Layer-3 Data")
+            table_data = {"Station Name": table_columns, "bps rx a": [bps_rx_a, bps_rx_b],
+                          "rx drop %": [rx_drop_a, rx_drop_b]}
+            table = tabulate(table_data, headers='keys', tablefmt='fancy_grid', showindex=True)
+            logging.info(str(table))
+            self.client_disconnect(clear_all_sta=True, clean_l3_traffic=True)
+            if bps_rx_a == 0 and bps_rx_b == 0 and rx_drop_a == 0 and rx_drop_b == 0:
+                allure.attach(name="Test Result", body="TEST PASSED" + "\n\n" + str(table))
+                return True, "TEST PASS"
+            else:
+                allure.attach(name="Test Result",
+                              body="TEST FAILED, Stations should not ping each other" + "\n\n" + str(table))
+                return False, "TEST FAILED, Stations should not ping each other"
+
     def advanced_captive_portal(self, ssid="[BLANK]", security="wpa2", dut_data={}, passkey="[BLANK]", mode="BRIDGE",
                                 band="twog", num_sta=1, vlan_id=[None], json_post_data='', get_testbed_details={},
                                 tip_2x_obj=None):
@@ -2402,7 +2480,8 @@ class lf_tests(lf_libs):
         logging.info("DUT DATA: " + str(dut_data))
         for dut in self.dut_data:
             station_result = self.client_connect_using_radio(ssid=ssid, passkey=passkey, security=security, mode=mode,
-                                                             band=band, vlan_id=vlan_id, radio="1.1.wiphy0", client_type=0,
+                                                             band=band, vlan_id=vlan_id, radio="1.1.wiphy0",
+                                                             client_type=0,
                                                              station_name=["sta0000"],
                                                              dut_data=dut_data)
             sta = "sta0000"
