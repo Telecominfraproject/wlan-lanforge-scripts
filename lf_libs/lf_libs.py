@@ -772,7 +772,7 @@ class lf_libs:
         exist_sta = []
         for u in self.json_get("/port/?fields=port+type,alias")['interfaces']:
             if list(u.values())[0]['port type'] not in ['Ethernet', 'WIFI-Radio', 'NA']:
-                exist_sta.append(list(u.values())[0]['alias'])
+                exist_sta.append(list(u.keys())[0])
         if len(exist_sta) == 0:
             logging.info("Existing stations are not available")
         else:
