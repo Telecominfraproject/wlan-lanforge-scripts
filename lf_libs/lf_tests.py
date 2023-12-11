@@ -1350,7 +1350,8 @@ class lf_tests(lf_libs):
             logging.info("All 5g radios" + str(all_radio_5g))
             all_radio_2g = self.wave2_2g_radios + self.wave1_radios + self.mtk_radios + self.ax200_radios + self.ax210_radios
             logging.info("All 2g radios" + str(all_radio_2g))
-            radio = all_radio_5g if band == "5G" else all_radio_2g
+            radio = all_radio_5g[:2] if band == "5G" else all_radio_2g[:2]
+            logging.info("Radios: " + str(radio))
             upld_rate, downld_rate, val = "0Gbps", "0Gbps", []
             if traffic_direction == "upload":
                 upld_rate = traffic_rate
@@ -1372,6 +1373,7 @@ class lf_tests(lf_libs):
                                "while the other 8 STAs are picked to do a dis-association/re-association process during the test" \
                                f" Enable {traffic_direction} {traffic_rate} Mbps UDP flow from DUT to each of the 8 traffic stations" \
                                "Disassociate the other 8 stations. Wait for 30 seconds, after that Re-associate the 8 stations.")
+            self.temp_raw_lines = self.default_scenario_raw_lines.copy()
 
             if mode == "VLAN":
                 self.add_vlan(vlan_ids=vlan)
