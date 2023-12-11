@@ -1400,7 +1400,7 @@ class lf_libs:
             exist_sta = []
             for u in client_dis.json_get("/port/?fields=port+type,alias")['interfaces']:
                 if list(u.values())[0]['port type'] not in ['Ethernet', 'WIFI-Radio', 'NA']:
-                    exist_sta.append(list(u.values())[0]['alias'])
+                    exist_sta.append(list(u.keys())[0])
             client_dis.station_profile.cleanup(desired_stations=exist_sta)
         if clean_l3_traffic:
             try:
