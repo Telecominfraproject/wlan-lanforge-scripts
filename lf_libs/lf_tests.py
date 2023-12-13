@@ -2139,7 +2139,9 @@ class lf_tests(lf_libs):
                             vlan=1, dut_data=None, num_sta=1, download_rate="100%", upload_rate="0", spatial_streams=1,
                             instance_name="", pass_value=None, attenuations=None, create_vlan=True):
         logging.info("Cleanup existing clients and traffic")
-        chamber_view_obj, dut_name = self.chamber_view()
+        chamber_view_obj = self.chamber_view()
+        dut_name = list(dut_data.keys())[0]
+        logging.info("DUT name: " + str(dut_name))
         self.client_disconnect(clean_l3_traffic=True)
         # client connect
         station = self.client_connect(ssid=ssid_name, security=security, passkey=security_key, mode=mode,
@@ -2207,14 +2209,16 @@ class lf_tests(lf_libs):
                       dut_data=None, num_sta=1, spatial_streams=2, direction="DUT Transmit", instance_name="",
                       pass_value=None, attenuations=None, create_vlan=True):
         logging.info("Cleanup existing clients and traffic")
-        chamber_view_obj, dut_name = self.chamber_view()
+        chamber_view_obj = self.chamber_view()
+        dut_name = list(dut_data.keys())[0]
+        logging.info("DUT name: " + str(dut_name))
         self.client_disconnect(clean_l3_traffic=True)
         # client connect
         station = self.client_connect(ssid=ssid_name, security=security, passkey=security_key, mode=mode, band=band,
                                       num_sta=num_sta, vlan_id=[vlan], dut_data=dut_data)
         sta_name = list(station.keys())
         ser_no = self.attenuator_serial()
-        print(ser_no)
+        print("ser no", ser_no)
         atn2 = ser_no[1].split(".")[2]
         print(f"antenuation-2 : {atn2}")
         val = [['modes: Auto'], ['pkts: MTU'], ['directions: ' + str(direction)], ['traffic_types:TCP'],
