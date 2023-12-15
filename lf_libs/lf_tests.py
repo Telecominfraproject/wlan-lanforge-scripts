@@ -2223,7 +2223,8 @@ class lf_tests(lf_libs):
         print(f"antenuation-2 : {atn2}")
         val = [['modes: Auto'], ['pkts: MTU'], ['directions: ' + str(direction)], ['traffic_types:TCP'],
                ['bandw_options: AUTO'], ['spatial_streams: 2'], ['attenuator: ' + str(ser_no[0])],
-               ['attenuator2: 0'], ['attenuations: 0 100 210..+30..630'], ['attenuations2: 0 100 210..+30..630'],
+               ['attenuator2: 0'], ['attenuations: 0 60 120 180 240 300 360 390 410 430 450 470 490'],
+               ['attenuations2: 0 60 120 180 240 300 360 390 410 430 450 470 490'],
                ['chamber: 0'], ['tt_deg: 0']]
         if station:
             # rvr test
@@ -2249,20 +2250,20 @@ class lf_tests(lf_libs):
                     start, thrpt_val, pass_fail = 0, {}, []
                     for i in pass_value:
                         # count = 0
-                        direction = "DUT-TX"
+                        # direction = "DUT-TX"
                         for j in range(start, len(kpi_val), len(atn)):
-                            thrpt_val[f"{atn[start]}--{direction}"] = kpi_val[j][0]
+                            thrpt_val[f"{atn[start]}"] = kpi_val[j][0]
                             if kpi_val[j][0] >= pass_value[i]:
                                 pass_fail.append("PASS")
+                                break
                             else:
                                 pass_fail.append("FAIL")
+                                break
                             # count += 1
-                            direction = "DUT-RX"
-                        if len(atn) == 14:
-                            start += 6
-                        elif len(atn) == 17:
-                            start += 7
+                            # direction = "DUT-RX"
+                        start += 6
                     print(pass_fail, "\nThroughput value-->", thrpt_val)
+                    allure.attach(name="Throughput value", body=str(thrpt_val))
                     if "FAIL" in pass_fail:
                         logging.info("TEST FAILED, Actual throughput is lesser than Expected")
                         return False, "TEST FAILED, Actual throughput is lesser than Expected"
