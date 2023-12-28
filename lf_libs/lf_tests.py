@@ -2431,15 +2431,28 @@ class lf_tests(lf_libs):
                                                          dut_data=dut_data)
                     sta_list = sta_list + list(station_result.keys())
                 else:
+                    all_radio_5g = self.wave2_5g_radios + self.wave1_radios + self.mtk_radios + self.ax200_radios + self.ax210_radios
+                    logging.info("All 5g radios" + str(all_radio_5g))
+                    all_radio_2g = self.wave2_2g_radios + self.wave1_radios + self.mtk_radios + self.ax200_radios + self.ax210_radios
+                    logging.info("All 2g radios" + str(all_radio_2g))
+                    if band == "twog":
+                        radio_prefix = all_radio_2g
+                    elif band == "fiveg":
+                        radio_prefix = all_radio_5g
+                    logging.info("Radio: " + str(radio_prefix[i]))
                     station_result = self.client_connect_using_radio(ssid=ssid, passkey=passkey, security=security,
                                                                      mode=mode,
                                                                      band=band, vlan_id=vlan_id,
-                                                                     client_type=0, radio="wiphy" + str(i),
+                                                                     client_type=0, radio=radio_prefix[i],
                                                                      station_name=ssid_num_sta[ssid],
                                                                      dut_data=dut_data)
                     sta = ssid_num_sta[ssid][0]
                     logging.info("sta: " + str(sta))
-                    sta_data = self.json_get(_req_url="port/1/1/%s" % sta)
+                    shelf = radio_prefix[i].split(".")[0]
+                    resource = radio_prefix[i].split(".")[1]
+                    logging.info("shelf: " + str(shelf))
+                    logging.info("resource: " + str(resource))
+                    sta_data = self.json_get(_req_url="port/" + str(shelf) + "/" + str(resource) + "/%s" % sta)
                     self.allure_report_table_format(dict_data=sta_data["interface"], key="Station Data",
                                                     value="Value", name="%s info" % sta)
                     if not station_result:
