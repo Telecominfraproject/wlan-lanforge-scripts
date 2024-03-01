@@ -1676,6 +1676,8 @@ class lf_tests(lf_libs):
         #     for i in raw_line:
         #         f.write(str(i[0]) + "\n")
         #     f.close()
+        """ Test duration 60 sec """
+        raw_line.append(["dur120: 60"])
         logging.info("raw lines:- " + str(raw_line))
         cvtest_obj = TR398v2Test(lf_host=self.manager_ip,
                                  lf_port=self.manager_http_port,
