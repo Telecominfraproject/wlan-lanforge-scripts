@@ -178,6 +178,8 @@ class lf_libs:
             logging.info("Scenario name: " + str(self.scenario))
             self.create_dhcp_external()
         self.chamber_view(raw_lines="default")
+        logging.info("sleep time 45 sec")
+        time.sleep(45)
         self.temp_raw_lines = self.default_scenario_raw_lines.copy()
         self.setup_dut()
         # except Exception as e:
