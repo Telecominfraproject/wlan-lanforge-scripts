@@ -1490,7 +1490,7 @@ class lf_tests(lf_libs):
                 vlan_id=1, skip_2g=False, skip_5g=False, test=None,
                 move_to_influx=False,
                 dut_data={},
-                create_vlan=True, testbed=None):
+                create_vlan=True, testbed=None, extra_raw_lines=[[]]):
         current_directory = os.getcwd()
         file_path = current_directory + "/e2e/advanced/advanced-config.json"
         with open(file_path, 'r') as file:
@@ -1678,6 +1678,9 @@ class lf_tests(lf_libs):
         #     f.close()
         """ Test duration 60 sec """
         raw_line.append(["dur120: 60"])
+        """Adding extra raw lines """
+        if extra_raw_lines[0]:
+            raw_line.extend(extra_raw_lines)
         logging.info("raw lines:- " + str(raw_line))
         cvtest_obj = TR398v2Test(lf_host=self.manager_ip,
                                  lf_port=self.manager_http_port,
