@@ -2648,6 +2648,75 @@ class lf_tests(lf_libs):
             else:
                 logging.info("Layer3 not ran properly.")
 
+    def ax_capacity_test(self, instance_name="", dut_data=None, mode="BRIDGE", download_rate="10Gbps",
+                         upload_rate="0Gbps", dut_mode="", protocol="UDP-IPv4", num_stations={}, vlan_id=None):
+        if self.max_ax_stations == 0:
+            logging.info("This test needs AX radios, looks like no AX radios are available on the Lanforge system.")
+            pytest.skip("AX radios are not available on the Lanforge, so skipping this test.")
+
+        if dut_mode.lower() == "wifi5":
+            logging.info("AP does not support AX mode, so skipping this test.")
+            pytest.skip("AP does not support AX mode, so skipping this test")
+
+        dict_all_radios_ax = {"mtk_radios": self.mtk_radios,
+                              "ax200_radios": self.ax200_radios,
+                              "ax210_radios": self.ax210_radios}
+        selected_ax_radio = None
+        for radio in dict_all_radios_ax:
+            if len(dict_all_radios_ax[radio]) > 0:
+                selected_ax_radio = dict_all_radios_ax[radio][0]
+                break
+        logging.info("Selected AX Radio: {}".format(selected_ax_radio))
+
+        for data in self.dut_data:
+            identifier = data["identifier"]
+        ssid_name = dut_data[identifier]["ssid_data"][0]["ssid"]
+        passkey = dut_data[identifier]["ssid_data"][0]["password"]
+        band = list(num_stations.keys())[0]
+
+        try:
+            self.set_radio_channel(radio=selected_ax_radio, antenna="4")
+
+            self.pre_cleanup()
+            sta_name = ["1.1.ax_station"]
+            self.client_connect_using_radio(ssid=ssid_name, passkey=passkey, mode=mode, station_name=sta_name,
+                                            radio=selected_ax_radio, vlan_id=vlan_id, create_vlan=True)
+            time.sleep(0.5)
+
+            sta_rows = ["ip", "mode", "channel", "signal", "parent dev", "mac"]
+            self.get_station_data(sta_name=sta_name, rows=sta_rows, allure_attach=True, allure_name="Station Data")
+
+            wifi_capacity_obj_list = self.wifi_capacity(instance_name=instance_name, mode=mode,
+                                                        download_rate=download_rate, upload_rate=upload_rate,
+                                                        protocol=protocol, duration="60000", ssid_name=ssid_name,
+                                                        batch_size="1", num_stations=num_stations, stations=sta_name[0],
+                                                        dut_data=dut_data, vlan_id=vlan_id, add_stations=False,
+                                                        create_vlan=False)
+
+            report = wifi_capacity_obj_list[0].report_name[0]['LAST']["response"].split(":::")[1].split("/")[-1] + "/"
+            numeric_score = self.read_kpi_file(column_name=["numeric-score"], dir_name=report)
+            throughput = {
+                "download": [numeric_score[0][0]],
+                "upload": [numeric_score[1][0]],
+                "total": [numeric_score[2][0]]
+            }
+            self.attach_table_allure(data=throughput, allure_name="Throughput Data")
+
+            expected_throughput = 720 if band == "5G" else 200
+            fail_message = None
+            if download_rate == "10Gbps" and upload_rate != "10Gbps":
+                if throughput["download"][0] < expected_throughput:
+                    fail_message = f"Download rate was {throughput['download'][0]}Mbps"
+            elif download_rate != "10Gbps" and upload_rate == "10Gbps":
+                if throughput["upload"][0] < expected_throughput:
+                    fail_message = f"Upload rate was {throughput['upload'][0]}Mbps"
+
+            if fail_message is not None:
+                fail_message += f", less than the expected throughput of {expected_throughput}Mbps."
+                pytest.fail(fail_message)
+        finally:
+            self.set_radio_channel(radio=selected_ax_radio, antenna="0")
+
     def strict_forwarding(self, ssids=[], num_stations_per_ssid=1, security="wpa2", dut_data={}, passkey="[BLANK]",
                           mode="BRIDGE", side_a_min_rate=6291456, side_a_max_rate=6291456, side_b_min_rate=0,
                           side_b_max_rate=0,
