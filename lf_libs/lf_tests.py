@@ -1493,6 +1493,7 @@ class lf_tests(lf_libs):
                 create_vlan=True, testbed=None, extra_raw_lines=[[]]):
         current_directory = os.getcwd()
         file_path = current_directory + "/e2e/advanced/advanced-config.json"
+        logging.info("Advanced file config path:- " + str(file_path))
         with open(file_path, 'r') as file:
             json_string = file.read()
             all_config_data = json.loads(json_string)
@@ -1723,12 +1724,17 @@ class lf_tests(lf_libs):
         time.sleep(10)
         self.attach_report_graphs(report_name=report_name, pdf_name=str(test[0]) + " Test PDF Report")
         result = self.read_kpi_file(column_name=["pass/fail"], dir_name=report_name)
+        logging.info("result: " + str(result))
+        numeric_score = self.read_kpi_file(column_name=["numeric-score"], dir_name=report_name)
+        logging.info("Numeric-score: " + str(numeric_score))
+        test_details = self.read_kpi_file(column_name=["test details"], dir_name=report_name)
+        logging.info("test_details: " + str(test_details))
         self.attach_report_kpi(report_name=report_name)
         self.client_disconnect(clear_all_sta=True, clean_l3_traffic=True)
         if result[0][0] == "PASS":
             return True, "Test Passed"
         else:
-            return False, "Test Failed"
+            return False, f"Test is Failed. Candela Score:- {numeric_score[0][0]}. Test Details:- {test_details[0][0]}."
 
     def tr398(self, radios_2g=[], radios_5g=[], radios_ax=[], dut_name="TIP", dut_5g="", dut_2g="", mode="BRIDGE",
               vlan_id=1, skip_2g=True, skip_5g=False, instance_name="", test=None, move_to_influx=False, dut_data={},
