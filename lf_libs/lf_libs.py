@@ -913,7 +913,7 @@ class lf_libs:
         time.sleep(5)
         self.pcap_obj.monitor.start_sniff(capname=self.pcap_name, duration_sec=duration)
 
-    def stop_sniffer(self):
+    def stop_sniffer(self, sta_list=[]):
         self.pcap_obj.monitor.admin_down()
         time.sleep(2)
         self.pcap_obj.cleanup()
@@ -923,7 +923,7 @@ class lf_libs:
                                    report_location="/home/lanforge/" + self.pcap_name,
                                    report_dir=".")
             allure.attach.file(source=self.pcap_name,
-                               name="pcap_file", attachment_type=allure.attachment_type.PCAP)
+                               name="pcap_file " + ", ".join(sta_list), attachment_type=allure.attachment_type.PCAP)
             logging.info("pcap file name: " + str(self.pcap_name))
         except Exception as e:
             logging.error(e)
@@ -1695,7 +1695,8 @@ class lf_libs:
 
     def client_connect_using_radio(self, ssid="[BLANK]", passkey="[BLANK]", security="wpa2", mode="BRIDGE", band=None,
                                    vlan_id=[None], radio=None, client_type=0, station_name=[], dut_data=None,
-                                   sniff_radio=False, create_vlan=True):
+                                   sniff_radio=False, create_vlan=True, attach_port_info=True,
+                                   attach_station_data=True):
         # pre cleanup
         # if pre_cleanup:
         #     self.pre_cleanup()
@@ -1723,10 +1724,11 @@ class lf_libs:
         client_connect.upstream_port = upstream_port
         client_connect.upstream_resource = 1
         client_connect.radio = radio
-        # allure attach for port info
-        port_data = self.json_get(_req_url="port?fields=ip")
-        port_info = {key: value for d in port_data["interfaces"] for key, value in d.items()}
-        self.allure_report_table_format(dict_data=port_info, key="Port Names", value="ip", name="Port info")
+        if attach_port_info is True:
+            # allure attach for port info
+            port_data = self.json_get(_req_url="port?fields=ip")
+            port_info = {key: value for d in port_data["interfaces"] for key, value in d.items()}
+            self.allure_report_table_format(dict_data=port_info, key="Port Names", value="ip", name="Port info")
         if sniff_radio:
             for dut_ in self.dut_data:
                 identifier = dut_["identifier"]
@@ -1745,15 +1747,16 @@ class lf_libs:
                     client_connect.build()
                     logging.info("napping 10 sec")
                     time.sleep(10)
-                    # station data
-                    sta_length = len(station_name)
-                    for i in range(sta_length):
-                        sta_data1 = self.json_get(_req_url="port/1/1/%s" % (station_name[i]))
-                        self.allure_report_table_format(dict_data=sta_data1["interface"], key="STATION DETAILS",
-                                                        value="VALUE", name="%s info" % (station_name[i]))
+                    if attach_station_data is True:
+                        # station data
+                        sta_length = len(station_name)
+                        for i in range(sta_length):
+                            sta_data1 = self.json_get(_req_url="port/1/1/%s" % (station_name[i]))
+                            self.allure_report_table_format(dict_data=sta_data1["interface"], key="STATION DETAILS",
+                                                            value="VALUE", name="%s info" % (station_name[i]))
                     # to stop sniffer
                     if radio is not None and sniffer_channel is not None:
-                        self.stop_sniffer()
+                        self.stop_sniffer(station_name)
                 else:
                     logging.info("missing identifier.")
         else:
