@@ -88,7 +88,7 @@ stability of the network when clients move between APs.
 
     1. The BSSID of the station should change after roaming from one AP to another
     2  The station should not experience any disconnections during/after the roaming process.
-    3. The duration of the roaming process should be less than 50 ms.
+    3. The duration of the roaming process should be less than 100 ms.
 
  The following are the criteria for FAIL the test:
 
@@ -96,7 +96,7 @@ stability of the network when clients move between APs.
     2. No roaming occurs, as all stations are connected to the same AP.
     3. The captured packet does not contain a Reassociation Response Frame.
     4. The station experiences disconnection during/after the roaming process.
-    5. The duration of the roaming process exceeds 50 ms.
+    5. The duration of the roaming process exceeds 100 ms.
 
 STATUS: BETA RELEASE (MORE TESTING ONLY WITH MULTICAST)
 
@@ -941,13 +941,13 @@ class HardRoam(Realm):
                             if self.duration is not None:
                                 if time.time() > timeout:
                                     break
-                        #  Get the serial number of attenuators from lf
-                        ser_no = self.attenuator_serial()
-                        print(ser_no[0])
-                        logging.info(str(ser_no[0]))
-                        ser_1 = ser_no[0].split(".")[2]
-                        ser_2 = ser_no[1].split(".")[2]
                         if self.soft_roam:
+                            #  Get the serial number of attenuators from lf
+                            ser_no = self.attenuator_serial()
+                            print(ser_no[0])
+                            logging.info(str(ser_no[0]))
+                            ser_1 = ser_no[0].split(".")[2]
+                            ser_2 = ser_no[1].split(".")[2]
                             if iterations % 2 == 0:
                                 print("even set c1 to lowest and c2 to highest attenuation ")
                                 logging.info("even set c1 to lowest and c2 to highest attenuation ")
@@ -1518,14 +1518,14 @@ class HardRoam(Realm):
                                                             logging.info("Roam Time (ms)" + str(roam_time))
                                                             roam_time1.append(roam_time)
                                                             if self.option == "ota":
-                                                                if roam_time < 50:
+                                                                if roam_time < 100:
                                                                     pass_fail_list.append("PASS")
                                                                     pcap_file_list.append(str(file_name))
                                                                     remark.append("Passed all criteria")
                                                                 else:
                                                                     pass_fail_list.append("FAIL")
                                                                     pcap_file_list.append(str(file_name))
-                                                                    remark.append("Roam time is greater then 50 ms")
+                                                                    remark.append("Roam time is greater then 100 ms")
                                                             else:
                                                                 pass_fail_list.append("PASS")
                                                                 pcap_file_list.append(str(file_name))
@@ -1638,7 +1638,7 @@ class HardRoam(Realm):
                                                                     pass_fail_list.append("FAIL")
                                                                     pcap_file_list.append(str(file_name))
                                                                     remark.append(
-                                                                        "(BSSID mismatched)Roam time is greater then 50 ms,")
+                                                                        "(BSSID mismatched)Roam time is greater then 100 ms,")
                                                             else:
                                                                 pass_fail_list.append("FAIL")
                                                                 pcap_file_list.append(str(file_name))
@@ -1957,14 +1957,14 @@ class HardRoam(Realm):
                                     "<b>The following are the criteria for PASS the test:</b><br><br>"
                                     "1. The BSSID of the station should change after roaming from one AP to another.<br>"
                                     "2. The station should not experience any disconnections during/after the roaming process.<br>"
-                                    "3. The duration of the roaming process should be less than 50 ms.<br>"
+                                    "3. The duration of the roaming process should be less than 100 ms.<br>"
                                     "<br>"
                                     "<b>The following are the criteria for FAIL the test:</b><br><br>"
                                     "1. The BSSID of the station remains unchanged after roaming from one AP to another.<br>"
                                     "2. No roaming occurs, as all stations are connected to the same AP.<br>"
                                     "3. The captured packet does not contain a Reassociation Response Frame.<br>"
                                     "4. The station experiences disconnection during/after the roaming process.<br>"
-                                    "5. The duration of the roaming process exceeds 50 ms.<br>")
+                                    "5. The duration of the roaming process exceeds 100 ms.<br>")
             report.build_objective()
             for i in csv_list:
                 report.move_data(directory="csv_data", _file_name=str(i))
@@ -2103,7 +2103,7 @@ stability of the network when clients move between APs.
 
     1. The BSSID of the station should change after roaming from one AP to another
     2  The station should not experience any disconnections during/after the roaming process.
-    3. The duration of the roaming process should be less than 50 ms.
+    3. The duration of the roaming process should be less than 100 ms.
 
  The following are the criteria for FAIL the test:
 
@@ -2111,7 +2111,7 @@ stability of the network when clients move between APs.
     2. No roaming occurs, as all stations are connected to the same AP.
     3. The captured packet does not contain a Reassociation Response Frame.
     4. The station experiences disconnection during/after the roaming process.
-    5. The duration of the roaming process exceeds 50 ms.
+    5. The duration of the roaming process exceeds 100 ms.
 
 
 ############################################

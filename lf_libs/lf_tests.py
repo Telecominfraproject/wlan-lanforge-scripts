@@ -63,6 +63,8 @@ lf_pcap = importlib.import_module("py-scripts.lf_pcap")
 LfPcap = lf_pcap.LfPcap
 lf_ap_auto_test = importlib.import_module("py-scripts.lf_ap_auto_test")
 ApAutoTest = lf_ap_auto_test.ApAutoTest
+roam_test = importlib.import_module("py-scripts.lf_hard_roam_test")
+RoamTest = roam_test.HardRoam
 
 
 class lf_tests(lf_libs):
@@ -1641,7 +1643,8 @@ class lf_tests(lf_libs):
                 upstream_port = list(self.lanforge_data['wan_ports'].keys())[0] + "." + str(vlan_id[0])
         logging.info("Upstream data: " + str(upstream_port))
         skip_bandv2 = [['Skip 2.4Ghz Tests', f'{skip_twog}'], ['Skip 5Ghz Tests', f'{skip_fiveg}'],
-                       ['2.4Ghz Channel', f'{channel_2g}'], ['5Ghz Channel', f'{channel_5g}'], ["use_virtual_ax_sta", "1"],
+                       ['2.4Ghz Channel', f'{channel_2g}'], ['5Ghz Channel', f'{channel_5g}'],
+                       ["use_virtual_ax_sta", "1"],
                        ["Use Issue-3 Behaviour", "0"], ["Skip 6Ghz Tests", "1"]]
         enable_tests = [['rxsens: 0'], ['max_cx: 0'], ['max_tput: 0'], ['peak_perf: 0'], ['max_tput_bi: 0'],
                         ['dual_band_tput: 0'], ['multi_band_tput: 0'], ['atf: 0'], ['atf3: 0'], ['qos3: 0'],
@@ -2649,7 +2652,8 @@ class lf_tests(lf_libs):
         elif num_sta == 1:  # else between a 2G/5G station and uplink port
             radio_name = radio_name_2g if band_2g is True else radio_name_5g
             sta_got_ip.append(self.client_connect_using_radio(ssid=ssid1, passkey=passkey, band=band, security=security,
-                                                              mode=mode, radio=radio_name[0], station_name=[station_name],
+                                                              mode=mode, radio=radio_name[0],
+                                                              station_name=[station_name],
                                                               dut_data=dut_data, sniff_radio=sniff_radio,
                                                               attach_port_info=False, attach_station_data=False))
             self.create_layer3(side_a_min_rate=side_a_min_rate, side_a_max_rate=side_a_max_rate,
@@ -2954,6 +2958,60 @@ class lf_tests(lf_libs):
                 pass_fail = "FAIL"
                 description = f"{e}"
         return pass_fail, description
+
+    def roam_test(self, ap1_bssid="90:3c:b3:6c:46:dd", ap2_bssid="90:3c:b3:6c:47:2d", fiveg_radio="1.1.wiphy4",
+                  twog_radio="1.1.wiphy4", sixg_radio="1.1.wiphy4",
+                  band="twog", sniff_radio_="1.1.wiphy5", num_sta=1, security="wpa2", security_key="Openwifi",
+                  ssid="OpenWifi", upstream="1.1.eth1", duration=None, iteration=1, channel="11", option="ota",
+                  dut_name=["edgecore_eap101", "edgecore_eap102"], traffic_type="lf_udp", identity="identity",
+                  ttls_pass="ttls_pass", sta_type="11r"):
+        roam_obj = RoamTest(lanforge_ip=self.manager_ip,
+                            lanforge_port=self.manager_http_port,
+                            lanforge_ssh_port=self.manager_ssh_port,
+                            c1_bssid=ap1_bssid,
+                            c2_bssid=ap2_bssid,
+                            fiveg_radio=fiveg_radio,
+                            twog_radio=twog_radio,
+                            sixg_radio=sixg_radio,
+                            band=band,
+                            sniff_radio_=sniff_radio_,
+                            num_sta=num_sta,
+                            security=security,
+                            security_key=security_key,
+                            ssid=ssid,
+                            upstream=upstream,
+                            duration=duration,
+                            iteration=iteration,
+                            channel=channel,
+                            option=option,
+                            duration_based=False,
+                            iteration_based=True,
+                            dut_name=dut_name,
+                            traffic_type=traffic_type,
+                            scheme="ssh",
+                            dest="localhost",
+                            user="admin",
+                            passwd="OpenWifi123",
+                            prompt="WLC2",
+                            series_cc="9800",
+                            ap="AP687D.B45C.1D1C",
+                            port="8888",
+                            band_cc="5g",
+                            timeout="10",
+                            identity=identity,
+                            ttls_pass=ttls_pass,
+                            soft_roam=False,
+                            sta_type=sta_type,
+                            multicast=False
+                            )
+        x = os.getcwd()
+        logging.info("Current Working Directory :", x)
+        file = roam_obj.generate_csv()
+        logging.info("CSV File :", file)
+        roam_obj.precleanup()
+        kernel, message = roam_obj.run(file_n=file)
+        report_dir_name = roam_obj.generate_report(csv_list=file, kernel_lst=kernel, current_path=str(x) + "/11r")
+        logging.info(report_dir_name)
 
 
 if __name__ == '__main__':
