@@ -86,7 +86,10 @@ class lf_report:
         self.graph_title = _graph_title
         self.date = _date
         self.output_html = _output_html
+        if _output_html.lower().endswith(".pdf"):
+            raise ValueError("HTML output file cannot end with suffix '.pdf'")
         self.path_date_time = _path_date_time
+        self.report_location = ""  # used by lf_check.py to know where to write the meta data "Report Location:::/home/lanforge/html-reports/wifi-capacity-2021-08-17-04-02-56"
         self.write_output_html = ""
         self.write_output_index_html = ""
         self.output_pdf = _output_pdf
@@ -101,6 +104,8 @@ class lf_report:
         self.pdf_link_html = ""
         self.objective = _obj
         self.obj_title = _obj_title
+        self.description = ""
+        self.desc_title = ""
         # self.systeminfopath = ""
         self.date_time_directory = ""
         self.log_directory = ""
@@ -132,9 +137,12 @@ class lf_report:
         shutil.copy(banner_src_file, banner_dst_file)
 
     def move_data(self, directory=None, _file_name=None, directory_name=None):
-        if directory_name is  None:
-            _src_file = str(self.current_path) +  '/' + str(_file_name)
-            _dst_file = str(self.path_date_time) + '/' + str(directory) + '/' + str(_file_name)
+        if directory_name is None:
+            _src_file = str(self.current_path) + '/' + str(_file_name)
+            if directory is None:
+                _dst_file = str(self.path_date_time)
+            else:
+                _dst_file = str(self.path_date_time) + '/' + str(directory) + '/' + str(_file_name)
         else:
             _src_file = str(self.current_path) + '/' + str(directory_name)
             _dst_file = str(self.path_date_time) +  '/' + str(directory_name)
@@ -251,6 +259,10 @@ class lf_report:
         fname, ext = os.path.splitext(_graph_title)
         self.csv_file_name = fname + ".csv"
 
+    def write_dataframe_to_csv(self, _index=False):
+        csv_file = "{path_date_time}/{csv_file_name}".format(path_date_time=self.path_date_time,csv_file_name=self.csv_file_name)
+        self.dataframe.to_csv(csv_file,index=_index)
+
     # The _date is set when class is enstanciated / created so this set_date should be used with caution, used to synchronize results
     def set_date(self, _date):
         self.date = _date
@@ -274,6 +286,10 @@ class lf_report:
     def set_obj_html(self, _obj_title, _obj):
         self.objective = _obj
         self.obj_title = _obj_title
+
+    def set_desc_html(self, _desc_title, _desc):
+        self.description = _desc
+        self.desc_title = _desc_title
 
     def set_graph_image(self, _graph_image):
         self.graph_image = _graph_image
@@ -305,8 +321,20 @@ class lf_report:
         output_file = str(self.path_date_time) + '/' + str(file)
         logger.info("output file {}".format(output_file))
         return output_file
+    # Report Location:::/<locaton> as a key in lf_check.py
+    def write_report_location(self):
+        self.report_location = self.path_date_time
+        logger.info("Report Location:::{report_location}".format(report_location=self.report_location))
+
 
     def write_html(self):
+        if not self.output_html:
+            logger.info("no html file name, skipping report generation")
+            return
+        if self.output_html.lower().endswith(".pdf"):
+            raise ValueError("write_html: HTML filename [%s] should not end with .pdf" % self.output_html)
+        if self.write_output_html.endswith(".pdf"):
+            raise ValueError("wrong suffix for an HTML file: %s" % self.write_output_html)
         self.write_output_html = str(self.path_date_time) + '/' + str(self.output_html)
         logger.info("write_output_html: {}".format(self.write_output_html))
         try:
@@ -319,7 +347,13 @@ class lf_report:
         return self.write_output_html
 
     def write_index_html(self):
-        self.write_output_index_html = str(self.path_date_time) + '/' + str("index.html")
+        # LAN-1535 scripting: test_l3.py output masks other output when browsing.
+        # consider renaming index.html to readme.html
+        # self.write_output_index_html = str(self.path_date_time) + '/' + str("index.html")
+        if not self.output_html:
+            logger.info("no html file name, skipping report generation")
+            return
+        self.write_output_index_html = str(self.path_date_time) + '/' + str("readme.html")
         logger.info("write_output_index_html: {}".format(self.write_output_index_html))
         try:
             test_file = open(self.write_output_index_html, "w")
@@ -331,6 +365,11 @@ class lf_report:
         return self.write_output_index_html
 
     def write_html_with_timestamp(self):
+        if not self.output_html:
+            logger.info("no html file name, skipping report generation")
+            return
+        if self.output_html.lower().endswith(".pdf"):
+            raise ValueError("write_html_with_timestamp: will not save file with PDF suffix [%s]" % self.output_html)
         self.write_output_html = "{}/{}-{}".format(self.path_date_time, self.date, self.output_html)
         logger.info("write_output_html: {}".format(self.write_output_html))
         try:
@@ -349,7 +388,9 @@ class lf_report:
         # write logic to generate pdf here
         # wget https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6-1/wkhtmltox_0.12.6-1.focal_amd64.deb
         # sudo apt install ./wkhtmltox_0.12.6-1.focal_amd64.deb
-
+        if not self.output_pdf:
+            logger.info("write_pdf: no pdf file name, skipping pdf output")
+            return
         options = {"enable-local-file-access": None,
                    'orientation': _orientation,
                    'page-size': _page_size}  # prevent error Blocked access to file
@@ -363,7 +404,9 @@ class lf_report:
         # write logic to generate pdf here
         # wget https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6-1/wkhtmltox_0.12.6-1.focal_amd64.deb
         # sudo apt install ./wkhtmltox_0.12.6-1.focal_amd64.deb
-
+        if not self.output_pdf:
+            logger.info("write_pdf_with_timestamp: no pdf file name, skipping pdf output")
+            return
         options = {"enable-local-file-access": None,
                    'orientation': _orientation,
                    'page-size': _page_size}  # prevent error Blocked access to file
@@ -373,6 +416,14 @@ class lf_report:
     def get_pdf_path(self):
         pdf_link_path = "{}/{}-{}".format(self.path_date_time, self.date, self.output_pdf)
         return pdf_link_path
+
+    # used for relative pathing
+    def get_pdf_file(self):
+        if not self.output_pdf:
+            logger.info("get_pdf_file: no pdf name, returning None")
+            return None
+        pdf_file = "{}-{}".format(self.date, self.output_pdf)
+        return pdf_file
 
     def build_pdf_link(self, _pdf_link_name, _pdf_link_path):
         self.pdf_link_html = """
@@ -392,7 +443,8 @@ class lf_report:
 
     def generate_report(self):
         self.write_html()
-        self.write_pdf()
+        if self.output_pdf:
+            self.write_pdf()
 
     def build_all(self):
         self.build_banner()
@@ -462,6 +514,32 @@ class lf_report:
         )
         self.html += self.banner_html
 
+    def build_banner_left_h2_font(self):
+        # NOTE: {{ }} are the ESCAPED curly braces
+        # JBR suggests rename method to start_html_doc()
+        # This method violates DRY, if the ID of the body/div#BannerBack/div element is actually necessary
+        # to specify, this needs to be made a parameter for build_banner() or start_html_doc()
+        self.banner_html = """<!DOCTYPE html>
+<html lang='en'>
+    {head_tag}
+    <body>
+        <div id='BannerBack'>
+            <div id='BannerLeft'>
+                <img id='BannerLogo' align='right' src="CandelaLogo2-90dpi-200x90-trans.png" border='0'/>
+                <div class='HeaderStyle'>
+                    <h2 class='TitleFontPrint' style='color:darkgreen;'>{title}</h2>
+                    <h4 class='TitleFontPrintSub' style='color:darkgreen;'>{date}</h4>
+                </div>
+            </div>
+        </div>
+                 """.format(
+            head_tag=self.get_html_head(title=self.title),
+            title=self.title,
+            date=self.date,
+        )
+        self.html += self.banner_html
+
+
     def build_table_title(self):
         self.table_title_html = """
                     <!-- Table Title-->
@@ -482,6 +560,14 @@ class lf_report:
             <h3 class='TitleFontPrint'>{text}</h3>\n
         </div>""".format(text=self.text)
         self.html += self.text_html
+
+    def build_text_simple(self):
+        # please do not use 'style=' tags unless you cannot override a class
+        self.text_html = """
+            <p align='left' width='900'>{text}</p>
+        """.format(text=self.text)
+        self.html += self.text_html
+
 
     def build_date_time(self):
         self.date_time = str(datetime.datetime.now().strftime("%Y-%m-%d-%H-h-%m-m-%S-s")).replace(':', '-')
@@ -530,10 +616,10 @@ class lf_report:
         plt.savefig(str(self.path_date_time) + '/pie-chart.png')
 
     def save_bar_chart(self, xlabel, ylabel, bar_chart_data, name):
-        plot = bar_chart_data.plot.bar(alpha=0.9, rot=0, width=0.9, linewidth=0.9)
+        plot = bar_chart_data.plot.bar(alpha=0.9, rot=0, width=0.9, linewidth=0.9, figsize=(10, 6))
         plot.legend(bbox_to_anchor=(1.0, 1.0))
-        plot.spines['right'].set_visible(False)
-        plot.spines['top'].set_visible(False)
+        # plot.spines['right'].set_visible(False)
+        # plot.spines['top'].set_visible(False)
         # plot.set_title(name)
         for p in plot.patches:
             height = p.get_height()
@@ -545,7 +631,7 @@ class lf_report:
                           annotation_clip=False,
                           ha='center', va='bottom')
         # plt.xlabel(xlabel)
-        plt.xticks(rotation=45, horizontalalignment='right', fontweight='light', fontsize='small', )
+        plt.xticks(rotation=0, horizontalalignment='right', fontweight='light', fontsize='small', )
         plt.ylabel(ylabel)
         plt.tight_layout()
         plt.savefig(str(self.path_date_time) + '/' + name + '.png')
@@ -647,6 +733,16 @@ function copyTextToClipboard(ele) {
                        objective=self.objective)
         self.html += self.obj_html
 
+    def build_description(self):
+        self.obj_html = """
+            <!-- Test Description -->
+            <h3 align='left'>{title}</h3> 
+            <p align='left' width='900'>{description}</p>
+            """.format(title=self.desc_title,
+                       description=self.description)
+        self.html += self.obj_html
+
+
     def build_graph_title(self):
         self.table_graph_html = """
             <div class='HeaderStyle'>
@@ -657,6 +753,12 @@ function copyTextToClipboard(ele) {
     def build_graph(self):
         self.graph_html_obj = """
               <img align='center' style='padding:15px;margin:5px 5px 2em 5px;width:1000px;' src='{image}' border='1' />
+            """.format(image=self.graph_image)
+        self.html += self.graph_html_obj
+
+    def build_graph_without_border(self):
+        self.graph_html_obj = """
+              <img align='left' style='padding:15px;margin:5px 5px 2em 5px;width:1000px;' src='{image}' border='0' />
             """.format(image=self.graph_image)
         self.html += self.graph_html_obj
 
@@ -676,9 +778,45 @@ function copyTextToClipboard(ele) {
             """.format(image=name)
         self.html += self.chart_html_obj
 
+    def build_chart_custom(self, name, align='center',padding='15px',margin='5px 5px 2em 5px',width='500px',height='500px'):
+
+        self.chart_html_obj = """
+              <img align='{align}' style='padding:{padding};margin:{margin};width:{width};height:{height};'
+              src='{image}'/> """.format(image=name,align=align,padding=padding,margin=margin,width=width, height=height)
+        self.html += self.chart_html_obj
+
+    def build_banner_cover(self):
+        # NOTE: {{ }} are the ESCAPED curly braces
+        # JBR suggests rename method to start_html_doc()
+        # This method violates DRY, if the ID of the body/div#BannerBack/div element is actually necessary
+        # to specify, this needs to be made a parameter for build_banner() or start_html_doc()
+        self.banner_html = """<!DOCTYPE html>
+       <html lang='en'>
+           {head_tag}
+           <body>
+               <div id='BannerBack' style='height: 100%; max-height: 100%;'>
+                   <div id='BannerLeft' style="margin: 0%; background-size: 100%; max-height: 100%; max-width: 100%; width: 100%; height: 100%;">
+                       <img id='BannerLogo' align='right' src="CandelaLogo2-90dpi-200x90-trans.png" border='0'/>
+                       <div class='HeaderStyle'>
+                           <h1 class='TitleFontPrint' style='color:darkgreen;'>{title}</h1>
+                           <h4 class='TitleFontPrintSub' style='color:darkgreen;'>{date}</h4>
+                       </div>
+                   </div>
+               </div>
+                        """.format(
+            head_tag=self.get_html_head(title=self.title),
+            title=self.title,
+            date=self.date,
+        )
+        self.html += self.banner_html
 
 # Unit Test
 if __name__ == "__main__":
+    help_summary = '''\
+     This script is designed to generate reports in file formats such as PDF and HTML, accommodating various user 
+     preferences. The reports can encompass a range of elements, including graphs, tables, and customizable objectives,
+     tailored to meet specific user requirements
+    '''
     parser = argparse.ArgumentParser(
         prog="lf_report.py",
         formatter_class=argparse.RawTextHelpFormatter,
@@ -686,7 +824,15 @@ if __name__ == "__main__":
     parser.add_argument('--lfmgr', help='sample argument: where LANforge GUI is running', default='localhost')
     # the args parser is not really used , this is so the report is not generated when testing
     # the imports with --help
+    parser.add_argument('--help_summary', help='Show summary of what this script does', default=None,
+                        action="store_true")
     args = parser.parse_args()
+
+    # help summary
+    if args.help_summary:
+        print(help_summary)
+        exit(0)
+
     logger.info("LANforge manager {lfmgr}".format(lfmgr=args.lfmgr))
 
     # Testing: generate data frame
@@ -722,6 +868,12 @@ if __name__ == "__main__":
 
     report.set_table_dataframe(dataframe2)
     report.build_table()
+
+    report.build_chart_title('default width')
+    report.build_chart("banner.png")
+
+    report.build_chart_title('custom width')
+    report.build_chart_custom(name="banner.png",width="1000")
 
     # report.build_all()
     # report.build_footer()
