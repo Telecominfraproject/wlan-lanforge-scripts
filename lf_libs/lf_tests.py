@@ -2963,8 +2963,11 @@ class lf_tests(lf_libs):
                   twog_radio="1.1.wiphy4", sixg_radio="1.1.wiphy4",
                   band="twog", sniff_radio_="1.1.wiphy5", num_sta=1, security="wpa2", security_key="Openwifi",
                   ssid="OpenWifi", upstream="1.1.eth1", duration=None, iteration=1, channel="11", option="ota",
-                  dut_name=["edgecore_eap101", "edgecore_eap102"], traffic_type="lf_udp", identity="identity",
-                  ttls_pass="ttls_pass", sta_type="11r"):
+                  dut_name=["edgecore_eap101", "edgecore_eap102"], traffic_type="lf_udp", eap_method=None,
+                  eap_identity=None, eap_password=None, pairwise_cipher=None, groupwise_cipher=None,
+                  private_key=None, pk_passwd=None, ca_cert=None, eap_phase1=None, eap_phase2=None,
+                  soft_roam=False, sta_type="11r"):
+
         roam_obj = RoamTest(lanforge_ip=self.manager_ip,
                             lanforge_port=self.manager_http_port,
                             lanforge_ssh_port=self.manager_ssh_port,
@@ -2998,20 +3001,29 @@ class lf_tests(lf_libs):
                             port="8888",
                             band_cc="5g",
                             timeout="10",
-                            identity=identity,
-                            ttls_pass=ttls_pass,
-                            soft_roam=False,
+                            eap_method=eap_method,
+                            eap_identity=eap_identity,
+                            eap_password=eap_password,
+                            pairwise_cipher=pairwise_cipher,
+                            groupwise_cipher=groupwise_cipher,
+                            private_key=private_key,
+                            pk_passwd=pk_passwd,
+                            ca_cert=ca_cert,
+                            eap_phase1=eap_phase1,
+                            eap_phase2=eap_phase2,
+                            soft_roam=soft_roam,
                             sta_type=sta_type,
+                            ieee80211w="1",
                             multicast=False
                             )
         x = os.getcwd()
-        logging.info("Current Working Directory :", x)
+        logging.info(f"Current Working Directory : {x}")
         file = roam_obj.generate_csv()
-        logging.info("CSV File :", file)
+        logging.info(f"CSV File : {file}")
         roam_obj.precleanup()
         kernel, message = roam_obj.run(file_n=file)
         report_dir_name = roam_obj.generate_report(csv_list=file, kernel_lst=kernel, current_path=str(x) + "/11r")
-        logging.info(report_dir_name)
+        logging.info(f"Test Report Directory : {report_dir_name}")
 
 
 if __name__ == '__main__':

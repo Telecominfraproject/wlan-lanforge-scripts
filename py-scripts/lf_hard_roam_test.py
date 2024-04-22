@@ -194,12 +194,11 @@ class HardRoam(Realm):
                  ca_cert=None,
                  eap_phase1=None,
                  eap_phase2=None,
-                 # identity=None,
-                 # ttls_pass=None,
                  log_file=False,
                  debug=False,
                  soft_roam=False,
                  sta_type=None,
+                 ieee80211w=None,
                  multicast=None
                  ):
         super().__init__(lanforge_ip,
@@ -235,7 +234,7 @@ class HardRoam(Realm):
         self.client_list = []
         self.dut_name = dut_name
         self.pcap_obj = lf_pcap.LfPcap(host=self.lanforge_ip, port=self.lanforge_port)
-        self.lf_csv_obj = lf_csv.lf_csv()
+        self.lf_csv_obj = lf_csv()
         self.traffic_type = traffic_type
         self.roam_delay = roaming_delay
         self.sta_type = sta_type
@@ -269,6 +268,7 @@ class HardRoam(Realm):
         self.debug = debug
         self.mac_data = None
         self.soft_roam = soft_roam
+        self.ieee80211w = ieee80211w
         self.multicast = multicast
         print("Number of iteration : ", self.iteration)
         # logging.basicConfig(filename='roam.log', filemode='w', level=logging.INFO, force=True)
@@ -697,10 +697,10 @@ class HardRoam(Realm):
         for i in range(self.num_sta):
             file = 'test_client_' + str(i) + '.csv'
             if self.multicast == "True":
-                lf_csv_obj = lf_csv.lf_csv(_columns=['Iterations', 'bssid1', 'bssid2', "PASS/FAIL", "Remark"], _rows=[],
+                lf_csv_obj = lf_csv(_columns=['Iterations', 'bssid1', 'bssid2', "PASS/FAIL", "Remark"], _rows=[],
                                            _filename=file)
             else:
-                lf_csv_obj = lf_csv.lf_csv(_columns=['Iterations', 'bssid1', 'bssid2', "Roam Time(ms)", "PASS/FAIL",
+                lf_csv_obj = lf_csv(_columns=['Iterations', 'bssid1', 'bssid2', "Roam Time(ms)", "PASS/FAIL",
                                                      "Pcap file Name", "Log File", "Remark"], _rows=[], _filename=file)
             # "Packet loss",
             file_name.append(file)
@@ -1845,7 +1845,7 @@ class HardRoam(Realm):
             for i in csv_list:
                 print("i", i)
                 logging.info("i, " + i)
-                lf_csv_obj = lf_csv.lf_csv()
+                lf_csv_obj = lf_csv()
                 h = lf_csv_obj.read_csv(file_name=i, column="PASS/FAIL")
                 count = h.count("PASS")
                 print(count)
@@ -2008,7 +2008,7 @@ class HardRoam(Realm):
                                         ", including its BSSID before and after roaming, the time of roaming, the name of "
                                         "the capture file, and any relevant remarks.")
                 report.build_objective()
-                lf_csv_obj = lf_csv.lf_csv()
+                lf_csv_obj = lf_csv()
                 if self.multicast == "True":
                     y = lf_csv_obj.read_csv(file_name=str(report_path) + "/csv_data/" + str(x), column="Iterations")
                     z = lf_csv_obj.read_csv(file_name=str(report_path) + "/csv_data/" + str(x), column="bssid1")
