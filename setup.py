@@ -18,6 +18,7 @@ setup(
         'pandas',
         'plotly',
         'numpy',
+        'scipy',
         'cryptography',
         'paramiko',
         'bokeh',
