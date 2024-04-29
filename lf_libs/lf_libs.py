@@ -1696,7 +1696,7 @@ class lf_libs:
     def client_connect_using_radio(self, ssid="[BLANK]", passkey="[BLANK]", security="wpa2", mode="BRIDGE", band=None,
                                    vlan_id=[None], radio=None, client_type=0, station_name=[], dut_data=None,
                                    sniff_radio=False, create_vlan=True, attach_port_info=True,
-                                   attach_station_data=True):
+                                   attach_station_data=True, timeout_sec=100):
         # pre cleanup
         # if pre_cleanup:
         #     self.pre_cleanup()
@@ -1768,7 +1768,7 @@ class lf_libs:
             print(e)
 
             logging.error(f"Error in getting Supplicant logs: {str(e)}")
-        if client_connect.wait_for_ip(station_name, timeout_sec=100):
+        if client_connect.wait_for_ip(station_name, timeout_sec=timeout_sec):
             client_connect._pass("ALL Stations got IP's", print_=True)
             return client_connect
         else:
