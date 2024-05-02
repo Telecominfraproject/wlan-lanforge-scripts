@@ -277,13 +277,13 @@ class lf_libs:
                 self.max_5g_stations += 1 * int(str(data[info]["max_vifs"]))
                 self.max_ax_stations += 1 * int(str(data[info]["max_vifs"]))
                 self.ax200_radios.append(info)
-            if str(data[info]["driver"]).__contains__("ath10k(988x)"):
+            if str(data[info]["driver"]).__contains__("ath10k") and str(data[info]["driver"]).__contains__("(988x)"):
                 self.max_possible_stations += 1 * int(str(data[info]["max_vifs"]))
                 self.max_2g_stations += 1 * int(str(data[info]["max_vifs"]))
                 self.max_5g_stations += 1 * int(str(data[info]["max_vifs"]))
                 self.max_ac_stations += 1 * int(str(data[info]["max_vifs"]))
                 self.wave1_radios.append(info)
-            if str(data[info]["driver"]).__contains__("ath10k(9984)"):
+            if str(data[info]["driver"]).__contains__("ath10k") and str(data[info]["driver"]).__contains__("(9984)"):
                 if str(data[info]["capabilities"]).__contains__("802.11bgn-AC"):
                     self.max_possible_stations += 1 * int(str(data[info]["max_vifs"]))
                     self.max_2g_stations += 1 * int(str(data[info]["max_vifs"]))
