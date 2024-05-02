@@ -1355,7 +1355,7 @@ class lf_libs:
                                name=file_name, attachment_type="CSV")
         return os.path.exists(path)
 
-    def get_supplicant_logs(self, radio="1.1.wiphy0", attach_allure=True):
+    def get_supplicant_logs(self, radio="1.1.wiphy0", sta_list=[],  attach_allure=True):
         try:
             resource = radio.split(".")[1]
             radio = radio.split(".")[2]
@@ -1368,7 +1368,7 @@ class lf_libs:
                 obj.pull_file()
                 if attach_allure:
                     allure.attach.file(source="wpa_supplicant_log_" + radio + ".txt",
-                                       name="wpa_supplicant_log - " + str(radio))
+                                       name=f"wpa_supplicant_log - {radio} - {', '.join(sta_list)}")
         except Exception as e:
             logging.error("get_supplicant_logs() - Error in getting supplicant Logs: " + str(e))
 
@@ -1693,6 +1693,101 @@ class lf_libs:
         if name is not None:
             allure.attach(name=name, body=str(data_table))
 
+    def get_radio_availabilities(self, num_stations_2g: int = 0, num_stations_5g: int = 0) -> tuple:
+        """
+        Get the port name of radios and how many stations to be created on each radio for the given num of
+        2g stations and 5g stations. This method takes in account the fact that same radio can't be used to
+        create a station on multiple band at the same time even though it supports both bands.
+
+        - Returns tuple[dict[str, int], dict[str, int]] or skips the test if not enough radios are available
+        for the requested number of stations.
+        """
+        message = None
+        requested_num_stations_2g = num_stations_2g
+        requested_num_stations_5g = num_stations_5g
+
+        radio_dict_2g = {}
+        radio_dict_5g = {}
+        dict_all_radios_2g = {
+            "wave2_2g_radios": self.wave2_2g_radios,
+            "wave1_radios": self.wave1_radios,
+            "mtk_radios": self.mtk_radios,
+            "ax200_radios": self.ax200_radios,
+            "ax210_radios": self.ax210_radios
+        }
+        dict_all_radios_5g = {
+            "wave2_5g_radios": self.wave2_5g_radios,
+            "wave1_radios": self.wave1_radios,
+            "mtk_radios": self.mtk_radios,
+            "ax200_radios": self.ax200_radios,
+            "ax210_radios": self.ax210_radios
+        }
+        max_station_per_radio = {
+            "wave2_2g_radios": 64,
+            "wave2_5g_radios": 64,
+            "wave1_radios": 64,
+            "mtk_radios": 19,
+            "ax200_radios": 1,
+            "ax210_radios": 1
+        }
+
+        for i in range(2):
+            if num_stations_2g > num_stations_5g:
+                for keys in dict_all_radios_2g:
+                    if num_stations_2g == 0:
+                        break
+                    max_station = max_station_per_radio[keys]
+                    if len(dict_all_radios_2g[keys]) > 0:
+                        diff = max_station - num_stations_2g
+                        for port_name in dict_all_radios_2g[keys]:
+                            if port_name in radio_dict_5g:
+                                continue
+                            if diff >= 0:
+                                radio_dict_2g[port_name] = num_stations_2g
+                                num_stations_2g = 0
+                                break
+                            else:
+                                radio_dict_2g[port_name] = max_station
+                                num_stations_2g -= max_station
+                                diff = max_station - num_stations_2g
+                if num_stations_2g != 0:
+                    if i == 0:
+                        message = f"Not enough radios available for connecting {requested_num_stations_2g} 2g clients!"
+                    break
+            else:
+                for keys in dict_all_radios_5g:
+                    if num_stations_5g == 0:
+                        break
+                    max_station = max_station_per_radio[keys]
+                    if len(dict_all_radios_5g[keys]) > 0:
+                        diff = max_station - num_stations_5g
+                        for port_name in dict_all_radios_5g[keys]:
+                            if port_name in radio_dict_2g:
+                                continue
+                            if diff >= 0:
+                                radio_dict_5g[port_name] = num_stations_5g
+                                num_stations_5g = 0
+                                break
+                            else:
+                                radio_dict_5g[port_name] = max_station
+                                num_stations_5g -= max_station
+                                diff = max_station - num_stations_5g
+                if num_stations_5g != 0:
+                    if i == 0:
+                        message = f"Not enough radios available for connecting {requested_num_stations_5g} 5g clients!"
+                    break
+
+        if num_stations_2g != 0 or num_stations_5g != 0:
+            logging.info(f"Radio-2G-Stations dict : {num_stations_2g}")
+            logging.info(f"Radio-5G-Stations dict : {num_stations_5g}")
+            if message is None:
+                message = (f"Not enough radios available for connecting {requested_num_stations_2g} 2g clients and "
+                           f"{requested_num_stations_5g} 5g clients simultaneously!")
+            logging.info(message)
+            pytest.skip(message)
+
+        return radio_dict_2g, radio_dict_5g
+
     def client_connect_using_radio(self, ssid="[BLANK]", passkey="[BLANK]", security="wpa2", mode="BRIDGE", band=None,
                                    vlan_id=[None], radio=None, client_type=0, station_name=[], dut_data=None,
                                    sniff_radio=False, create_vlan=True, attach_port_info=True,
@@ -1710,11 +1805,11 @@ class lf_libs:
                 logging.error("VLAN ID is Unspecified in the VLAN Case")
                 pytest.skip("VLAN ID is Unspecified in the VLAN Case")
             else:
+                up = self.get_wan_upstream_ports()
+                upstream = list(up.values())
+                upstream_port = upstream[0] + "." + str(vlan_id[0])
                 if create_vlan:
                     self.add_vlan(vlan_ids=vlan_id, build=True)
-                    up = self.get_wan_upstream_ports()
-                    upstream = list(up.values())
-                    upstream_port = upstream[0] + "." + str(vlan_id[0])
                 else:
                     self.add_vlan(vlan_ids=vlan_id, build=False)
         print("upstream_port1:", upstream_port)
@@ -1763,7 +1858,7 @@ class lf_libs:
             client_connect.build()
         # fetch supplicant logs from lanforge
         try:
-            self.get_supplicant_logs(radio=str(radio))
+            self.get_supplicant_logs(radio=str(radio), sta_list=station_name)
         except Exception as e:
             print(e)
 
