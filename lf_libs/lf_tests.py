@@ -3420,6 +3420,35 @@ class lf_tests(lf_libs):
         kernel, message = roam_obj.run(file_n=file)
         report_dir_name = roam_obj.generate_report(csv_list=file, kernel_lst=kernel, current_path=str(x) + "/11r")
         logging.info(f"Test Report Directory : {report_dir_name}")
+        csv_data = {}
+        # fetch data from test result directory and attach in allure
+        for dirpath, dirnames, filenames in os.walk(report_dir_name):
+            print("Directory:", dirpath)
+            # Sort files in the directory
+            filenames.sort()
+            for filename in filenames:
+                file_path = os.path.join(dirpath, filename)
+                if dirpath == report_dir_name and filename.endswith(".pdf"):
+                    with open(file_path, "rb") as pdf:
+                        file_content = pdf.read()
+                        allure.attach(file_content, name="11r Roam Test Report", attachment_type=allure.attachment_type.PDF)
+                if "pcap" in dirpath and filename.endswith(".pcap"):
+                    with open(file_path, "rb") as pcap:
+                        file_content = pcap.read()
+                        allure.attach(file_content, name=f"Packet capture : {filename}",
+                                      attachment_type=allure.attachment_type.PCAP)
+                if "csv_data" in dirpath and filename.endswith(".csv"):
+                    with open(file_path, "rb") as csv_file:
+                        file_content = csv_file.read()
+                        allure.attach(file_content, name=f"CSV Data : {filename}",
+                                      attachment_type=allure.attachment_type.CSV)
+
+        pass_fail_messages = ["all stations are not connected to same ap for iteration ", "station's failed to get ip  after the test start", "station's failed to get ip  at the beginning"]
+        if message in pass_fail_messages:
+            return False, message
+        else:
+            return True, "Test Passed"
+
 
 
 if __name__ == '__main__':
