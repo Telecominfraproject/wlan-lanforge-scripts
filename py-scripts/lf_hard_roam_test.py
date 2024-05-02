@@ -749,15 +749,15 @@ class HardRoam(Realm):
     # This is where the main roaming functionality begins
     def run(self, file_n=None):
         try:
-            print("Setting both attenuators to zero attenuation at the beginning.")
-            logging.info("Setting both attenuators to zero attenuation at the beginning.")
-            ser_no = self.attenuator_serial()
-            print("Available attenuators :", ser_no[0], ser_no[1])
-            logging.info("Available attenuators :" + str(ser_no[0]) + " , " + str(ser_no[1]))
-            ser_1 = ser_no[0].split(".")[2]
-            ser_2 = ser_no[1].split(".")[2]
-            self.attenuator_modify(ser_1, "all", 0)
-            self.attenuator_modify(ser_2, "all", 0)
+            if self.soft_roam:
+                logging.info("Setting both attenuators to zero attenuation at the beginning.")
+                ser_no = self.attenuator_serial()
+                print("Available attenuators :", ser_no[0], ser_no[1])
+                logging.info("Available attenuators :" + str(ser_no[0]) + " , " + str(ser_no[1]))
+                ser_1 = ser_no[0].split(".")[2]
+                ser_2 = ser_no[1].split(".")[2]
+                self.attenuator_modify(ser_1, "all", 0)
+                self.attenuator_modify(ser_2, "all", 0)
         except Exception as e:
             logging.warning(str(e))
         finally:
