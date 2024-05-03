@@ -2995,9 +2995,8 @@ class lf_tests(lf_libs):
             upstream = list(up.values())
             upstream_port = upstream[0] + "." + str(vlan_id[0])
 
-        sta_got_ip = []
         radio = None
-        timeout_sec = 100 if no_of_sta_2g <= 8 and no_of_sta_5g <= 8 else 10
+        timeout_sec = 1
         for i in range(no_of_sta_2g):
             logging.info(f"Creating a 2G station on {ssid_2g_list[i]['ssid_name']} ssid...")
             for _radio in radio_dict_2g:
@@ -3007,17 +3006,17 @@ class lf_tests(lf_libs):
                 else:
                     radio_dict_2g[radio] -= 1
                 break
-            sta_got_ip.append(self.client_connect_using_radio(ssid=ssid_2g_list[i]['ssid_name'],
-                                                              security=ssid_2g_list[i]['security'],
-                                                              passkey=ssid_2g_list[i]['password'],
-                                                              mode=mode,
-                                                              radio=radio,
-                                                              station_name=[sta_names_2g[i]],
-                                                              attach_station_data=False,
-                                                              attach_port_info=False,
-                                                              timeout_sec=timeout_sec,
-                                                              vlan_id=vlan_id,
-                                                              create_vlan=False))
+            self.client_connect_using_radio(ssid=ssid_2g_list[i]['ssid_name'],
+                                            security=ssid_2g_list[i]['security'],
+                                            passkey=ssid_2g_list[i]['password'],
+                                            mode=mode,
+                                            radio=radio,
+                                            station_name=[sta_names_2g[i]],
+                                            attach_station_data=False,
+                                            attach_port_info=False,
+                                            timeout_sec=timeout_sec,
+                                            vlan_id=vlan_id,
+                                            create_vlan=False)
         for i in range(no_of_sta_5g):
             logging.info(f"Creating a 5G station on {ssid_5g_list[i]['ssid_name']} ssid...")
             for _radio in radio_dict_5g:
@@ -3027,17 +3026,20 @@ class lf_tests(lf_libs):
                 else:
                     radio_dict_5g[radio] -= 1
                 break
-            sta_got_ip.append(self.client_connect_using_radio(ssid=ssid_5g_list[i]['ssid_name'],
-                                                              security=ssid_5g_list[i]['security'],
-                                                              passkey=ssid_5g_list[i]['password'],
-                                                              mode=mode,
-                                                              radio=radio,
-                                                              station_name=[sta_names_5g[i]],
-                                                              attach_station_data=False,
-                                                              attach_port_info=False,
-                                                              timeout_sec=timeout_sec,
-                                                              vlan_id=vlan_id,
-                                                              create_vlan=False))
+            self.client_connect_using_radio(ssid=ssid_5g_list[i]['ssid_name'],
+                                            security=ssid_5g_list[i]['security'],
+                                            passkey=ssid_5g_list[i]['password'],
+                                            mode=mode,
+                                            radio=radio,
+                                            station_name=[sta_names_5g[i]],
+                                            attach_station_data=False,
+                                            attach_port_info=False,
+                                            timeout_sec=timeout_sec,
+                                            vlan_id=vlan_id,
+                                            create_vlan=False)
+
+        logging.info("Sleeping 60 seconds to let stations get IP address...")
+        time.sleep(60)
 
         logging.info("Fetching port info after all stations created")
         port_data = self.json_get(_req_url="port?fields=ip")
@@ -3048,9 +3050,13 @@ class lf_tests(lf_libs):
         logging.info("Adding Station Data to the report")
         dict_table_sta = {}
         start_sta, end_sta = 1, 0
+        failed = False
         for index, sta in enumerate(sta_names_2g):
             end_sta += 1
             result = self.json_get(_req_url="port/1/1/%s" % sta)
+            if ((no_of_sta_2g <= 8 and result['interface']['ip'] == '0.0.0.0')
+                    or (no_of_sta_2g > 8 and result['interface']['ip'] != '0.0.0.0')):
+                failed = True
             if "Key" not in dict_table_sta:
                 dict_table_sta["Key"] = list(result["interface"].keys())
             dict_table_sta[f"Value ({sta})"] = list(result["interface"].values())
@@ -3066,6 +3072,9 @@ class lf_tests(lf_libs):
         for index, sta in enumerate(sta_names_5g):
             end_sta += 1
             result = self.json_get(_req_url="port/1/1/%s" % sta)
+            if ((no_of_sta_5g <= 8 and result['interface']['ip'] == '0.0.0.0')
+                    or (no_of_sta_5g > 8 and result['interface']['ip'] != '0.0.0.0')):
+                failed = True
             if "Key" not in dict_table_sta:
                 dict_table_sta["Key"] = list(result["interface"].keys())
             dict_table_sta[f"Value ({sta})"] = list(result["interface"].values())
@@ -3078,16 +3087,17 @@ class lf_tests(lf_libs):
                 dict_table_sta.clear()
 
         if no_of_sta_2g > 8 or no_of_sta_5g > 8:
-            if True in sta_got_ip:
+            self.pre_cleanup()
+            if failed:
                 logging.info("Some/All stations got the IP when more than 8 SSIDs were configured on a single band!")
                 pytest.fail("Some/All stations got the IP when more than 8 SSIDs were configured on a single band!")
             else:
                 logging.info("As expected, None of the stations got the IP when more than 8 SSIDs were configured "
                              "on a single band!")
-                self.pre_cleanup()
                 return
 
-        if False in sta_got_ip:
+        if failed:
+            self.pre_cleanup()
             logging.info("Some/All Stations didn't get IP address")
             pytest.fail("Some/All Stations didn't get IP address")
         logging.info("All Stations got IP address")
