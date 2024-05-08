@@ -3365,9 +3365,9 @@ class lf_tests(lf_libs):
                 description = f"{e}"
         return pass_fail, description
 
-    def roam_test(self, ap1_bssid="90:3c:b3:6c:46:dd", ap2_bssid="90:3c:b3:6c:47:2d", fiveg_radio="1.1.wiphy4",
-                  twog_radio="1.1.wiphy4", sixg_radio="1.1.wiphy4",
-                  band="twog", sniff_radio_="1.1.wiphy5", num_sta=1, security="wpa2", security_key="Openwifi",
+    def roam_test(self, ap1_bssid="90:3c:b3:6c:46:dd", ap2_bssid="90:3c:b3:6c:47:2d", fiveg_radio="1.1.wiphy2",
+                  twog_radio="1.1.wiphy1", sixg_radio="1.1.wiphy3",
+                  band="twog", sniff_radio_="1.1.wiphy4", num_sta=1, security="wpa2", security_key="Openwifi",
                   ssid="OpenWifi", upstream="1.1.eth1", duration=None, iteration=1, channel="11", option="ota",
                   dut_name=["edgecore_eap101", "edgecore_eap102"], traffic_type="lf_udp", eap_method=None,
                   eap_identity=None, eap_password=None, pairwise_cipher=None, groupwise_cipher=None,
