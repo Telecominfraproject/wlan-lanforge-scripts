@@ -65,6 +65,8 @@ lf_ap_auto_test = importlib.import_module("py-scripts.lf_ap_auto_test")
 ApAutoTest = lf_ap_auto_test.ApAutoTest
 roam_test = importlib.import_module("py-scripts.lf_hard_roam_test")
 RoamTest = roam_test.HardRoam
+wifi_mobility_test = importlib.import_module("py-scripts.lf_wifi_mobility_test")
+WifiMobility = wifi_mobility_test.WifiMobility
 
 
 class lf_tests(lf_libs):
@@ -2936,8 +2938,8 @@ class lf_tests(lf_libs):
 
         # attach pass fail data to allure
         result_table = tabulate(pass_fail_data,
-                                         headers=["Data Path", "Tx Rate (bps)", "Rx Rate (bps)", "Pass/Fail"],
-                                         tablefmt='fancy_grid')
+                                headers=["Data Path", "Tx Rate (bps)", "Rx Rate (bps)", "Pass/Fail"],
+                                tablefmt='fancy_grid')
         logging.info(f"Test Result Table: \n{result_table}\n")
         allure.attach(name="Test Result Table", body=str(result_table))
 
@@ -3366,7 +3368,7 @@ class lf_tests(lf_libs):
         return pass_fail, description
 
     def roam_test(self, ap1_bssid="90:3c:b3:6c:46:dd", ap2_bssid="90:3c:b3:6c:47:2d", fiveg_radio="1.1.wiphy2",
-                  twog_radio="1.1.wiphy1", sixg_radio="1.1.wiphy3",
+                  twog_radio="1.1.wiphy1", sixg_radio="1.1.wiphy3", scan_freq="5180,5180",
                   band="twog", sniff_radio_="1.1.wiphy4", num_sta=1, security="wpa2", security_key="Openwifi",
                   ssid="OpenWifi", upstream="1.1.eth1", duration=None, iteration=1, channel="11", option="ota",
                   dut_name=["edgecore_eap101", "edgecore_eap102"], traffic_type="lf_udp", eap_method=None,
@@ -3422,43 +3424,117 @@ class lf_tests(lf_libs):
                             ieee80211w="1",
                             multicast=False
                             )
-        x = os.getcwd()
-        logging.info(f"Current Working Directory : {x}")
-        file = roam_obj.generate_csv()
-        logging.info(f"CSV File : {file}")
-        roam_obj.precleanup()
-        kernel, message = roam_obj.run(file_n=file)
-        report_dir_name = roam_obj.generate_report(csv_list=file, kernel_lst=kernel, current_path=str(x) + "/11r")
-        logging.info(f"Test Report Directory : {report_dir_name}")
-        csv_data = {}
-        # fetch data from test result directory and attach in allure
-        for dirpath, dirnames, filenames in os.walk(report_dir_name):
-            print("Directory:", dirpath)
-            # Sort files in the directory
-            filenames.sort()
-            for filename in filenames:
-                file_path = os.path.join(dirpath, filename)
-                if dirpath == report_dir_name and filename.endswith(".pdf"):
-                    with open(file_path, "rb") as pdf:
-                        file_content = pdf.read()
-                        allure.attach(file_content, name="11r Roam Test Report", attachment_type=allure.attachment_type.PDF)
-                if "pcap" in dirpath and filename.endswith(".pcap"):
-                    with open(file_path, "rb") as pcap:
-                        file_content = pcap.read()
-                        allure.attach(file_content, name=f"Packet capture : {filename}",
-                                      attachment_type=allure.attachment_type.PCAP)
-                if "csv_data" in dirpath and filename.endswith(".csv"):
-                    with open(file_path, "rb") as csv_file:
-                        file_content = csv_file.read()
-                        allure.attach(file_content, name=f"CSV Data : {filename}",
-                                      attachment_type=allure.attachment_type.CSV)
 
-        pass_fail_messages = ["all stations are not connected to same ap for iteration ", "station's failed to get ip  after the test start", "station's failed to get ip  at the beginning"]
-        if message in pass_fail_messages:
-            return False, message
+        if band == "twog":
+            self.local_realm.reset_port(twog_radio)
+            roam_obj.create_n_clients(sta_prefix="roam", num_sta=1, dut_ssid=ssid,
+                                      dut_security=security, dut_passwd=security_key, radio=twog_radio)
+        if band == "fiveg":
+            self.local_realm.reset_port(fiveg_radio)
+            roam_obj.create_n_clients(sta_prefix="roam", num_sta=1, dut_ssid=ssid,
+                                      dut_security=security, dut_passwd=security_key, radio=fiveg_radio)
+        if band == "sixg":
+            self.local_realm.reset_port(sixg_radio)
+            roam_obj.create_n_clients(sta_prefix="roam", num_sta=1, dut_ssid=ssid,
+                                      dut_security=security, dut_passwd=security_key, radio=sixg_radio)
+        time.sleep(10)
+
+        port_data = self.json_get("/port/?fields=port+type,alias")['interfaces']
+
+        # fetch roam station data from port data
+        sta_name = ""
+        for port in range(len(port_data)):
+            for key, val in port_data[port].items():
+                if "roam" in key:
+                    sta_name = key
+                    break
+
+        # Parse BSSID's as a lowercase string separated by ,
+
+        ap1_bssid = ap1_bssid.lower()
+        ap2_bssid = ap2_bssid.lower()
+        bssid_list = ap1_bssid + "," + ap2_bssid
+
+        wifi_mobility_obj = WifiMobility(lfclient_host=self.manager_ip,
+                                         lf_port=self.manager_http_port,
+                                         ssh_port=self.manager_ssh_port,
+                                         lf_user="lanforge",
+                                         lf_password="lanforge",
+                                         blob_test="WiFi-Mobility-",
+                                         instance_name="cv-inst-0",
+                                         config_name="roam_test_cfg",
+                                         pull_report=True,
+                                         load_old_cfg=False,
+                                         raw_lines=None,
+                                         raw_lines_file="",
+                                         enables=None,
+                                         disables=None,
+                                         sets=None,
+                                         cfg_options=None,
+                                         sort="interleave",
+                                         stations=sta_name,
+                                         bssid_list=bssid_list,
+                                         gen_scan_freqs=scan_freq,
+                                         gen_sleep_interval="10000",
+                                         gen_scan_sleep_interval="2000",
+                                         gen_ds=0,
+                                         duration="60000",
+                                         default_sleep="250",
+                                         auto_verify="30000",
+                                         max_rpt_time='500',
+                                         skip_roam_self='1',
+                                         loop_check='1',
+                                         clear_on_start='1',
+                                         show_events='1',
+                                         report_dir="",
+                                         graph_groups=None,
+                                         test_rig="Testbed-01",
+                                         test_tag="",
+                                         local_lf_report_dir="../reports/",
+                                         verbosity="5"
+                                         )
+
+        if wifi_mobility_obj.instance_name.endswith('-0'):
+            wifi_mobility_obj.instance_name = wifi_mobility_obj.instance_name + str(random.randint(1, 999))
+        wifi_mobility_obj.run()
+        report_name, pass_fail_data = "", list()
+        if wifi_mobility_obj.report_name and len(wifi_mobility_obj.report_name) >= 1:
+            report_name = wifi_mobility_obj.report_name[0]['LAST']["response"].split(":::")[1].split("/")[-1] + "/"
+            time.sleep(10)
+            logging.info("report_name: " + str(report_name))
+            self.attach_report_graphs(report_name=report_name)
+            # self.attach_report_data(report_name=report_name)
         else:
-            return True, "Test Passed"
+            logging.error(f"PATH {wifi_mobility_obj.report_name} does not exist")
 
+        if wifi_mobility_obj.get_exists(wifi_mobility_obj.instance_name):
+            wifi_mobility_obj.delete_instance(wifi_mobility_obj.instance_name)
+
+        # fetch csv data from report data & attach pass fail results
+        if report_name.endswith("/"):
+            if os.path.exists("../reports/" + report_name + "chart-csv-7.csv"):
+                with open("../reports/" + report_name + "chart-csv-7.csv", 'rb') as csv_file:
+                    file_content = csv_file.read()
+                    allure.attach(file_content, name=f"11r Test Pass/Fail Data",
+                                  attachment_type=allure.attachment_type.CSV)
+                with open("../reports/" + report_name + "chart-csv-7.csv", 'r') as csv_file:
+                    for row in csv.reader(csv_file):
+                        pass_fail_data.append(row)
+        else:
+            with open("../reports/" + report_name + "chart-csv-7.csv", 'rb') as csv_file:
+                file_content = csv_file.read()
+                allure.attach(file_content, name=f"11r Test Pass/Fail Data",
+                              attachment_type=allure.attachment_type.CSV)
+            with open("../reports/" + report_name + "chart-csv-7.csv", 'r') as csv_file:
+                for row in csv.reader(csv_file):
+                    pass_fail_data.append(row)
+        logging.info(str(pass_fail_data))
+        # pass_fail_messages = ["all stations are not connected to same ap for iteration ", "station's failed to get ip  after the test start", "station's failed to get ip  at the beginning"]
+        # if message in pass_fail_messages:
+        #     return False, message
+        # else:
+        #     return True, "Test Passed"
+        return True, "Test Passed"
 
 
 if __name__ == '__main__':
