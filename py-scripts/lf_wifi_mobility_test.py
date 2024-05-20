@@ -93,6 +93,7 @@ gen_aps1: 90:3c:b3:9d:69:2e
 gen_aps2: 34:EF:B6:AF:49:07
 
 """
+import random
 import sys
 import os
 import importlib
@@ -125,7 +126,7 @@ class WifiMobility(cv_test):
                  lf_user="lanforge",
                  lf_password="lanforge",
                  blob_test="WiFi-Mobility-",
-                 instance_name="cv-inst-0",
+                 instance_name="roam-inst-0",
                  config_name="roam_test_cfg",
                  pull_report=True,
                  load_old_cfg=False,
@@ -207,9 +208,6 @@ class WifiMobility(cv_test):
         self.local_lf_report_dir = local_lf_report_dir
         self.verbosity = verbosity
 
-    def delete_existing_window(self):
-        self.delete_instance(self.instance_name)  # Deletes existing window of Roam Test
-
     def create_scenario(self, scenario_name="Automation", raw_line=""):
         self.pass_raw_lines_to_cv(scenario_name=scenario_name, Rawline=raw_line)  # creates a dummy scenario
 
@@ -260,6 +258,13 @@ class WifiMobility(cv_test):
             gen_scan_freqs = self.gen_scan_freqs.split(",")
             gen_scan_freqs = "gen_scan_freqs: " + " ".join(gen_scan_freqs)
             self.cfg_options.append(gen_scan_freqs)
+
+        if self.gen_sleep_interval != "":
+            self.cfg_options.append("gen_sleep_interval: " + str(self.gen_sleep_interval))
+        if self.gen_scan_sleep_interval != "":
+            self.cfg_options.append("gen_scan_sleep_interval: " + str(self.gen_scan_sleep_interval))
+        if self.gen_ds != 0:
+            self.cfg_options.append("gen_ds: " + str(self.gen_ds))
         if self.duration != "":
             self.cfg_options.append("duration: " + str(self.duration))
         if self.default_sleep != "":
@@ -304,9 +309,8 @@ class WifiMobility(cv_test):
                                      self.pull_report, self.lfclient_host, self.lf_user, self.lf_password,
                                      cv_cmds, ssh_port=self.ssh_port, graph_groups_file=self.graph_groups,
                                      local_lf_report_dir=self.local_lf_report_dir)
-        except:
-            logger.info("There is already an instance of 'WiFi Mobility' Test present in GUI.")
-            logger.info("Before deleting, make sure to save the report of running instance if needed.")
+        except Exception as e:
+            logger.error(str(e))
             exit(0)
 
         self.rm_text_blob(self.config_name, self.blob_test)  # To delete old config with same name
@@ -382,10 +386,12 @@ INCLUDE_IN_README: False
                                "will be selected.  Example: 1.1.sta001,1.1.wlan0,...")
     required.add_argument("--bssid_list", type=str, help="pass the list of bssid's of AP1,AP2,etc.,",
                           default="90:3c:b3:9d:69:2e,34:EF:B6:AF:49:07")
-    required.add_argument("-pull_report", "--pull_report", default=False, action='store_true',
+    required.add_argument("-pull_report", "--pull_report", default=True, action='store_true',
                           help="pull reports from lanforge reports directory to current working directory")
     required.add_argument('--help_summary', default=None, action="store_true",
                           help='Show summary of what this script does')
+    optional.add_argument("-i", "--instance_name", type=str, default="roam-inst-0",
+                          help="Instance name of the ROAM Test Window")
     optional.add_argument('--test_duration', type=str, help='Test Duration (in ms)',
                           default="60000")
     optional.add_argument('--default_sleep', type=str, help='delay to pause between roam commands (in ms)',
@@ -454,7 +460,7 @@ INCLUDE_IN_README: False
                                      lf_port=args.port,
                                      lf_user=args.lf_user,
                                      lf_password=args.lf_password,
-                                     instance_name="cv-inst-0",
+                                     instance_name=args.instance_name,
                                      config_name=args.config_name,
                                      stations=args.stations,
                                      bssid_list=args.bssid_list,
@@ -480,13 +486,13 @@ INCLUDE_IN_README: False
                                      local_lf_report_dir=args.local_report_dir,
                                      verbosity=args.verbosity
                                      )
+    if wifi_mobility_obj.instance_name.endswith('-0'):
+        wifi_mobility_obj.instance_name = wifi_mobility_obj.instance_name + str(random.randint(1, 9999))
 
     wifi_mobility_obj.run()
 
-    # if wifi_mobility_obj.kpi_results_present():
-    #     logger.info("lf_wifi_mobility_test generated kpi.csv")
-    # else:
-    #     logger.info("lf_wifi_mobility_test did not generate kpi.csv)")
+    if wifi_mobility_obj.get_exists(wifi_mobility_obj.instance_name):
+        wifi_mobility_obj.delete_instance(instance_name=wifi_mobility_obj.instance_name)
 
 
 if __name__ == "__main__":
