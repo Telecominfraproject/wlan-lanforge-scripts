@@ -3502,7 +3502,7 @@ class lf_tests(lf_libs):
             report_name = wifi_mobility_obj.report_name[0]['LAST']["response"].split(":::")[1].split("/")[-1] + "/"
             time.sleep(10)
             logging.info("report_name: " + str(report_name))
-            self.attach_report_graphs(report_name=report_name)
+            self.attach_report_graphs(report_name=report_name, pdf_name="WiFi-Mobility (Roam Test) PDF Report")
             # self.attach_report_data(report_name=report_name)
         else:
             logging.error(f"PATH {wifi_mobility_obj.report_name} does not exist")
@@ -3511,16 +3511,9 @@ class lf_tests(lf_libs):
             wifi_mobility_obj.delete_instance(wifi_mobility_obj.instance_name)
 
         # fetch csv data from report data & attach pass fail results
-        if report_name.endswith("/"):
-            if os.path.exists("../reports/" + report_name + "chart-csv-7.csv"):
-                with open("../reports/" + report_name + "chart-csv-7.csv", 'rb') as csv_file:
-                    file_content = csv_file.read()
-                    allure.attach(file_content, name=f"11r Test Pass/Fail Data",
-                                  attachment_type=allure.attachment_type.CSV)
-                with open("../reports/" + report_name + "chart-csv-7.csv", 'r') as csv_file:
-                    for row in csv.reader(csv_file):
-                        pass_fail_data.append(row)
-        else:
+        if not report_name.endswith("/"):
+            report_name = report_name + "/"
+        if os.path.exists("../reports/" + report_name + "chart-csv-7.csv"):
             with open("../reports/" + report_name + "chart-csv-7.csv", 'rb') as csv_file:
                 file_content = csv_file.read()
                 allure.attach(file_content, name=f"11r Test Pass/Fail Data",
@@ -3528,6 +3521,9 @@ class lf_tests(lf_libs):
             with open("../reports/" + report_name + "chart-csv-7.csv", 'r') as csv_file:
                 for row in csv.reader(csv_file):
                     pass_fail_data.append(row)
+        else:
+            logging.info(f"{report_name} Does not exist.")
+
         logging.info(str(pass_fail_data))
         # pass_fail_messages = ["all stations are not connected to same ap for iteration ", "station's failed to get ip  after the test start", "station's failed to get ip  at the beginning"]
         # if message in pass_fail_messages:
