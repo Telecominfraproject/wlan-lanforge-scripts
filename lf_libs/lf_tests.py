@@ -3449,6 +3449,12 @@ class lf_tests(lf_libs):
                     sta_name = key
                     break
 
+        #  enable over the ds in generate script if passed
+        if option == "otd":
+            gen_ds = 1
+        else:
+            gen_ds = 0
+
         # Parse BSSID's as a lowercase string separated by ,
 
         ap1_bssid = ap1_bssid.lower()
@@ -3477,7 +3483,7 @@ class lf_tests(lf_libs):
                                          gen_scan_freqs=scan_freq,
                                          gen_sleep_interval="10000",
                                          gen_scan_sleep_interval="2000",
-                                         gen_ds=0,
+                                         gen_ds=gen_ds,
                                          duration="60000",
                                          default_sleep="250",
                                          auto_verify="30000",
