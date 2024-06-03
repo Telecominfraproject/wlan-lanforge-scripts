@@ -903,7 +903,7 @@ class lf_libs:
         if count == 0:
             return False
 
-    def start_sniffer(self, radio_channel=None, radio=None, test_name="sniff_radio", duration=60):
+    def start_sniffer(self, radio_channel=11, radio="wiphy0", test_name="sniff_radio", duration=60):
         self.pcap_name = test_name + ".pcap"
         self.pcap_obj = SniffRadio(lfclient_host=self.manager_ip, lfclient_port=self.manager_http_port, radio=radio,
                                    channel=radio_channel, monitor_name="moni3a")

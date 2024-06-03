@@ -3376,6 +3376,12 @@ class lf_tests(lf_libs):
                   private_key=None, pk_passwd=None, ca_cert=None, eap_phase1=None, eap_phase2=None,
                   soft_roam=False, sta_type="11r"):
 
+        # create monitor and start sniffer & run test in parallel
+        if "1.1." in sniff_radio_:
+            sniff_radio_.strip("1.1.")
+        t1 = threading.Thread(target=self.start_sniffer, args=(channel, sniff_radio_, "11r-roam-test-capture", 300))
+        t1.start()
+
         roam_obj = RoamTest(lanforge_ip=self.manager_ip,
                             lanforge_port=self.manager_http_port,
                             lanforge_ssh_port=self.manager_ssh_port,
@@ -3427,16 +3433,18 @@ class lf_tests(lf_libs):
 
         if band == "twog":
             self.local_realm.reset_port(twog_radio)
-            roam_obj.create_n_clients(sta_prefix="roam", num_sta=1, dut_ssid=ssid,
-                                      dut_security=security, dut_passwd=security_key, radio=twog_radio)
+            create_sta = roam_obj.create_n_clients(sta_prefix="roam", num_sta=1, dut_ssid=ssid,
+                                                   dut_security=security, dut_passwd=security_key, radio=twog_radio)
         if band == "fiveg":
             self.local_realm.reset_port(fiveg_radio)
-            roam_obj.create_n_clients(sta_prefix="roam", num_sta=1, dut_ssid=ssid,
-                                      dut_security=security, dut_passwd=security_key, radio=fiveg_radio)
+            create_sta = roam_obj.create_n_clients(sta_prefix="roam", num_sta=1, dut_ssid=ssid,
+                                                   dut_security=security, dut_passwd=security_key, radio=fiveg_radio)
         if band == "sixg":
             self.local_realm.reset_port(sixg_radio)
-            roam_obj.create_n_clients(sta_prefix="roam", num_sta=1, dut_ssid=ssid,
-                                      dut_security=security, dut_passwd=security_key, radio=sixg_radio)
+            create_sta = roam_obj.create_n_clients(sta_prefix="roam", num_sta=1, dut_ssid=ssid,
+                                                   dut_security=security, dut_passwd=security_key, radio=sixg_radio)
+        if not create_sta:
+            return False, "Stations failed to get IP address"
         time.sleep(10)
 
         port_data = self.json_get("/port/?fields=port+type,alias")['interfaces']
@@ -3481,14 +3489,14 @@ class lf_tests(lf_libs):
                                          stations=sta_name,
                                          bssid_list=bssid_list,
                                          gen_scan_freqs=scan_freq,
-                                         gen_sleep_interval="10000",
-                                         gen_scan_sleep_interval="2000",
+                                         gen_sleep_interval="5000",
+                                         gen_scan_sleep_interval="1000",
                                          gen_ds=gen_ds,
                                          duration="60000",
                                          default_sleep="250",
-                                         auto_verify="30000",
-                                         max_rpt_time='500',
-                                         skip_roam_self='1',
+                                         auto_verify="10000",
+                                         max_rpt_time='1000',
+                                         skip_roam_self='0',
                                          loop_check='1',
                                          clear_on_start='1',
                                          show_events='1',
@@ -3502,24 +3510,27 @@ class lf_tests(lf_libs):
 
         if wifi_mobility_obj.instance_name.endswith('-0'):
             wifi_mobility_obj.instance_name = wifi_mobility_obj.instance_name + str(random.randint(1, 999))
-        # create monitor and start sniffer & run test in parallel
-        t1 = threading.Thread(target=wifi_mobility_obj.run())
-        t1.start()
-        self.start_sniffer(sniff_radio_, "11r-roam-test-capture", channel, 300)
+
+        t2 = threading.Thread(target=wifi_mobility_obj.run)
+        t2.start()
+
+        # wait until the completion of mobility test and sniffer
+        t2.join()
         t1.join()
 
+        # stop sniffer and attach pcap
+        try:
+            self.stop_sniffer(['11r-roam-test-capture'])
+        except Exception as e:
+            logging.error(f"error {e} : Packet Capture failed.")
         report_name, pass_fail_data = "", list()
         if wifi_mobility_obj.report_name and len(wifi_mobility_obj.report_name) >= 1:
             report_name = wifi_mobility_obj.report_name[0]['LAST']["response"].split(":::")[1].split("/")[-1] + "/"
             time.sleep(10)
             logging.info("report_name: " + str(report_name))
             self.attach_report_graphs(report_name=report_name, pdf_name="WiFi-Mobility (Roam Test) PDF Report")
-            # stop sniffer and attach pcap
-            self.stop_sniffer()
         else:
             logging.error(f"PATH {wifi_mobility_obj.report_name} does not exist")
-            # stop sniffer and attach pcap
-            self.stop_sniffer()
 
         if wifi_mobility_obj.get_exists(wifi_mobility_obj.instance_name):
             wifi_mobility_obj.delete_instance(wifi_mobility_obj.instance_name)
@@ -3539,12 +3550,19 @@ class lf_tests(lf_libs):
             logging.info(f"{report_name} Does not exist.")
 
         logging.info(str(pass_fail_data))
-        # pass_fail_messages = ["all stations are not connected to same ap for iteration ", "station's failed to get ip  after the test start", "station's failed to get ip  at the beginning"]
-        # if message in pass_fail_messages:
-        #     return False, message
-        # else:
-        #     return True, "Test Passed"
-        return True, "Test Passed"
+        # prepare pass fail data to be displayed in a table
+        if len(pass_fail_data) > 1:
+            column_data = pass_fail_data[0]
+            row_data = [pass_fail_data[1:]]
+            message = tabulate(row_data, headers=column_data, tablefmt="rounded_grid")
+        else:
+            message = "Test Passed"
+        # return false when any of the roam result is 'FAIL' in pass fail data
+        for i in pass_fail_data[1:]:
+            if i[2] == 'FAIL':
+                return False, message
+        else:
+            return True, message
 
 
 if __name__ == '__main__':
