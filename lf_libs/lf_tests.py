@@ -1217,7 +1217,7 @@ class lf_tests(lf_libs):
                     print(e)
                     pass
             report_name = wificapacity_obj.report_name[0]['LAST']["response"].split(":::")[1].split("/")[-1] + "/"
-            time.sleep(10)
+            time.sleep(15)
             logging.info("report_name: " + str(report_name))
             self.attach_report_graphs(report_name=report_name)
             self.attach_report_kpi(report_name=report_name)
