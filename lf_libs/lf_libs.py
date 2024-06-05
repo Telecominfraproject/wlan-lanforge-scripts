@@ -1157,6 +1157,7 @@ class lf_libs:
 
         if build:
             self.chamber_view(raw_lines="custom")
+            time.sleep(10)
             if self.scenario == "dhcp-external":
                 for port in port_list:
                     data = {
