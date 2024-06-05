@@ -3444,6 +3444,11 @@ class lf_tests(lf_libs):
             create_sta = roam_obj.create_n_clients(sta_prefix="roam", num_sta=1, dut_ssid=ssid,
                                                    dut_security=security, dut_passwd=security_key, radio=sixg_radio)
         if not create_sta:
+            # stop sniffer if station is not created
+            try:
+                self.stop_sniffer(['11r-roam-test-capture'])
+            except Exception as e:
+                logging.error(f"error {e} : Packet Capture failed.")
             return False, "Stations failed to get IP address"
         time.sleep(10)
 
