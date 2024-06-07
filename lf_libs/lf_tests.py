@@ -3557,9 +3557,7 @@ class lf_tests(lf_libs):
         logging.info(str(pass_fail_data))
         # prepare pass fail data to be displayed in a table
         if len(pass_fail_data) > 1:
-            column_data = pass_fail_data[0]
-            row_data = [pass_fail_data[1:]]
-            message = tabulate(row_data, headers=column_data, tablefmt="rounded_grid")
+            message = tabulate(pass_fail_data, headers="firstrow", tablefmt="rounded_grid")
         else:
             message = "Test Passed"
         # return false when any of the roam result is 'FAIL' in pass fail data
