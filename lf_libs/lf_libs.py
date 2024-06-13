@@ -925,6 +925,10 @@ class lf_libs:
             allure.attach.file(source=self.pcap_name,
                                name="pcap_file " + ", ".join(sta_list), attachment_type=allure.attachment_type.PCAP)
             logging.info("pcap file name: " + str(self.pcap_name))
+            sniff_radio = self.pcap_obj.radio
+            logging.info("In stop sniffer radio:- " + str(sniff_radio))
+            self.set_radio_channel(radio=sniff_radio, channel="AUTO")
+            logging.info("After stop sniffer, Sniff radio channel is Auto:- Done")
         except Exception as e:
             logging.error(e)
 
