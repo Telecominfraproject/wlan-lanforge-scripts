@@ -3443,6 +3443,10 @@ class lf_tests(lf_libs):
             self.local_realm.reset_port(sixg_radio)
             create_sta = roam_obj.create_n_clients(sta_prefix="roam", num_sta=1, dut_ssid=ssid,
                                                    dut_security=security, dut_passwd=security_key, radio=sixg_radio)
+        if band == "both":
+            self.local_realm.reset_port("1.1.wiphy5")
+            create_sta = roam_obj.create_n_clients(sta_prefix="roam", num_sta=1, dut_ssid=ssid,
+                                                   dut_security=security, dut_passwd=security_key, radio="1.1.wiphy5")
         if not create_sta:
             # stop sniffer if station is not created
             try:
@@ -3501,7 +3505,7 @@ class lf_tests(lf_libs):
                                          default_sleep="250",
                                          auto_verify="10000",
                                          max_rpt_time='1000',
-                                         skip_roam_self='0',
+                                         skip_roam_self='1',
                                          loop_check='1',
                                          clear_on_start='1',
                                          show_events='1',
