@@ -1874,8 +1874,19 @@ class lf_libs:
         else:
             return False
 
-
-
+    def convert_to_gbps(self, value="1Mbps"):
+        """ Convert values to Gbps """
+        number = int(''.join([char for char in value if char.isdigit()]))
+        unit = ''.join([char for char in value if char.isalpha()])
+        unit = unit.lower()
+        if unit == 'gbps':
+            return number
+        elif unit == 'mbps':
+            return number / 1000
+        elif unit == 'kbps':
+            return number / 1000000
+        else:
+            raise ValueError("Unknown unit")
 
 
 class Report:
