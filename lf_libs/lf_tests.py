@@ -969,17 +969,19 @@ class lf_tests(lf_libs):
         dict_all_radios_2g = {"wave2_2g_radios": self.wave2_2g_radios,
                               "wave1_radios": self.wave1_radios, "mtk_radios": self.mtk_radios,
                               "ax200_radios": self.ax200_radios,
+                              "be200_radios": self.be200_radios,
                               "ax210_radios": self.ax210_radios}
 
         dict_all_radios_5g = {"wave2_5g_radios": self.wave2_5g_radios,
                               "wave1_radios": self.wave1_radios, "mtk_radios": self.mtk_radios,
                               "ax200_radios": self.ax200_radios,
+                              "be200_radios": self.be200_radios,
                               "ax210_radios": self.ax210_radios}
 
-        dict_all_radios_6g = {"ax210_radios": self.ax210_radios}
+        dict_all_radios_6g = {"be200_radios": self.be200_radios, "ax210_radios": self.ax210_radios}
 
         max_station_per_radio = {"wave2_2g_radios": 64, "wave2_5g_radios": 64, "wave1_radios": 64, "mtk_radios": 19,
-                                 "ax200_radios": 1, "ax210_radios": 1}
+                                 "ax200_radios": 1, "ax210_radios": 1, "be200_radios": 1}
         radio_data = {}
         sniff_radio = ""
 
@@ -1493,9 +1495,11 @@ class lf_tests(lf_libs):
 
             # clean l3 traffics which won't get cleaned by deleting old scenario in CV
             self.client_disconnect(clean_l3_traffic=True)
-            all_radio_5g = self.wave2_5g_radios + self.wave1_radios + self.mtk_radios + self.ax200_radios + self.ax210_radios
+            all_radio_5g = (self.wave2_5g_radios + self.wave1_radios + self.mtk_radios + self.ax200_radios +
+                            self.be200_radios + self.ax210_radios)
             logging.info("All 5g radios" + str(all_radio_5g))
-            all_radio_2g = self.wave2_2g_radios + self.wave1_radios + self.mtk_radios + self.ax200_radios + self.ax210_radios
+            all_radio_2g = (self.wave2_2g_radios + self.wave1_radios + self.mtk_radios + self.ax200_radios +
+                            self.be200_radios + self.ax210_radios)
             logging.info("All 2g radios" + str(all_radio_2g))
             radio = all_radio_5g[:2] if band == "5G" else all_radio_2g[:2]
             logging.info("Radios: " + str(radio))
@@ -2118,9 +2122,11 @@ class lf_tests(lf_libs):
                                "of data_rates 40% of throughput_1 and 40% of throughput_4 as throughput_7")
             self.client_disconnect(clear_all_sta=True, clean_l3_traffic=True)
             sta = list(map(lambda i: f"sta000{i}", range(3)))
-            all_radio_5g = self.wave2_5g_radios + self.wave1_radios + self.mtk_radios + self.ax200_radios + self.ax210_radios
+            all_radio_5g = (self.wave2_5g_radios + self.wave1_radios + self.mtk_radios + self.ax200_radios +
+                            self.be200_radios + self.ax210_radios)
             logging.info("All 5g radios" + str(all_radio_5g))
-            all_radio_2g = self.wave2_2g_radios + self.wave1_radios + self.mtk_radios + self.ax200_radios + self.ax210_radios
+            all_radio_2g = (self.wave2_2g_radios + self.wave1_radios + self.mtk_radios + self.ax200_radios +
+                            self.be200_radios + self.ax210_radios)
             logging.info("All 2g radios" + str(all_radio_2g))
             if len(all_radio_5g) < 3:
                 pytest.fail("3 Radios are not available")
@@ -2393,10 +2399,12 @@ class lf_tests(lf_libs):
         batch_size = batch_size
         if band == "twog":
             station_name = self.twog_prefix
-            radio_prefix = self.wave2_2g_radios + self.wave1_radios + self.mtk_radios + self.ax200_radios + self.ax210_radios
+            radio_prefix = (self.wave2_2g_radios + self.wave1_radios + self.mtk_radios + self.ax200_radios +
+                            self.be200_radios + self.ax210_radios)
         elif band == "fiveg":
             station_name = self.fiveg_prefix
-            radio_prefix = self.wave2_5g_radios + self.wave1_radios + self.mtk_radios + self.ax200_radios + self.ax210_radios
+            radio_prefix = (self.wave2_5g_radios + self.wave1_radios + self.mtk_radios + self.ax200_radios +
+                            self.be200_radios + self.ax210_radios)
         print("station_name:", station_name)
         print("radio:", radio_prefix)
 
@@ -2684,12 +2692,14 @@ class lf_tests(lf_libs):
         # selecting radio(s) based on the requested bands of the client(s)
         dict_all_radios_2g = {"wave2_2g_radios": self.wave2_2g_radios, "wave1_radios": self.wave1_radios,
                               "mtk_radios": self.mtk_radios, "ax200_radios": self.ax200_radios,
+                              "be200_radios": self.be200_radios,
                               "ax210_radios": self.ax210_radios}
         dict_all_radios_5g = {"wave2_5g_radios": self.wave2_5g_radios, "wave1_radios": self.wave1_radios,
                               "mtk_radios": self.mtk_radios, "ax200_radios": self.ax200_radios,
+                              "be200_radios": self.be200_radios,
                               "ax210_radios": self.ax210_radios}
         max_station_per_radio = {"wave2_2g_radios": 64, "wave2_5g_radios": 64, "wave1_radios": 64, "mtk_radios": 19,
-                                 "ax200_radios": 1, "ax210_radios": 1}
+                                 "ax200_radios": 1, "ax210_radios": 1, "be200_radios": 1}
         radio_name_2g = []
         radio_name_5g = []
         if band_2g is True and band_5g is True:  # a 2G and a 5G station
@@ -2857,6 +2867,7 @@ class lf_tests(lf_libs):
 
         dict_all_radios_ax = {"mtk_radios": self.mtk_radios,
                               "ax200_radios": self.ax200_radios,
+                              "be200_radios": self.be200_radios,
                               "ax210_radios": self.ax210_radios}
         selected_ax_radio = None
         for radio in dict_all_radios_ax:
@@ -3414,9 +3425,11 @@ class lf_tests(lf_libs):
                                                          dut_data=dut_data)
                     sta_list = sta_list + list(station_result.keys())
                 else:
-                    all_radio_5g = self.wave2_5g_radios + self.wave1_radios + self.mtk_radios + self.ax200_radios + self.ax210_radios
+                    all_radio_5g = (self.wave2_5g_radios + self.wave1_radios + self.mtk_radios + self.ax200_radios +
+                                    self.be200_radios + self.ax210_radios)
                     logging.info("All 5g radios" + str(all_radio_5g))
-                    all_radio_2g = self.wave2_2g_radios + self.wave1_radios + self.mtk_radios + self.ax200_radios + self.ax210_radios
+                    all_radio_2g = (self.wave2_2g_radios + self.wave1_radios + self.mtk_radios + self.ax200_radios +
+                                    self.be200_radios + self.ax210_radios)
                     logging.info("All 2g radios" + str(all_radio_2g))
                     if band == "twog":
                         radio_prefix = all_radio_2g
