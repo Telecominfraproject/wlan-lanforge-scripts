@@ -64,7 +64,7 @@ LfPcap = lf_pcap.LfPcap
 lf_ap_auto_test = importlib.import_module("py-scripts.lf_ap_auto_test")
 ApAutoTest = lf_ap_auto_test.ApAutoTest
 roam_test = importlib.import_module("py-scripts.lf_hard_roam_test")
-RoamTest = roam_test.HardRoam
+Roam = roam_test.Roam
 wifi_mobility_test = importlib.import_module("py-scripts.lf_wifi_mobility_test")
 WifiMobility = wifi_mobility_test.WifiMobility
 
@@ -3580,9 +3580,9 @@ class lf_tests(lf_libs):
                 description = f"{e}"
         return pass_fail, description
 
-    def roam_test(self, ap1_bssid="90:3c:b3:6c:46:dd", ap2_bssid="90:3c:b3:6c:47:2d", fiveg_radio="1.1.wiphy2",
-                  twog_radio="1.1.wiphy1", sixg_radio="1.1.wiphy3", scan_freq="5180,5180",
-                  band="twog", sniff_radio_="1.1.wiphy4", num_sta=1, security="wpa2", security_key="Openwifi",
+    def roam_test(self, ap1_bssid="90:3c:b3:6c:46:dd", ap2_bssid="90:3c:b3:6c:47:2d", fiveg_radio="1.1.wiphy4",
+                  twog_radio="1.1.wiphy5", sixg_radio="1.1.wiphy6", scan_freq="5180,5180",
+                  band="twog", sniff_radio_="1.1.wiphy7", num_sta=1, security="wpa2", security_key="Openwifi",
                   ssid="OpenWifi", upstream="1.1.eth1", duration=None, iteration=1, channel="11", option="ota",
                   dut_name=["edgecore_eap101", "edgecore_eap102"], traffic_type="lf_udp", eap_method=None,
                   eap_identity=None, eap_password=None, pairwise_cipher=None, groupwise_cipher=None,
@@ -3595,71 +3595,50 @@ class lf_tests(lf_libs):
         t1 = threading.Thread(target=self.start_sniffer, args=(channel, sniff_radio_, "11r-roam-test-capture", 300))
         t1.start()
 
-        roam_obj = RoamTest(lanforge_ip=self.manager_ip,
-                            lanforge_port=self.manager_http_port,
-                            lanforge_ssh_port=self.manager_ssh_port,
-                            c1_bssid=ap1_bssid,
-                            c2_bssid=ap2_bssid,
-                            fiveg_radio=fiveg_radio,
-                            twog_radio=twog_radio,
-                            sixg_radio=sixg_radio,
-                            band=band,
-                            sniff_radio_=sniff_radio_,
-                            num_sta=num_sta,
-                            security=security,
-                            security_key=security_key,
-                            ssid=ssid,
-                            upstream=upstream,
-                            duration=duration,
-                            iteration=iteration,
-                            channel=channel,
-                            option=option,
-                            duration_based=False,
-                            iteration_based=True,
-                            dut_name=dut_name,
-                            traffic_type=traffic_type,
-                            scheme="ssh",
-                            dest="localhost",
-                            user="admin",
-                            passwd="OpenWifi123",
-                            prompt="WLC2",
-                            series_cc="9800",
-                            ap="AP687D.B45C.1D1C",
-                            port="8888",
-                            band_cc="5g",
-                            timeout="10",
-                            eap_method=eap_method,
-                            eap_identity=eap_identity,
-                            eap_password=eap_password,
-                            pairwise_cipher=pairwise_cipher,
-                            groupwise_cipher=groupwise_cipher,
-                            private_key=private_key,
-                            pk_passwd=pk_passwd,
-                            ca_cert=ca_cert,
-                            eap_phase1=eap_phase1,
-                            eap_phase2=eap_phase2,
-                            soft_roam=soft_roam,
-                            sta_type=sta_type,
-                            ieee80211w="1",
-                            multicast=False
-                            )
-
+        roam_obj = Roam(lanforge_ip=self.manager_ip,
+                        port=self.manager_http_port,
+                        band=band,
+                        sniff_radio=sniff_radio_,
+                        num_sta=num_sta,
+                        security=security,
+                        password=security_key,
+                        ssid=ssid,
+                        upstream=upstream,
+                        duration=duration,
+                        option=option,
+                        iteration_based=True,
+                        eap_method=eap_method,
+                        eap_identity=eap_identity,
+                        eap_password=eap_password,
+                        pairwise_cipher=pairwise_cipher,
+                        groupwise_cipher=groupwise_cipher,
+                        private_key=private_key,
+                        pk_passwd=pk_passwd,
+                        ca_cert=ca_cert,
+                        softroam=soft_roam,
+                        sta_type=sta_type,
+                        ieee80211w="1",
+                        )
+        create_sta = False
         if band == "twog":
             self.local_realm.reset_port(twog_radio)
-            create_sta = roam_obj.create_n_clients(sta_prefix="roam", num_sta=1, dut_ssid=ssid,
-                                                   dut_security=security, dut_passwd=security_key, radio=twog_radio)
+            roam_obj.band = '2G'
+            roam_obj.station_radio = twog_radio
+            create_sta = roam_obj.create_clients(sta_prefix="roam")
         if band == "fiveg":
             self.local_realm.reset_port(fiveg_radio)
-            create_sta = roam_obj.create_n_clients(sta_prefix="roam", num_sta=1, dut_ssid=ssid,
-                                                   dut_security=security, dut_passwd=security_key, radio=fiveg_radio)
+            roam_obj.band = '5G'
+            roam_obj.station_radio = fiveg_radio
+            create_sta = roam_obj.create_clients(sta_prefix="roam")
         if band == "sixg":
             self.local_realm.reset_port(sixg_radio)
-            create_sta = roam_obj.create_n_clients(sta_prefix="roam", num_sta=1, dut_ssid=ssid,
-                                                   dut_security=security, dut_passwd=security_key, radio=sixg_radio)
+            roam_obj.band = '6G'
+            roam_obj.station_radio = sixg_radio
+            create_sta = roam_obj.create_clients(sta_prefix="roam")
         if band == "both":
             self.local_realm.reset_port("1.1.wiphy5")
-            create_sta = roam_obj.create_n_clients(sta_prefix="roam", num_sta=1, dut_ssid=ssid,
-                                                   dut_security=security, dut_passwd=security_key, radio="1.1.wiphy5")
+            roam_obj.station_radio = "1.1.wiphy5"
+            create_sta = roam_obj.create_clients(sta_prefix="roam")
         if not create_sta:
             # stop sniffer if station is not created
             try:
