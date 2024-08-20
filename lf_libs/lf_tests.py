@@ -1084,6 +1084,8 @@ class lf_tests(lf_libs):
             self.temp_raw_lines.append(station_data)
             print(self.temp_raw_lines)
 
+        return radio_data
+
     def rate_limiting_test(self, mode="BRIDGE", vlan_id=100, batch_size="1,5,10,20,40,64,128",
                            instance_name="wct_instance", download_rate="1Gbps", influx_tags="",
                            upload_rate="1Gbps", protocol="TCP-IPv4", duration="60000", stations="",
@@ -1195,7 +1197,7 @@ class lf_tests(lf_libs):
                                         temp_band = "sixg"
                                     if temp_band == dut_data[i]["ssid_data"][j]["band"]:
                                         ssid_name = dut_data[i]["ssid_data"][j]["ssid"]
-                    self.add_stations(band=band_, num_stations=num_stations[band_], ssid_name=ssid_name,
+                    radio_data = self.add_stations(band=band_, num_stations=num_stations[band_], ssid_name=ssid_name,
                                       dut_data=dut_data,
                                       identifier=identifier)
                     if vlan_raw_lines is not None:
@@ -1206,11 +1208,18 @@ class lf_tests(lf_libs):
                         # Station data
                         self.band_sta = list(num_stations.keys())[0]
                         if num_stations[self.band_sta] == 1:
-                            print(self.temp_raw_lines)
-                            shelf_resource = self.temp_raw_lines[0][0].split(" ")[1].split(".")
-                            shelf = int(shelf_resource[0])
-                            resource = int(shelf_resource[0])
-                            sta_name = f"{shelf}.{resource}.wlan0"
+                            logging.info("radio_data: " + str(radio_data))
+                            sta_radio = list(radio_data.keys())[0]
+                            logging.info("sta_radio: " + str(sta_radio))
+                            sta_radio = sta_radio.split(".")
+                            shelf = int(sta_radio[0])
+                            resource = int(sta_radio[1])
+                            radio_ = sta_radio[2]
+                            # finding radio number for sta name e.g. for wiphy2 the radio num is 2. Sta name will be wlan2
+                            radio_num = int(''.join(x for x in radio_ if x.isdigit()))
+                            logging.info("radio_num: " + str(radio_num))
+                            sta_name = f"{shelf}.{resource}.wlan{radio_num}"
+                            logging.info("sta_name: " + str(sta_name))
                             self.local_realm.admin_up(sta_name)
                             sta_ip = self.local_realm.wait_for_ip([sta_name], timeout_sec=120)
                             sta_rows = ["4way time (us)", "channel", "ssid", "key/phrase", "cx time (us)", "dhcp (ms)",
@@ -1224,8 +1233,7 @@ class lf_tests(lf_libs):
                                 logging.info(
                                     "Stations Failed to get IP's")
                                 pytest.fail("Stations Failed to get IP's")
-                            self.sta_mode_ = self.json_get(f'/port/{shelf}/{resource}/wlan0?fields=mode')['interface'][
-                                'mode']
+                            self.sta_mode_ = self.json_get(f'/port/{shelf}/{resource}/wlan{radio_num}?fields=mode')['interface']['mode']
                             logging.info("sta_mode:- " + str(self.sta_mode_))
 
             wificapacity_obj = WiFiCapacityTest(lfclient_host=self.manager_ip,
