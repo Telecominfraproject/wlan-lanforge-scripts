@@ -1093,11 +1093,12 @@ class lf_tests(lf_libs):
                            sort="interleave", raw_lines=[], move_to_influx=False, dut_data={}, ssid_name=None,
                            num_stations={}, add_stations=True, passkey=None, up_rate=None, down_rate=None):
         obj = self.wifi_capacity(mode=mode, vlan_id=vlan_id, batch_size=batch_size, instance_name=instance_name,
-                           download_rate=download_rate,
-                           influx_tags=influx_tags, upload_rate=upload_rate, protocol=protocol, duration=duration,
-                           stations=stations, create_stations=create_stations, sort=sort, raw_lines=raw_lines,
-                           move_to_influx=move_to_influx,
-                           dut_data=dut_data, ssid_name=ssid_name, num_stations=num_stations, add_stations=add_stations)
+                                 download_rate=download_rate,
+                                 influx_tags=influx_tags, upload_rate=upload_rate, protocol=protocol, duration=duration,
+                                 stations=stations, create_stations=create_stations, sort=sort, raw_lines=raw_lines,
+                                 move_to_influx=move_to_influx,
+                                 dut_data=dut_data, ssid_name=ssid_name, num_stations=num_stations,
+                                 add_stations=add_stations)
         report_name = obj[0].report_name[0]['LAST']["response"].split(":::")[1].split("/")[-1] + "/"
         numeric_score = self.read_kpi_file(column_name=["numeric-score"], dir_name=report_name)
         logging.info("Numeric-score: " + str(numeric_score))
@@ -1198,8 +1199,8 @@ class lf_tests(lf_libs):
                                     if temp_band == dut_data[i]["ssid_data"][j]["band"]:
                                         ssid_name = dut_data[i]["ssid_data"][j]["ssid"]
                     radio_data = self.add_stations(band=band_, num_stations=num_stations[band_], ssid_name=ssid_name,
-                                      dut_data=dut_data,
-                                      identifier=identifier)
+                                                   dut_data=dut_data,
+                                                   identifier=identifier)
                     if vlan_raw_lines is not None:
                         for i in vlan_raw_lines:
                             self.temp_raw_lines.append(i)
@@ -1207,6 +1208,7 @@ class lf_tests(lf_libs):
                     if pass_fail_criteria:
                         # Station data
                         self.band_sta = list(num_stations.keys())[0]
+                        logging.info("band: " + str(self.band_sta))
                         if num_stations[self.band_sta] == 1:
                             logging.info("radio_data: " + str(radio_data))
                             sta_radio = list(radio_data.keys())[0]
@@ -1225,16 +1227,67 @@ class lf_tests(lf_libs):
                             sta_rows = ["4way time (us)", "channel", "ssid", "key/phrase", "cx time (us)", "dhcp (ms)",
                                         "ip", "signal",
                                         "mac", "mode"]
+                            if str(self.band_sta) != "6G":
+                                allure_attach = True
+                            else:
+                                allure_attach = False
                             self.get_station_data(sta_name=[sta_name], rows=sta_rows,
-                                                  allure_attach=True)
+                                                  allure_attach=allure_attach)
                             if sta_ip:
                                 logging.info("ip's acquired")
+                                self.sta_mode_ = \
+                                    self.json_get(f'/port/{shelf}/{resource}/wlan{radio_num}?fields=mode')['interface'][
+                                        'mode']
+                                logging.info("sta_mode:- " + str(self.sta_mode_))
                             else:
-                                logging.info(
-                                    "Stations Failed to get IP's")
+                                logging.info("Stations Failed to get IP's")
                                 pytest.fail("Stations Failed to get IP's")
-                            self.sta_mode_ = self.json_get(f'/port/{shelf}/{resource}/wlan{radio_num}?fields=mode')['interface']['mode']
-                            logging.info("sta_mode:- " + str(self.sta_mode_))
+                            ssid = self.json_get(f'/port/{shelf}/{resource}/wlan{radio_num}?fields=ssid')['interface'][
+                                'ssid']
+                            logging.info("ssid:- " + str(ssid))
+                            passkey = \
+                                self.json_get(f'/port/{shelf}/{resource}/wlan{radio_num}?fields=key/phrase')[
+                                    'interface'][
+                                    'key/phrase']
+                            logging.info("passkey:- " + str(passkey))
+                            if "160" in self.sta_mode_ or str(self.band_sta) == "6G":
+                                self.client_disconnect(station_name=[sta_name])
+                                logging.info("DUT Data: " + str(dut_data))
+                                encryption_value = None
+                                # Finding sta security
+                                for ssid_info in dut_data[identifier]['ssid_data'].values():
+                                    if ssid_info['ssid'] == ssid:
+                                        encryption_value = ssid_info['encryption']
+                                        if encryption_value.lower() == "open":
+                                            security_ = "[BLANK]"
+                                        else:
+                                            security_ = encryption_value
+                                        break
+
+                                client_connect = CreateStation(_host=self.manager_ip, _port=self.manager_http_port,
+                                                               _sta_list=[sta_name],
+                                                               _password=passkey,
+                                                               _ssid=ssid,
+                                                               _security=security_)
+                                client_connect.station_profile.sta_mode = 0
+                                client_connect.station_profile.use_ht160 = True
+                                client_connect.upstream_resource = int(upstream_port.split(".")[1])
+                                client_connect.upstream_port = str(upstream_port.split(".")[2])
+                                client_connect.radio = sta_radio
+                                client_connect.build()
+                                result = client_connect.wait_for_ip(station_list=[sta_name], timeout_sec=240)
+                                self.get_station_data(sta_name=[sta_name], rows=sta_rows,
+                                                      allure_attach=True)
+                                if result:
+                                    logging.info("ip's acquired")
+                                    self.sta_mode_ = \
+                                        self.json_get(f'/port/{shelf}/{resource}/wlan{radio_num}?fields=mode')[
+                                            'interface'][
+                                            'mode']
+                                    logging.info("sta_mode_vht_160_enable:- " + str(self.sta_mode_))
+                                else:
+                                    logging.info("Stations Failed to get IP's")
+                                    pytest.fail("Stations Failed to get IP's")
 
             wificapacity_obj = WiFiCapacityTest(lfclient_host=self.manager_ip,
                                                 lf_port=self.manager_http_port,
