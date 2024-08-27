@@ -2951,7 +2951,7 @@ class lf_tests(lf_libs):
             self.pre_cleanup()
             sta_name = [f"{shelf}.{resource}.ax_station"]
             logging.info("sta_name:- " + str(sta_name))
-            self.client_connect_using_radio(ssid=ssid_name, passkey=passkey, mode=mode, station_name=sta_name,
+            sta_ip = self.client_connect_using_radio(ssid=ssid_name, passkey=passkey, mode=mode, station_name=sta_name,
                                             radio=selected_ax_radio, vlan_id=vlan_id, create_vlan=True)
             time.sleep(0.5)
 
@@ -2959,6 +2959,10 @@ class lf_tests(lf_libs):
             station_data = self.get_station_data(sta_name=sta_name, rows=sta_rows, allure_attach=True,
                                                  allure_name="Station Data")
             logging.info("station_data:- " + str(station_data))
+            if not sta_ip:
+                logging.info("Test Failed, due to station has no ip")
+                pytest.fail("Station did not get an ip")
+
             sta_mode = station_data[sta_name[0]]["mode"]
             logging.info("sta_mode:- " + str(sta_mode))
             wifi_capacity_obj_list = self.wifi_capacity(instance_name=instance_name, mode=mode,
