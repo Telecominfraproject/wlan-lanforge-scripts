@@ -1850,7 +1850,7 @@ class lf_tests(lf_libs):
         skip_bandv2 = [['Skip 2.4Ghz Tests', f'{skip_twog}'], ['Skip 5Ghz Tests', f'{skip_fiveg}'],
                        ['2.4Ghz Channel', f'{channel_2g}'], ['5Ghz Channel', f'{channel_5g}'],
                        ["use_virtual_ax_sta", "1"],
-                       ["Use Issue-3 Behaviour", "0"], ["Skip 6Ghz Tests", "1"]]
+                       ["Use Issue-3 Behaviour", "0"], ["Skip 6Ghz Tests", "1"], ["Calibrate against LANforge AP", "0"]]
         enable_tests = [['rxsens: 0'], ['max_cx: 0'], ['max_tput: 0'], ['peak_perf: 0'], ['max_tput_bi: 0'],
                         ['dual_band_tput: 0'], ['multi_band_tput: 0'], ['atf: 0'], ['atf3: 0'], ['qos3: 0'],
                         ['lat3: 0'], ['mcast3: 0'], ['rvr: 0'], ['spatial: 0'], ['multi_sta: 0'], ['reset: 0'],
