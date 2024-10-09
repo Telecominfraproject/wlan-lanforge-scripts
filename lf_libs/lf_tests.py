@@ -19,6 +19,8 @@ from scp import SCPClient
 from tabulate import tabulate
 import re
 
+import requests
+
 sys.path.append(os.path.join(os.path.abspath(__file__ + "../../../")))
 lfcli_base = importlib.import_module("py-json.LANforge.lfcli_base")
 LFCliBase = lfcli_base.LFCliBase
@@ -324,6 +326,217 @@ class lf_tests(lf_libs):
                 break
 
         return result, description
+
+
+
+
+    def hot_config_reload_test(self, ssid="[BLANK]", security="wpa2", dut_data={}, passkey="[BLANK]", mode="BRIDGE",
+                                band="fiveg", num_sta=1, vlan_id=[None], json_post_data='', get_testbed_details={},
+                                tip_2x_obj=None, reconfig = None):
+        self.check_band_ap(band=band)
+        self.pre_cleanup()
+        pass_fail = "PASS"
+        description = ""
+        logging.info("DUT DATA: " + str(dut_data))
+        Deauth_result = 0 #to check Deauthentication packet
+        for dut in self.dut_data:
+            station_result = self.client_connect_using_radio(ssid=ssid, passkey=passkey, security=security, mode=mode,
+                                                             band=band, vlan_id=vlan_id, radio="1.1.wiphy4",
+                                                             client_type=0,
+                                                             station_name=["sta0000"],
+                                                             dut_data=dut_data, attach_port_info=False)
+            sta = "sta0000"
+            sta_data = self.json_get(_req_url="port/1/1/%s" % sta)
+            self.allure_report_table_format(dict_data=sta_data["interface"], key="Station Data",
+                                            value="Value", name="%s info before Reconfiguration" % sta)
+
+            print("type of station_result", type(station_result))
+            print("station_result",station_result)
+            # allure.attach(name=f"Response - {resp.status_code} {resp.reason}", body=str(resp.json()))
+
+            if not station_result:
+                allure.attach(name="Test Result", body="TEST FAILED, due to station has no ip")
+                return "FAIL", "TEST FAILED, due to station has no ip"
+            logging.info("sta " + str(sta))
+
+            sta_channel = sta_data['interface']['channel']
+
+            current_config = tip_2x_obj.dut_library_object.get_active_config()
+
+            sniff_radio = self.setup_sniffer(band="fiveg", station_radio_data={"wiphy4": 1})  # to setup sniffer radio
+            print("------------------sniffer_radio", sniff_radio)
+            self.start_sniffer(radio_channel=sta_channel, radio=sniff_radio, test_name="hot_reload_sniff", duration=360)
+            print("------------------sniffer started-------------------")
+
+            serial_number = list(dut_data.keys())[0]
+            print("---------active config:", current_config)
+            sta_name = sta_data['interface']['device']
+
+            iwinfo = tip_2x_obj.dut_library_object.get_iwinfo()
+            # print("iwinfo before reconfiguration:", iwinfo)
+
+            # Reconfiguration
+            # Reconfiguring the AP, Modifying the Band parameter from 5G to 5G-upper
+            if reconfig == "band":
+                for radio in current_config['radios']:
+                    if radio['band'] == '5G':
+                        radio['band'] = '5G-upper'
+
+            # Reconfiguring the AP, Modifying the Channel Width parameter from 80 Mhz to 40 Mhz
+            if reconfig == "channel_width":
+                sta_mode = sta_data['interface']['mode']
+                #sta_mode = self.station_data_query(station_name=sta_name, query="mode")
+                print("Station mode before reconfiguration:", sta_mode)
+                new_radios = []
+                for radio in current_config['radios']:
+                    if radio.get('band') == '5G':
+                        radio['channel-width'] = 40
+                    if radio.get('band') == '5G-upper':
+                        radio['band'] = '5G'
+                        radio['channel-width'] = 40
+                    new_radios.append(radio)
+
+                current_config['radios'] = new_radios
+
+            # Reconfiguring the AP, Modifying the dfs parameter (setting True for allow-dfs parameter)
+            if reconfig == "dfs":
+                res = tip_2x_obj.dut_library_object.get_uci_show(param='wireless')
+                for radio in current_config['radios']:
+                    if radio['band'] == '5G':
+                        radio['allow-dfs'] = True
+
+            # Reconfiguring the AP, Modifying the HE parameter (setting "he-settings": { "bss-color": 60 })
+            if reconfig == "he":
+                bss_color = sta_data['interface']['bss color']
+                print("bss_color before reconfiguration", bss_color)
+                for radio in current_config['radios']:
+                    if radio['band'] == '5G':
+                        radio['he-settings'] = {"bss-color": 60}
+
+
+                # modified current_config
+            print("---------Reconfiguration data---------:", current_config)
+
+            print("serial number:", serial_number)
+            path = "device/" + serial_number + "/configure"
+
+            uri = tip_2x_obj.controller_library_object.build_uri(path)
+
+            payload = {"configuration": json.dumps(current_config), "serialNumber": serial_number, "UUID": 2}
+            # Send the POST request with the current configuration
+            resp = requests.post(uri, data=json.dumps(payload, indent=2),
+                                 headers=tip_2x_obj.controller_library_object.make_headers(), verify=False,
+                                 timeout=120)
+
+            time.sleep(10)
+            print("resp",resp)
+            print(resp.status_code)
+            if resp.status_code == 200:
+                print("Reconfigured successfully")
+                allure.attach(name=f"Response for Reconfiguration - {resp.status_code} {resp.reason}", body=str(resp.json()))
+            else:
+                allure.attach(name=f"Response for Reconfiguration - {resp.status_code} {resp.reason}", body=f"TEST FAILED, Reconfiguration is not successful {str(resp.json())}")
+                # return "FAIL", "TEST FAILED, Reconfiguration is not successful."
+
+
+            time.sleep(10)
+            sta_data = self.json_get(_req_url="port/1/1/%s" % sta_name)
+            self.allure_report_table_format(dict_data=sta_data["interface"], key="Station Data",
+                                            value="Value", name="%s info after Reconfiguration" % sta)
+
+            pcap_name = self.stop_sniffer([sta_name])
+            print("------------------sniffer stopped-------------------")
+            print("pcap_name:", pcap_name)
+
+            # step-1 validation
+            pcap_obj = LfPcap(host=self.manager_ip, port=self.manager_http_port)
+            filter = 'wlan.fc.type_subtype == 12' # wlan.fc.type_subtype == 12 is a filter for Deauthentication packet
+            pcap = pcap_obj.read_pcap(pcap_file=pcap_name, apply_filter=filter)
+
+            for packet in pcap:
+                print("packet:", packet)
+                if 'WLAN' in packet:
+                    wlan_layer = packet['WLAN']
+                    # Access the specific field 'fc_type_subtype'
+                    if 'fc_type_subtype' in wlan_layer.field_names:
+                        fc_type_subtype = wlan_layer.get_field('fc_type_subtype') #0x000c
+                        if str(fc_type_subtype) == '0x000c':
+                            print("Deauthentication packet detected.")
+                            allure.attach(name=f"Deauthentication packet detected.",
+                                          body=str(packet))
+                            Deauth_result = 1
+                        else:
+                            print("Deauthentication packet is not detected.")
+                            Deauth_result = 0
+                            pass_fail = 'FAIL'
+                            allure.attach(name="Test Result", body="TEST FAILED, Deauthentication packet is not detected.")
+                            return "FAIL", "TEST FAILED, Deauthentication packet is not detected."
+
+                    else:
+                        print("fc_type_subtype field not found.")
+
+            if not Deauth_result:
+                allure.attach(name="Test Result", body="TEST FAILED, Deauthentication packet is not detected")
+                return "FAIL", "TEST FAILED, Deauthentication packet is not detected"
+
+
+            #Step 2 validation
+            print("station_name", sta_name)
+            sta_data = self.json_get(_req_url="port/1/1/%s" % sta_name)
+
+            if reconfig == "band":
+                sta_channel = sta_data['interface']['channel']
+                print("channel of the station:", sta_channel)
+                sta_channel = int(sta_channel)  # Convert sta_channel to an integer
+                if 100  <= sta_channel <= 165:
+                    print("station channel is changed to upper band successfully") # upper band
+                else:
+                    print("station channel is not changed to upper band")
+                    pass_fail = 'FAIL'
+                    allure.attach(name="Test Result", body="TEST FAILED, station channel is not changed to 5G-upper band")
+                    return "FAIL", "TEST FAILED, station channel is not changed to 5G-upper band"
+            # Step 2 validation
+            if reconfig == "channel_width":
+                sta_mode = sta_data['interface']['mode']
+                print("mode of the station:", sta_mode)
+                if '40' in sta_mode:
+                    print("channel-width changed to 40Mhz successfully")
+                else:
+                    print("Test failed, channel-width is not changed to 40Mhz")
+                    pass_fail = 'FAIL'
+                    allure.attach(name="Test Result",
+                                  body="TEST FAILED, station channel-width is not changed to 40Mhz")
+                    return "FAIL", "TEST FAILED, station channel-width is not changed to 40Mhz"
+            # Step 2 validation
+            if reconfig == "dfs":
+                res = tip_2x_obj.dut_library_object.get_uci_show(param = 'wireless')
+                if "wireless.radio1.acs_exclude_dfs='0'" in res:
+                    print("dfs parameter is changed successfully")
+                else:
+                    print("dfs parameter is not changed")
+                    pass_fail = 'FAIL'
+                    allure.attach(name="Test Result",
+                                  body="TEST FAILED, dfs parameter is not changed")
+                    return "FAIL", "TEST FAILED, dfs parameter is not changed"
+            # Step 2 validation
+            if reconfig == "he":
+                bss_color = sta_data['interface']['bss color']
+                print("bss_color after reconfiguration", bss_color)
+                bss_color = int(bss_color)  # Convert sta_channel to an integer
+                if bss_color == 60:
+                    print("bss color is changed successfully") # upper band
+                else:
+                    print("bss color is not changed")
+                    pass_fail = 'FAIL'
+                    allure.attach(name="Test Result", body="TEST FAILED, bss color is not changed")
+                    return "FAIL", "TEST FAILED, bss color is not changed"
+
+
+
+
+        return pass_fail, description
+
+
 
     def enterprise_client_connectivity_test(self, ssid="[BLANK]", passkey="[BLANK]", bssid="[BLANK]", dut_data={},
                                             security="open", extra_securities=[], client_type=0, key_mgmt="WPA-EAP",
@@ -1850,7 +2063,7 @@ class lf_tests(lf_libs):
         skip_bandv2 = [['Skip 2.4Ghz Tests', f'{skip_twog}'], ['Skip 5Ghz Tests', f'{skip_fiveg}'],
                        ['2.4Ghz Channel', f'{channel_2g}'], ['5Ghz Channel', f'{channel_5g}'],
                        ["use_virtual_ax_sta", "1"],
-                       ["Use Issue-3 Behaviour", "0"], ["Skip 6Ghz Tests", "1"], ["Calibrate against LANforge AP", "0"]]
+                       ["Use Issue-3 Behaviour", "0"], ["Skip 6Ghz Tests", "1"]]
         enable_tests = [['rxsens: 0'], ['max_cx: 0'], ['max_tput: 0'], ['peak_perf: 0'], ['max_tput_bi: 0'],
                         ['dual_band_tput: 0'], ['multi_band_tput: 0'], ['atf: 0'], ['atf3: 0'], ['qos3: 0'],
                         ['lat3: 0'], ['mcast3: 0'], ['rvr: 0'], ['spatial: 0'], ['multi_sta: 0'], ['reset: 0'],
@@ -3990,3 +4203,15 @@ if __name__ == '__main__':
     # obj.add_vlan(vlan_ids=[100, 200, 300])
     # # obj.chamber_view()
     # obj.setup_relevent_profiles()
+
+    # dut = {'903cb36c46ad':
+    #     {'ssid_data': {
+    #         0: {'ssid': 'OpenWifi', 'encryption': 'wpa2', 'password': 'OpenWifi', 'band': '5G',
+    #             'bssid': '90:3C:B3:6C:46:B1'}}, 'radio_data': {
+    #                                                            '5G': {'channel': 52, 'bandwidth': None,
+    #                                                                   'frequency': None}}}}
+    #
+    # passes, result = obj.hot_config_reload_test(ssid="OpenWifi", passkey="OpenWifi", security="wpa2",
+    #                                               extra_securities=[],
+    #                                               num_sta=1, mode="BRIDGE", dut_data=dut,
+    #                                               band="fiveg")
