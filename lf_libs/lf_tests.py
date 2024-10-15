@@ -338,7 +338,7 @@ class lf_tests(lf_libs):
         pass_fail = "PASS"
         description = ""
         logging.info("DUT DATA: " + str(dut_data))
-        Deauth_result = 0 #to check Deauthentication packet
+        deauth_result = 0 #to check Deauthentication packet
         for dut in self.dut_data:
             station_result = self.client_connect_using_radio(ssid=ssid, passkey=passkey, security=security, mode=mode,
                                                              band=band, vlan_id=vlan_id, radio="1.1.wiphy4",
@@ -391,11 +391,19 @@ class lf_tests(lf_libs):
                 for radio in current_config['radios']:
                     if radio.get('band') == '5G':
                         radio['channel-width'] = 40
-                    if radio.get('band') == '5G-upper':
-                        radio['band'] = '5G'
-                        radio['channel-width'] = 40
                     new_radios.append(radio)
+                current_config['radios'] = new_radios
 
+            # Reconfiguring the AP, Modifying the TX power parameter from 18 to 20
+            if reconfig == "tx_power":
+                # Extract the Tx-Power value using a regular expression
+                tx_power_value = re.search(r'Tx-Power:\s+(\d+)\s+dBm', iwinfo)
+                print(f"tx_power_value before reconfiguration: {int(tx_power_value.group(1))} dBm")
+                new_radios = []
+                for radio in current_config['radios']:
+                    if radio.get('band') == '5G':
+                        radio['tx-power'] = 20
+                    new_radios.append(radio)
                 current_config['radios'] = new_radios
 
             # Reconfiguring the AP, Modifying the dfs parameter (setting True for allow-dfs parameter)
@@ -448,36 +456,41 @@ class lf_tests(lf_libs):
             print("------------------sniffer stopped-------------------")
             print("pcap_name:", pcap_name)
 
+            timestamp = datetime.utcnow()
+            allure.attach(name="config after Reconfiguration",
+                          body="TimeStamp: " + str(timestamp) + "\n" + str(json.dumps(current_config, indent=2)),
+                          attachment_type=allure.attachment_type.JSON)
+
+
             # step-1 validation
             pcap_obj = LfPcap(host=self.manager_ip, port=self.manager_http_port)
-            filter = 'wlan.fc.type_subtype == 12' # wlan.fc.type_subtype == 12 is a filter for Deauthentication packet
+            filter = 'wlan.fixed.reason_code == 0x0003' # wlan.fc.type_subtype == 12 is a filter for Deauthentication packet, wlan.fixed.reason_code == 0x0003 for client disruption deauthentication packet
             pcap = pcap_obj.read_pcap(pcap_file=pcap_name, apply_filter=filter)
 
             for packet in pcap:
                 print("packet:", packet)
-                if 'WLAN' in packet:
-                    wlan_layer = packet['WLAN']
-                    # Access the specific field 'fc_type_subtype'
-                    if 'fc_type_subtype' in wlan_layer.field_names:
-                        fc_type_subtype = wlan_layer.get_field('fc_type_subtype') #0x000c
-                        if str(fc_type_subtype) == '0x000c':
-                            print("Deauthentication packet detected.")
-                            allure.attach(name=f"Deauthentication packet detected.",
+                if 'WLAN.MGT' in packet:
+                    WLAN_MGT_layer = packet['WLAN.MGT']
+                    if '0x0003' in WLAN_MGT_layer.wlan_fixed_reason_code:
+                        print("Deauthentication packet detected.")
+                        allure.attach(name=f"Deauthentication packet detected.",
                                           body=str(packet))
-                            Deauth_result = 1
-                        else:
-                            print("Deauthentication packet is not detected.")
-                            Deauth_result = 0
-                            pass_fail = 'FAIL'
-                            allure.attach(name="Test Result", body="TEST FAILED, Deauthentication packet is not detected.")
-                            return "FAIL", "TEST FAILED, Deauthentication packet is not detected."
-
+                        deauth_result = 1
                     else:
-                        print("fc_type_subtype field not found.")
+                        print("Deauthentication packet is not detected.")
+                        deauth_result = 0
 
-            if not Deauth_result:
-                allure.attach(name="Test Result", body="TEST FAILED, Deauthentication packet is not detected")
-                return "FAIL", "TEST FAILED, Deauthentication packet is not detected"
+            if reconfig == "tx_power":
+                if deauth_result == 1:
+                    allure.attach(name="Test Result", body="TEST FAILED, Deauthentication packet is detected. This response is not expected in Tx power parameter configuration.")
+                    return "FAIL", "TEST FAILED, Deauthentication packet is detected, which is not expected in Tx power parameter configuration."
+                else:
+                    allure.attach(name="Test Result",
+                                  body="TEST Passed, Deauthentication packet is not detected. This response is expected in Tx power parameter configuration.")
+            else:
+                if deauth_result == 0:
+                    allure.attach(name="Test Result", body="TEST FAILED, Deauthentication packet is not detected")
+                    return "FAIL", "TEST FAILED, Deauthentication packet is not detected"
 
 
             #Step 2 validation
@@ -508,6 +521,18 @@ class lf_tests(lf_libs):
                                   body="TEST FAILED, station channel-width is not changed to 40Mhz")
                     return "FAIL", "TEST FAILED, station channel-width is not changed to 40Mhz"
             # Step 2 validation
+            if reconfig == "tx_power":
+                iwinfo = tip_2x_obj.dut_library_object.get_iwinfo()
+                # print("iwinfo after Reconfiguration:", iwinfo)
+                if "Tx-Power: 20 dBm" in iwinfo:
+                    print("Tx-power is changed to 20dBm successfully")
+                else:
+                    print("Test failed, Tx-power is not changed to 20dBm")
+                    pass_fail = 'FAIL'
+                    allure.attach(name="Test Result",
+                                  body="TEST FAILED, Tx-power is not changed to 20dBm")
+                    return "FAIL", "TEST FAILED, Tx-power is not changed to 20dBm"
+            # Step 2 validation
             if reconfig == "dfs":
                 res = tip_2x_obj.dut_library_object.get_uci_show(param = 'wireless')
                 if "wireless.radio1.acs_exclude_dfs='0'" in res:
@@ -530,9 +555,6 @@ class lf_tests(lf_libs):
                     pass_fail = 'FAIL'
                     allure.attach(name="Test Result", body="TEST FAILED, bss color is not changed")
                     return "FAIL", "TEST FAILED, bss color is not changed"
-
-
-
 
         return pass_fail, description
 
