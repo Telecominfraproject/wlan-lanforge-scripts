@@ -461,6 +461,7 @@ class lf_tests(lf_libs):
                           body="TimeStamp: " + str(timestamp) + "\n" + str(json.dumps(current_config, indent=2)),
                           attachment_type=allure.attachment_type.JSON)
 
+            iwinfo = tip_2x_obj.dut_library_object.get_iwinfo()
 
             # step-1 validation
             pcap_obj = LfPcap(host=self.manager_ip, port=self.manager_http_port)
@@ -522,8 +523,6 @@ class lf_tests(lf_libs):
                     return "FAIL", "TEST FAILED, station channel-width is not changed to 40Mhz"
             # Step 2 validation
             if reconfig == "tx_power":
-                iwinfo = tip_2x_obj.dut_library_object.get_iwinfo()
-                # print("iwinfo after Reconfiguration:", iwinfo)
                 if "Tx-Power: 20 dBm" in iwinfo:
                     print("Tx-power is changed to 20dBm successfully")
                 else:
