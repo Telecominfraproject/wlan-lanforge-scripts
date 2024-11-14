@@ -433,7 +433,7 @@ class lf_libs:
         logging.info("Saved default CV Scenario details: " + str(self.temp_raw_lines))
 
     def setup_interfaces(self, ssid="", bssid="", passkey="", encryption="", band=None, vlan_id=None, mode=None,
-                         num_sta=None, dut_data_=None):
+                         num_sta=None, dut_data_=None, d_vlan=False):
         logging.info("dut_data_ in setup_interfaces: " + str(dut_data_))
         if dut_data_ is None:
             pytest.skip("No DUT data received")
@@ -500,8 +500,12 @@ class lf_libs:
                 ret = self.get_wan_upstream_ports()
                 for dut in r_val:
                     if ret.keys().__contains__(dut) and ret[dut] is not None:
-                        upstream_data = (ret[dut] + "." + str(vlan_id[0])).split(".")
-                        r_val[dut]["upstream_port"] = ret[dut] + "." + str(vlan_id[0])
+                        if d_vlan:
+                            upstream_data = (ret[dut] + "." + str(vlan_id[1])).split(".")
+                            r_val[dut]["upstream_port"] = ret[dut] + "." + str(vlan_id[1])
+                        else:
+                            upstream_data = (ret[dut] + "." + str(vlan_id[0])).split(".")
+                            r_val[dut]["upstream_port"] = ret[dut] + "." + str(vlan_id[0])
                         upstream_resource = upstream_data[1]
                         r_val[dut]["upstream_resource"] = upstream_resource
                         upstream_data.pop(0)
