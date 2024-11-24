@@ -501,8 +501,8 @@ class lf_libs:
                 for dut in r_val:
                     if ret.keys().__contains__(dut) and ret[dut] is not None:
                         if d_vlan:
-                            upstream_data = (ret[dut] + "." + str(vlan_id[1])).split(".")
-                            r_val[dut]["upstream_port"] = ret[dut] + "." + str(vlan_id[1])
+                            upstream_data = (ret[dut] + "." + str(vlan_id[0])).split(".")
+                            r_val[dut]["upstream_port"] = ret[dut] + "." + str(vlan_id[0])
                         else:
                             upstream_data = (ret[dut] + "." + str(vlan_id[0])).split(".")
                             r_val[dut]["upstream_port"] = ret[dut] + "." + str(vlan_id[0])
