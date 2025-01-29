@@ -1871,6 +1871,9 @@ class lf_libs:
                         sniffer_channel = dict(dut_data.get(identifier)["radio_data"])["5G"]["channel"]
                     elif band == "sixg":
                         sniffer_channel = dict(dut_data.get(identifier)["radio_data"])["6G"]["channel"]
+                        logging.info("sixg channel: " + str(sniffer_channel))
+                        sniffer_channel = self.lf_sixg_lookup_validation(int(sniffer_channel))
+                        logging.info("LF sixg channel: " + str(sniffer_channel))
                     sniff_radio = self.setup_sniffer(band=band, station_radio_data={radio: 1})  # to setup sniffer radio
                     print("sniffer_radio", sniff_radio)
                     if radio is not None and sniffer_channel is not None:

@@ -633,6 +633,9 @@ class lf_tests(lf_libs):
                                         dict(dut_data.get(identifier)["radio_data"])["6G"] is not None:
                                     channel = dict(dut_data.get(identifier)["radio_data"])["6G"]["channel"]
                                     if data[dut]["sniff_radio_6g"] is not None and channel is not None:
+                                        logging.info("sixg channel: " + str(data[dut]["channel"]))
+                                        channel = self.lf_sixg_lookup_validation(int(data[dut]["channel"]))
+                                        logging.info("LF sixg channel: " + str(channel))
                                         self.start_sniffer(radio_channel=channel,
                                                            radio=data[dut]["sniff_radio_6g"],
                                                            duration=10)
@@ -702,6 +705,9 @@ class lf_tests(lf_libs):
                                 dict(dut_data.get(identifier)["radio_data"])["6G"] is not None:
                             channel = dict(dut_data.get(identifier)["radio_data"])["6G"]["channel"]
                             if data[dut]["sniff_radio_6g"] is not None and channel is not None:
+                                logging.info("sixg channel: " + str(data[dut]["channel"]))
+                                channel = self.lf_sixg_lookup_validation(int(data[dut]["channel"]))
+                                logging.info("LF sixg channel: " + str(channel))
                                 self.start_sniffer(radio_channel=channel,
                                                    radio=data[dut]["sniff_radio_6g"],
                                                    duration=runtime_secs)
