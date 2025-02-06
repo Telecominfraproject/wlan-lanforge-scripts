@@ -514,18 +514,18 @@ class lf_libs:
                         r_val[dut]["upstream"] = upstream
                     else:
                         r_val.pop(dut)
-        dict_all_radios_2g = {"wave2_2g_radios": self.wave2_2g_radios,
-                              "wave1_radios": self.wave1_radios, "mtk_radios": self.mtk_radios,
-                              "ax200_radios": self.ax200_radios,
-                              "be200_radios": self.be200_radios,
-                              "ax210_radios": self.ax210_radios
+        dict_all_radios_2g = {"be200_radios": self.be200_radios,
+                              "ax210_radios": self.ax210_radios, "ax200_radios": self.ax200_radios,
+                              "mtk_radios": self.mtk_radios,
+                              "wave2_2g_radios": self.wave2_2g_radios,
+                              "wave1_radios": self.wave1_radios
                               }
 
-        dict_all_radios_5g = {"wave2_5g_radios": self.wave2_5g_radios,
-                              "wave1_radios": self.wave1_radios, "mtk_radios": self.mtk_radios,
-                              "ax200_radios": self.ax200_radios,
-                              "be200_radios": self.be200_radios,
-                              "ax210_radios": self.ax210_radios
+        dict_all_radios_5g = {"be200_radios": self.be200_radios,
+                              "ax210_radios": self.ax210_radios, "ax200_radios": self.ax200_radios,
+                              "mtk_radios": self.mtk_radios,
+                              "wave2_5g_radios": self.wave2_5g_radios,
+                              "wave1_radios": self.wave1_radios
                               }
 
         dict_all_radios_6g = {"be200_radios": self.be200_radios,
@@ -851,8 +851,8 @@ class lf_libs:
         """Setup sniff radio"""
         sniff_radio = None
         if band == "twog":
-            all_radio_2g = (self.wave2_2g_radios + self.wave1_radios + self.mtk_radios + self.ax200_radios +
-                            self.be200_radios + self.ax210_radios)
+            all_radio_2g = (self.be200_radios + self.ax210_radios + self.ax200_radios + self.mtk_radios
+                             + self.wave2_2g_radios + self.wave1_radios)
             logging.info("All 2g radios" + str(all_radio_2g))
             left_radio = list(set(all_radio_2g) - set(list(station_radio_data.keys())))
             if len(left_radio) == 0:
@@ -861,8 +861,8 @@ class lf_libs:
             else:
                 sniff_radio = left_radio[0]
         elif band == "fiveg":
-            all_radio_5g = (self.wave2_5g_radios + self.wave1_radios + self.mtk_radios + self.ax200_radios
-                            + self.be200_radios + self.ax210_radios)
+            all_radio_5g = (self.be200_radios + self.ax210_radios + self.ax200_radios + self.mtk_radios +
+                            self.wave2_5g_radios + self.wave1_radios)
             logging.info("All 5g radios" + str(all_radio_5g))
             left_radio = list(set(all_radio_5g) - set(list(station_radio_data.keys())))
             if len(left_radio) == 0:
@@ -1743,20 +1743,20 @@ class lf_libs:
         radio_dict_2g = {}
         radio_dict_5g = {}
         dict_all_radios_2g = {
-            "wave2_2g_radios": self.wave2_2g_radios,
-            "wave1_radios": self.wave1_radios,
-            "mtk_radios": self.mtk_radios,
-            "ax200_radios": self.ax200_radios,
             "be200_radios": self.be200_radios,
-            "ax210_radios": self.ax210_radios
+            "ax210_radios": self.ax210_radios,
+            "ax200_radios": self.ax200_radios,
+            "mtk_radios": self.mtk_radios,
+            "wave2_2g_radios": self.wave2_2g_radios,
+            "wave1_radios": self.wave1_radios
         }
         dict_all_radios_5g = {
-            "wave2_5g_radios": self.wave2_5g_radios,
-            "wave1_radios": self.wave1_radios,
-            "mtk_radios": self.mtk_radios,
-            "ax200_radios": self.ax200_radios,
             "be200_radios": self.be200_radios,
-            "ax210_radios": self.ax210_radios
+            "ax210_radios": self.ax210_radios,
+            "ax200_radios": self.ax200_radios,
+            "mtk_radios": self.mtk_radios,
+            "wave2_5g_radios": self.wave2_5g_radios,
+            "wave1_radios": self.wave1_radios
         }
         max_station_per_radio = {
             "wave2_2g_radios": 64,
