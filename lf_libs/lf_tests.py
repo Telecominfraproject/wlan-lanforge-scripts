@@ -2658,11 +2658,13 @@ class lf_tests(lf_libs):
                                                       ['Multi Band Throughput', '1'],
                                                       ['Throughput vs Pkt Size', '0'], ['Capacity', '0'],
                                                       ['Skip 2.4Ghz Tests', '1'],
+                                                      ['Channel Switching', '0'],
                                                       ['Skip 5Ghz Tests', '1'],
                                                       ['Stability', '0'],
-                                                      ['Band-Steering', '0'],
-                                                      ['Multi-Station Throughput vs Pkt Size', '0'],
-                                                      ['Long-Term', '0']]
+                                                      ['Band Steering', '0'],
+                                                      ['Multi STA Throughput vs Pkt Size', '0'],
+                                                      ['Single STA Throughput vs Pkt Size', '0'],
+                                                      ['Long Term', '0']]
                                                 )
             self.dualbandptest_obj.setup()
             self.dualbandptest_obj.run()
