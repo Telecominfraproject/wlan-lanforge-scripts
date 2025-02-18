@@ -2655,7 +2655,7 @@ class lf_tests(lf_libs):
                                                 raw_lines=[['modes', 'AUTO']],
                                                 # test_tag=influx_tags,
                                                 sets=[['Basic Client Connectivity', '0'],
-                                                      ['Multi Band Performance', '1'],
+                                                      ['Multi Band Throughput', '1'],
                                                       ['Throughput vs Pkt Size', '0'], ['Capacity', '0'],
                                                       ['Skip 2.4Ghz Tests', '1'],
                                                       ['Skip 5Ghz Tests', '1'],
