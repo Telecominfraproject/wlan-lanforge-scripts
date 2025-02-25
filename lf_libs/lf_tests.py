@@ -83,9 +83,11 @@ class lf_tests(lf_libs):
         self.influx_params = influx_params
 
     def client_connectivity_test(self, ssid="[BLANK]", passkey="[BLANK]", bssid="[BLANK]", dut_data={},
-                                 security="open", extra_securities=[], client_type=0,
+                                 security="open", extra_securities=[], client_type=0, pre_cleanup=True,
                                  num_sta=1, mode="BRIDGE", vlan_id=[None], band="twog",
                                  allure_attach=True, runtime_secs=40):
+        if pre_cleanup:
+            self.pre_cleanup()
         self.check_band_ap(band=band)
         if self.run_lf:
             dut_data = self.run_lf_dut_data()
@@ -563,9 +565,12 @@ class lf_tests(lf_libs):
                                             security="open", extra_securities=[], client_type=0, key_mgmt="WPA-EAP",
                                             pairwise="NA", group="NA", wpa_psk="DEFAULT", ttls_passwd="nolastart",
                                             ieee80211w=1, wep_key="NA", ca_cert="NA", eap="TTLS", identity="nolaradius",
-                                            d_vlan=False, cleanup=True,
+                                            d_vlan=False, cleanup=True, pre_cleanup=True,
                                             num_sta=1, mode="BRIDGE", vlan_id=[None], band="twog",
                                             allure_attach=True, runtime_secs=40, pk_passwd="whatever"):
+
+        if pre_cleanup:
+            self.pre_cleanup()
         self.check_band_ap(band=band)
         logging.info("DUT Data:\n" + json.dumps(str(dut_data), indent=2))
         allure.attach(name="DUT Data:\n", body=json.dumps(str(dut_data), indent=2),
