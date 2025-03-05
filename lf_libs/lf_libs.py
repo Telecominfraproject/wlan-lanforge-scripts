@@ -80,6 +80,7 @@ class lf_libs:
     max_5g_stations = None
     max_6g_stations = None
     max_ax_stations = None
+    max_be_stations = None
     max_ac_stations = None
     twog_prefix = "ath10k_2g0"
     fiveg_prefix = "ath10k_5g0"
@@ -258,6 +259,7 @@ class lf_libs:
         self.max_5g_stations = 0
         self.max_6g_stations = 0
         self.max_ax_stations = 0
+        self.max_be_stations = 0
         self.max_ac_stations = 0
         phantom_radios = []
         for info in data:
@@ -274,7 +276,7 @@ class lf_libs:
                 self.max_2g_stations += 1 * int(str(data[info]["max_vifs"]))
                 self.max_5g_stations += 1 * int(str(data[info]["max_vifs"]))
                 self.max_6g_stations += 1 * int(str(data[info]["max_vifs"]))
-                self.max_ax_stations += 1 * int(str(data[info]["max_vifs"]))
+                self.max_be_stations += 1 * int(str(data[info]["max_vifs"]))
                 self.be200_radios.append(info)
             if str(data[info]["driver"]).__contains__("AX210"):
                 self.max_possible_stations += 1
@@ -319,6 +321,7 @@ class lf_libs:
         logging.info("max_5g_stations: " + str(self.max_5g_stations))
         logging.info("max_6g_stations: " + str(self.max_6g_stations))
         logging.info("max_ax_stations: " + str(self.max_ax_stations))
+        logging.info("max_be_stations: " + str(self.max_be_stations))
         logging.info("max_ac_stations: " + str(self.max_ac_stations))
 
     def load_scenario(self):
