@@ -277,6 +277,7 @@ class lf_libs:
                 self.max_5g_stations += 1 * int(str(data[info]["max_vifs"]))
                 self.max_6g_stations += 1 * int(str(data[info]["max_vifs"]))
                 self.max_be_stations += 1 * int(str(data[info]["max_vifs"]))
+                self.max_ax_stations += 1 * int(str(data[info]["max_vifs"]))
                 self.be200_radios.append(info)
             if str(data[info]["driver"]).__contains__("AX210"):
                 self.max_possible_stations += 1
