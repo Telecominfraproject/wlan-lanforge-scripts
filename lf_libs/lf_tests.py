@@ -37,6 +37,8 @@ sta_connect2 = importlib.import_module("py-scripts.sta_connect2")
 StaConnect2 = sta_connect2.StaConnect2
 lf_library = importlib.import_module("lf_libs")
 lf_libs = lf_library.lf_libs
+profile_utility = importlib.import_module("py-json.profile_utility")
+ProfileUtility = profile_utility.ProfileUtility
 Report = lf_library.Report
 SCP_File = lf_library.SCP_File
 sniffradio = importlib.import_module("py-scripts.lf_sniff_radio")
@@ -1182,7 +1184,7 @@ class lf_tests(lf_libs):
                              ' bssid=' + str(dut_data[identifier]["ssid_data"][idx_]["bssid"]).upper()])
                 self.update_duts(identifier=identifier, ssid_data=ssid_data)
 
-    def add_stations(self, is_wifi7=False, band="2G", num_stations=9, ssid_name="", dut_data={}, identifier=None):
+    def add_stations(self, is_wifi7=False, is_bw320=False, band="2G", num_stations=9, ssid_name="", dut_data={}, identifier=None):
         dut_name = []
         # for index in range(0, len(self.dut_data)):
         #     dut_name.append(self.dut_data[index]["identifier"])
@@ -1327,13 +1329,41 @@ class lf_tests(lf_libs):
                                 stations = stations - max_station
                                 diff = max_station - stations
 
-        logging.info("Radio data: " + str(radio_data))
+        logging.info("radio_data: " + str(radio_data))
+
+        temp_profile_name = " STA-AUTO "
+        if is_wifi7 and is_bw320:
+            bandwidth = "320"
+            data = {}
+            data["name"] = "STA-BE320"
+            data["profile_type"] = "sta"
+            data["instance_count"] = "1"
+            data["bandwidth"] = bandwidth
+
+            profile_utility_obj = ProfileUtility(lfclient_host=self.manager_ip, lfclient_port=self.manager_http_port)
+            try:
+                STA_BE320 = profile_utility_obj.check_profile(profile_name="STA-BE320")
+                # Checking availability of STA_BE320 profile
+            except Exception as e:
+                STA_BE320 = True
+                pass
+            if STA_BE320:
+                logging.info("STA_BE320 profile: Available")
+                profile_utility_obj.remove_profile(name="STA-BE320")
+                response = self.json_post("/cli-json/add_profile",data=data)
+                logging.info(f"response of add_profile:{response}")
+            else:
+                response = self.json_post("/cli-json/add_profile", data=data)
+                logging.info(f"response of add_profile:{response}")
+
+            temp_profile_name = " STA-BE320 "
+
         for radio in radio_data:
             if identifier is None:
                 logging.error("Identifier is None")
                 pytest.fail("Identifier is None")
             station_data = ["profile_link " + radio.split(".")[0] + "." + radio.split(".")[1] +
-                            " STA-AUTO " + str(radio_data[radio]) + " 'DUT: " + identifier + " Radio-" +
+                            temp_profile_name + str(radio_data[radio]) + " 'DUT: " + identifier + " Radio-" +
                             str(int(idx) + 1) + "'" + " NA " + radio.split(".")[2]]
             self.temp_raw_lines.append(station_data)
             print(self.temp_raw_lines)
@@ -1390,7 +1420,7 @@ class lf_tests(lf_libs):
                       instance_name="wct_instance", download_rate="1Gbps", influx_tags="",
                       upload_rate="1Gbps", protocol="TCP-IPv4", duration="60000", stations="", create_stations=False,
                       sort="interleave", raw_lines=[], move_to_influx=False, dut_data={}, ssid_name=None,
-                      num_stations={}, add_stations=True, create_vlan=True, pass_fail_criteria=False, is_wifi7=False):
+                      num_stations={}, add_stations=True, create_vlan=True, pass_fail_criteria=False, is_wifi7=False, is_bw320=False):
         wificapacity_obj_list = []
         vlan_raw_lines = None
         for dut in self.dut_data:
@@ -1454,7 +1484,7 @@ class lf_tests(lf_libs):
                                         ssid_name = dut_data[i]["ssid_data"][j]["ssid"]
                     radio_data = self.add_stations(band=band_, num_stations=num_stations[band_], ssid_name=ssid_name,
                                                    dut_data=dut_data,
-                                                   identifier=identifier, is_wifi7=is_wifi7)
+                                                   identifier=identifier, is_wifi7=is_wifi7, is_bw320=is_bw320)
                     if vlan_raw_lines is not None:
                         for i in vlan_raw_lines:
                             self.temp_raw_lines.append(i)
@@ -1504,7 +1534,7 @@ class lf_tests(lf_libs):
                                     'interface'][
                                     'key/phrase']
                             logging.info("passkey:- " + str(passkey))
-                            if "160" in self.sta_mode_ or str(self.band_sta) == "6G":
+                            if ("160" in self.sta_mode_ or str(self.band_sta) == "6G") and ("320" not in self.sta_mode_):
                                 self.client_disconnect(station_name=[sta_name])
                                 logging.info("DUT Data: " + str(dut_data))
                                 encryption_value = None
