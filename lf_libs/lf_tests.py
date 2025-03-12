@@ -1511,7 +1511,7 @@ class lf_tests(lf_libs):
                             sta_rows = ["4way time (us)", "channel", "ssid", "key/phrase", "cx time (us)", "dhcp (ms)",
                                         "ip", "signal",
                                         "mac", "mode"]
-                            if str(self.band_sta) != "6G":
+                            if str(self.band_sta) != "6G" or ("320" in self.sta_mode_):
                                 allure_attach = True
                             else:
                                 allure_attach = False
