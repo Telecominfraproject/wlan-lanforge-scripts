@@ -2702,7 +2702,7 @@ class lf_tests(lf_libs):
                                                       ['Skip 6Ghz Tests', '1'],
                                                       ['Skip 5Ghz-B Tests', '1'],
                                                       ['Skip Tri-Band Tests', '1'],
-                                                      ['Skip Tri-Band (2.4, 5-low, 5-high) Tests', '1']
+                                                      ['Skip Tri-Band (2.4, 5-low, 5-high) Tests', '1'],
                                                       ['Stability', '0'],
                                                       ['Band Steering', '0'],
                                                       ['Multi STA Throughput vs Pkt Size', '0'],
