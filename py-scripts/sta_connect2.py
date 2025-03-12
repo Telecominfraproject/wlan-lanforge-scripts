@@ -38,7 +38,6 @@ import logging
 import datetime
 import platform
 
-
 if sys.version_info[0] != 3:
     print("This script requires Python 3")
     exit(1)
@@ -68,7 +67,7 @@ MODE_AUTO = 0
 
 class StaConnect2(Realm):
     def __init__(self, host, port, _dut_ssid="jedway-open-1", _dut_passwd="NA", _dut_bssid="",
-                 _user="", _passwd="",  _radio="wiphy0", _sta_mode=0,
+                 _user="", _passwd="", _radio="wiphy0", _sta_mode=0,
                  _influx_host=None, _influx_db=None, _influx_user=None,
                  _influx_passwd=None,
                  _resource=1, _upstream_resource=1, _upstream_port="eth1",
@@ -133,7 +132,7 @@ class StaConnect2(Realm):
             results = results + "-results.csv"
             self.csv_results_file = open(results, "w")
             self.csv_results_writer = csv.writer(self.csv_results_file, delimiter=",")
-        
+
         if self.sta_prefix is None:
             self.sta_prefix = "1.%s.sta" % (self.resource)
 
@@ -398,7 +397,7 @@ class StaConnect2(Realm):
                     "probe_flags": 1}
             # logger.info("start() - data1: %s", data)
             self.json_post("/cli-json/nc_show_ports", data)
-            #print("start() - ln 252 - self.j")
+            # print("start() - ln 252 - self.j")
             self.station_profile.admin_up()
             LFUtils.waitUntilPortsAdminUp(self.resource, self.lfclient_url, self.station_names)
 
@@ -470,15 +469,26 @@ class StaConnect2(Realm):
         for sta_name in self.station_names:
             sta_url = self.get_station_url(sta_name)
             station_info = self.json_get(sta_url)  # + "?fields=port,ip,ap")
+            logging.info(f"station_info:{station_info}")
             if station_info is None:
                 logger.info("unable to query %s", sta_url)
             self.resulting_stations[sta_url] = station_info
             try:
                 ap = station_info["interface"]["ap"]
             except Exception as e:
+                logging.info(f"Exception error:{e}")
                 logger.info(e)
                 ap = "NULL"
+            logging.info(f"ap value:{ap}")
             ip = station_info["interface"]["ip"]
+
+            if (ap == "") or (ap == "Not-Associated"):
+                time.sleep(10)
+                station_info = self.json_get(sta_url)
+                logging.info(f"station_info after 10 seconds:{station_info}")
+                ap = station_info["interface"]["ap"]
+                logging.info(f"ap value after 10 seconds:{ap}")
+
             if (ap != "") and (ap != "Not-Associated"):
                 print(" %s +AP %s, " % (sta_name, ap), end="")
                 if self.dut_bssid != "":
@@ -490,6 +500,7 @@ class StaConnect2(Realm):
                         self._fail(
                             "%s connected to wrong BSSID, requested: %s  Actual: %s" % (sta_name, self.dut_bssid, ap))
             else:
+                logging.info(f"{sta_name} did not connect to AP")
                 self._fail(sta_name + " did not connect to AP")
                 return False
 
@@ -561,7 +572,6 @@ class StaConnect2(Realm):
 
         # print("self.l3_udp_profile.created_cx -ln 412-: ", self.l3_udp_profile.created_cx)
         # print("self.l3_tcp_profile.created_cx: ", self.l3_tcp_profile.created_cx)
-
 
     def cleanup(self):
         # remove all endpoints and cxs
@@ -848,13 +858,13 @@ Note: --sta_mode use values in second column
 
 --------------------------- 
 """,
-    epilog="""
+        epilog="""
 ---------------------------
 CLI Example: 
 ./sta_connect2.py --mgr localhost --dut_ssid <ssid> --dut_passwd <passwd> --dut_security wpa2 
 --upstream_port eth2 --radio wiphy1
 """
-)
+    )
     parser.add_argument("-m", "--mgr", type=str, help="address of the LANforge GUI machine (localhost is default)",
                         default='localhost')
     parser.add_argument("-o", "--port", type=int, help="IP Port the LANforge GUI is listening on (8080 is default)",
@@ -874,10 +884,14 @@ CLI Example:
     parser.add_argument("--dut_security", type=str, help="DUT security: openLF, wpa, wpa2, wpa3")
     parser.add_argument("--dut_passwd", type=str, help="DUT PSK password.  Do not set for OPEN auth")
     parser.add_argument("--dut_bssid", type=str, help="DUT BSSID to which we expect to connect.")
-    parser.add_argument("--download_bps", type=int, help="Set the minimum bps value on test endpoint A. Default: 25g000", default=256000)
-    parser.add_argument("--upload_bps", type=int, help="Set the minimum bps value on test endpoint B. Default: 256000", default=256000)
-    parser.add_argument("--side_a_pdu", type=int, help="Set the minimum pdu value on test endpoint A. Default: 1200", default=1200)
-    parser.add_argument("--side_b_pdu", type=int, help="Set the minimum pdu value on test endpoint B. Default: 1500", default=1500)
+    parser.add_argument("--download_bps", type=int,
+                        help="Set the minimum bps value on test endpoint A. Default: 25g000", default=256000)
+    parser.add_argument("--upload_bps", type=int, help="Set the minimum bps value on test endpoint B. Default: 256000",
+                        default=256000)
+    parser.add_argument("--side_a_pdu", type=int, help="Set the minimum pdu value on test endpoint A. Default: 1200",
+                        default=1200)
+    parser.add_argument("--side_b_pdu", type=int, help="Set the minimum pdu value on test endpoint B. Default: 1500",
+                        default=1500)
     parser.add_argument("--runtime_sec", type=int, help="Set test duration time. Default: 60 seconds", default=60)
     parser.add_argument("--debug", help="enable debugging", action="store_true")
     parser.add_argument("--prefix", type=str, help="Station prefix. Default: 'sta'", default='sta')
@@ -892,7 +906,9 @@ CLI Example:
     parser.add_argument('--monitor_interval', help='How frequently you want to append to your database', default='5s')
     parser.add_argument('--debug_log', default=None, help="Specify a file to send debug output to")
     parser.add_argument('--no_cleanup', help='Do not cleanup before exit', action='store_true')
-    parser.add_argument('--local_lf_report_dir', help='--local_lf_report_dir override the report path, primary use when running test in test suite', default="")
+    parser.add_argument('--local_lf_report_dir',
+                        help='--local_lf_report_dir override the report path, primary use when running test in test suite',
+                        default="")
 
     # kpi_csv arguments:
     parser.add_argument(
@@ -932,8 +948,8 @@ CLI Example:
         help="--csv_outfile <Output file for csv data>",
         default="")
     # logging configuration:
-    parser.add_argument('--log_level', default=None, 
-        help='Set logging level: debug | info | warning | error | critical')
+    parser.add_argument('--log_level', default=None,
+                        help='Set logging level: debug | info | warning | error | critical')
 
     parser.add_argument("--lf_logger_config_json",
                         help="--lf_logger_config_json <json file> , json configuration of logger")
@@ -952,7 +968,6 @@ CLI Example:
         # logger_config.lf_logger_config_json = "lf_logger_config.json"
         logger_config.lf_logger_config_json = args.lf_logger_config_json
         logger_config.load_lf_logger_config()
-
 
     # for kpi.csv generation
     local_lf_report_dir = args.local_lf_report_dir
@@ -1055,7 +1070,8 @@ CLI Example:
     total_test = len(staConnect.get_result_list())
     total_pass = len(staConnect.get_passed_result_list())
     endp_rx_map, endp_rx_drop_map, endps, udp_dl, tcp_dl, udp_ul, tcp_ul, total_dl, total_ul, total_dl_ll, total_ul_ll = staConnect.get_rx_values()
-    staConnect.record_kpi_csv(len(temp_stations_list), total_test, total_pass, udp_dl, tcp_dl, udp_ul, tcp_ul, total_dl, total_ul)
+    staConnect.record_kpi_csv(len(temp_stations_list), total_test, total_pass, udp_dl, tcp_dl, udp_ul, tcp_ul, total_dl,
+                              total_ul)
     staConnect.record_results(len(temp_stations_list), udp_dl, tcp_dl, udp_ul, tcp_ul, total_dl, total_ul)
 
     # Reporting Results (.pdf & .html)
@@ -1069,7 +1085,7 @@ CLI Example:
     report.set_obj_html("Objective", "The Station Connection 2 Test is designed to test the performance of the "
                                      "Access Point with running TCP and UDP traffic for an amount of time. "
                                      "Verifies the station connected to the requested BSSID if bssid is specified."
-                                     )
+                        )
     report.build_objective()
 
     test_setup_info = {
@@ -1119,7 +1135,6 @@ CLI Example:
     if platform.system() == 'Linux':
         report.write_pdf_with_timestamp(_page_size='letter', _orientation='portrait')
 
-
     staConnect.stop()
     # exit(1)
 
@@ -1129,7 +1144,6 @@ CLI Example:
 
     # py-json/lanforge/lfcli_base.py - get_all_message():
     logger.info(staConnect.get_all_message())
-
 
     # cleanup stations
     if not args.no_cleanup:
@@ -1141,8 +1155,7 @@ CLI Example:
     if platform.system() == 'Linux':
         logger.info("Test Results PDF located: {report}".format(report=report.write_output_pdf))
 
-
-    # Added Exit codes 
+    # Added Exit codes
     if not is_passing:
         logger.info("FAIL:  Some tests failed")
         exit(1)
