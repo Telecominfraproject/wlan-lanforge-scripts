@@ -1688,7 +1688,12 @@ class lf_tests(lf_libs):
                         logging.info("Proto:- " + str(proto))
                         logging.info("Given LF download_rate:- " + str(download_rate))
                         logging.info("Given LF upload_rate:- " + str(upload_rate))
-                        pass_fail_value = pass_fail_values[key][proto]
+                        pass_fail_value = None
+                        if "BE" in self.sta_mode_:
+                            pass_fail_value = pass_fail_values["BE"][key][proto]
+                        elif "AX" in self.sta_mode_:
+                            pass_fail_value = pass_fail_values["AX"][key][proto]
+                        # pass_fail_value = pass_fail_values[key][proto]
                         download_rate = self.convert_to_gbps(download_rate)
                         logging.info("download_rate:- " + str(download_rate))
                         upload_rate = self.convert_to_gbps(upload_rate)
