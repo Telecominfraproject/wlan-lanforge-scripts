@@ -469,25 +469,25 @@ class StaConnect2(Realm):
         for sta_name in self.station_names:
             sta_url = self.get_station_url(sta_name)
             station_info = self.json_get(sta_url)  # + "?fields=port,ip,ap")
-            logging.info(f"station_info:{station_info}")
+            logger.info(f"station_info:{station_info}")
             if station_info is None:
                 logger.info("unable to query %s", sta_url)
             self.resulting_stations[sta_url] = station_info
             try:
                 ap = station_info["interface"]["ap"]
             except Exception as e:
-                logging.info(f"Exception error:{e}")
+                logger.info(f"Exception error:{e}")
                 logger.info(e)
                 ap = "NULL"
-            logging.info(f"ap value:{ap}")
+            logger.info(f"ap value:{ap}")
             ip = station_info["interface"]["ip"]
 
             if (ap == "") or (ap == "Not-Associated"):
                 time.sleep(10)
                 station_info = self.json_get(sta_url)
-                logging.info(f"station_info after 10 seconds:{station_info}")
+                logger.info(f"station_info after 10 seconds:{station_info}")
                 ap = station_info["interface"]["ap"]
-                logging.info(f"ap value after 10 seconds:{ap}")
+                logger.info(f"ap value after 10 seconds:{ap}")
 
             if (ap != "") and (ap != "Not-Associated"):
                 print(" %s +AP %s, " % (sta_name, ap), end="")
@@ -500,7 +500,7 @@ class StaConnect2(Realm):
                         self._fail(
                             "%s connected to wrong BSSID, requested: %s  Actual: %s" % (sta_name, self.dut_bssid, ap))
             else:
-                logging.info(f"{sta_name} did not connect to AP")
+                logger.info(f"{sta_name} did not connect to AP")
                 self._fail(sta_name + " did not connect to AP")
                 return False
 
