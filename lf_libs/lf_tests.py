@@ -1511,7 +1511,7 @@ class lf_tests(lf_libs):
                             sta_rows = ["4way time (us)", "channel", "ssid", "key/phrase", "cx time (us)", "dhcp (ms)",
                                         "ip", "signal",
                                         "mac", "mode"]
-                            if str(self.band_sta) != "6G" or ("320" in self.sta_mode_):
+                            if str(self.band_sta) != "6G" or is_bw320:
                                 allure_attach = True
                             else:
                                 allure_attach = False
@@ -1689,9 +1689,11 @@ class lf_tests(lf_libs):
                         logging.info("Given LF download_rate:- " + str(download_rate))
                         logging.info("Given LF upload_rate:- " + str(upload_rate))
                         pass_fail_value = None
-                        if "BE" in self.sta_mode_:
+                        if "BE" in str(self.sta_mode_):
+                            logging.info("In BE pass fail")
                             pass_fail_value = pass_fail_values["BE"][key][proto]
-                        elif "AX" in self.sta_mode_:
+                        elif "AX" in str(self.sta_mode_):
+                            logging.info("In AX pass fail")
                             pass_fail_value = pass_fail_values["AX"][key][proto]
                         # pass_fail_value = pass_fail_values[key][proto]
                         download_rate = self.convert_to_gbps(download_rate)
@@ -3307,7 +3309,13 @@ class lf_tests(lf_libs):
             logging.info("Proto:- " + str(proto))
             logging.info("Given LF download_rate:- " + str(download_rate))
             logging.info("Given LF upload_rate:- " + str(upload_rate))
-            pass_fail_value = pass_fail_values[key][proto]
+            pass_fail_value = None
+            if "BE" in sta_mode:
+                logging.info("In BE pass fail")
+                pass_fail_value = pass_fail_values["BE"][key][proto]
+            elif "AX" in sta_mode:
+                logging.info("In AX pass fail")
+                pass_fail_value = pass_fail_values["AX"][key][proto]
             logging.info("pass_fail value:- " + str(pass_fail_value))
             download_rate = self.convert_to_gbps(download_rate)
             logging.info("download_rate:- " + str(download_rate))
@@ -3440,7 +3448,13 @@ class lf_tests(lf_libs):
             logging.info("Proto:- " + str(proto))
             logging.info("Given LF download_rate:- " + str(download_rate))
             logging.info("Given LF upload_rate:- " + str(upload_rate))
-            pass_fail_value = pass_fail_values[key][proto]
+            pass_fail_value = None
+            if "BE" in sta_mode:
+                logging.info("In BE pass fail")
+                pass_fail_value = pass_fail_values["BE"][key][proto]
+            elif "AX" in sta_mode:
+                logging.info("In AX pass fail")
+                pass_fail_value = pass_fail_values["AX"][key][proto]
             logging.info("pass_fail value:- " + str(pass_fail_value))
             download_rate = self.convert_to_gbps(download_rate)
             logging.info("download_rate:- " + str(download_rate))
