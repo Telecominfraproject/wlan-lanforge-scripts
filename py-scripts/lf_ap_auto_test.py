@@ -10,11 +10,11 @@ Note: To Run this script gui should be opened with
 This script is used to automate running AP-Auto tests.  You
 may need to view an AP Auto test configured through the GUI to understand
 the options and how best to input data.
-    
+
     ./lf_ap_auto_test.py --mgr localhost --port 8080 --lf_user lanforge --lf_password lanforge \
       --instance_name ap-auto-instance --config_name test_con --upstream 1.1.eth2 \
-      --dut5_0 'linksys-8450 Default-SSID-5gl c4:41:1e:f5:3f:25 (2)' \
-      --dut2_0 'linksys-8450 Default-SSID-2g c4:41:1e:f5:3f:24 (1)' \
+      --dut5_1 'linksys-8450 Default-SSID-5gl c4:41:1e:f5:3f:25 (2)' \
+      --dut2_1 'linksys-8450 Default-SSID-2g c4:41:1e:f5:3f:24 (1)' \
       --max_stations_2 100 --max_stations_5 100 --max_stations_dual 200 \
       --radio2 1.1.wiphy0 --radio2 1.1.wiphy2 \
       --radio5 1.1.wiphy1 --radio5 1.1.wiphy3 --radio5 1.1.wiphy4 \
@@ -66,7 +66,7 @@ spatial_streams: AUTO
 bandw_options: AUTO
 modes: Auto
 upstream_port: 1.1.2 eth2
-operator: 
+operator:
 mconn: 1
 tos: 0
 vid_buf: 1000000
@@ -120,17 +120,17 @@ pf_text0: 2.4 DL 200 70Mbps
 pf_text1: 2.4 DL 512 110Mbps
 pf_text2: 2.4 DL 1024 115Mbps
 pf_text3: 2.4 DL MTU 120Mbps
-pf_text4: 
+pf_text4:
 pf_text5: 2.4 UL 200 88Mbps
 pf_text6: 2.4 UL 512 106Mbps
 pf_text7: 2.4 UL 1024 115Mbps
 pf_text8: 2.4 UL MTU 120Mbps
-pf_text9: 
+pf_text9:
 pf_text10: 5 DL 200 72Mbps
 pf_text11: 5 DL 512 185Mbps
 pf_text12: 5 DL 1024 370Mbps
 pf_text13: 5 DL MTU 525Mbps
-pf_text14: 
+pf_text14:
 pf_text15: 5 UL 200 90Mbps
 pf_text16: 5 UL 512 230Mbps
 pf_text17: 5 UL 1024 450Mbps
@@ -184,6 +184,7 @@ cv_base_adjust_parser = cv_test_manager.cv_base_adjust_parser
 LFUtils = importlib.import_module("py-json.LANforge.LFUtils")
 lf_logger_config = importlib.import_module("py-scripts.lf_logger_config")
 
+
 class ApAutoTest(cvtest):
     def __init__(self,
                  lf_host="localhost",
@@ -197,14 +198,19 @@ class ApAutoTest(cvtest):
                  config_name="ap_auto_config",
                  upstream=None,
                  pull_report=False,
-                 dut5_0="NA",
-                 dut2_0="NA",
+                 dut5_1="NA",
+                 dut2_1="NA",
+                 dut6_1="NA",
                  load_old_cfg=False,
                  max_stations_2=100,
                  max_stations_5=100,
+                 max_stations_6=100,
+                 max_bandwidth=80,
                  max_stations_dual=200,
+                 max_stations_tri=200,
                  radio2=None,
                  radio5=None,
+                 radio6=None,
                  enables=None,
                  disables=None,
                  raw_lines=None,
@@ -219,6 +225,8 @@ class ApAutoTest(cvtest):
             radio2 = []
         if radio5 is None:
             radio5 = []
+        if radio6 is None:
+            radio6 = []
         if enables is None:
             enables = []
         if disables is None:
@@ -237,13 +245,18 @@ class ApAutoTest(cvtest):
         self.pull_report = pull_report
         self.load_old_cfg = load_old_cfg
         self.test_name = "AP-Auto"
-        self.dut5_0 = dut5_0
-        self.dut2_0 = dut2_0
+        self.dut5_1 = dut5_1
+        self.dut2_1 = dut2_1
+        self.dut6_1 = dut6_1
         self.max_stations_2 = max_stations_2
         self.max_stations_5 = max_stations_5
+        self.max_stations_6 = max_stations_6
+        self.max_bandwidth = max_bandwidth
         self.max_stations_dual = max_stations_dual
+        self.max_stations_tri = max_stations_tri
         self.radio2 = radio2
         self.radio5 = radio5
+        self.radio6 = radio6
         self.enables = enables
         self.disables = disables
         self.raw_lines = raw_lines
@@ -281,21 +294,36 @@ class ApAutoTest(cvtest):
             cfg_options.append("radio5-%i: %s" % (ridx, r[0]))
             ridx += 1
 
+        ridx = 0
+        for r in self.radio6:
+            cfg_options.append("radio6-%i: %s" % (ridx, r[0]))
+            ridx += 1
+
         self.apply_cfg_options(cfg_options, self.enables, self.disables, self.raw_lines, self.raw_lines_file)
 
         # Command line args take precedence.
         if self.upstream:
             cfg_options.append("upstream_port: %s" % self.upstream)
-        if self.dut5_0 != "":
-            cfg_options.append("dut5-0: " + self.dut5_0)
-        if self.dut2_0 != "":
-            cfg_options.append("dut2-0: " + self.dut2_0)
+        if self.dut5_1 != "":
+            cfg_options.append("dut5-1: " + self.dut5_1)
+        if self.dut2_1 != "":
+            cfg_options.append("dut2-1: " + self.dut2_1)
+        if self.dut6_1 != "":
+            cfg_options.append("dut6-1: " + self.dut6_1)
         if self.max_stations_2 != -1:
             cfg_options.append("max_stations_2: " + str(self.max_stations_2))
         if self.max_stations_5 != -1:
             cfg_options.append("max_stations_5: " + str(self.max_stations_5))
-        if self.max_stations_dual != -1:
+        if self.max_stations_6 != -1:
+            cfg_options.append("max_stations_6: " + str(self.max_stations_6))
+        if self.max_bandwidth != -1:
+            cfg_options.append("max_bandwidth: " + str(self.max_bandwidth))
+        if self.max_stations_dual != -1 and self.dut6_1 == "NA":
+            logging.info("it is dualband")
             cfg_options.append("max_stations_dual: " + str(self.max_stations_dual))
+        if self.max_stations_tri != -1 and self.dut6_1 != "NA":
+            logging.info("it is triband")
+            cfg_options.append("max_stations_tri: " + str(self.max_stations_tri))
 
         # We deleted the scenario earlier, now re-build new one line at a time.
         self.build_cfg(self.config_name, blob_test, cfg_options)
@@ -316,12 +344,12 @@ def main():
         formatter_class=argparse.RawTextHelpFormatter,
         description="""
     Open this file in an editor and read the top notes for more details.
-    
+
     Example:
     ./lf_ap_auto_test.py --mgr localhost --port 8080 --lf_user lanforge --lf_password lanforge \\
       --instance_name ap-auto-instance --config_name test_con --upstream 1.1.eth2 \\
-      --dut5_0 'linksys-8450 Default-SSID-5gl c4:41:1e:f5:3f:25 (2)' \\
-      --dut2_0 'linksys-8450 Default-SSID-2g c4:41:1e:f5:3f:24 (1)' \\
+      --dut5_1 'linksys-8450 Default-SSID-5gl c4:41:1e:f5:3f:25 (2)' \\
+      --dut2_1 'linksys-8450 Default-SSID-2g c4:41:1e:f5:3f:24 (1)' \\
       --max_stations_2 100 --max_stations_5 100 --max_stations_dual 200 \\
       --radio2 1.1.wiphy0 --radio2 1.1.wiphy2 \\
       --radio5 1.1.wiphy1 --radio5 1.1.wiphy3 --radio5 1.1.wiphy4 \\
@@ -348,9 +376,9 @@ def main():
                         help="Specify maximum 5Ghz stations")
     parser.add_argument("--max_stations_dual", type=int, default=-1,
                         help="Specify maximum stations for dual-band tests")
-    parser.add_argument("--dut5_0", type=str, default="",
+    parser.add_argument("--dut5_1", type=str, default="",
                         help="Specify 5Ghz DUT entry.  Syntax is somewhat tricky:  DUT-name SSID BSID (bssid-idx), example: linksys-8450 Default-SSID-5gl c4:41:1e:f5:3f:25 (2)")
-    parser.add_argument("--dut2_0", type=str, default="",
+    parser.add_argument("--dut2_1", type=str, default="",
                         help="Specify 5Ghz DUT entry.  Syntax is somewhat tricky:  DUT-name SSID BSID (bssid-idx), example: linksys-8450 Default-SSID-2g c4:41:1e:f5:3f:24 (1)")
 
     parser.add_argument("--radio2", action='append', nargs=1, default=[],
@@ -379,7 +407,6 @@ def main():
     logger_config.set_level(level=args.log_level)
     logger_config.set_json(json_file=args.lf_logger_config_json)
 
-
     cv_base_adjust_parser(args)
 
     CV_Test = ApAutoTest(lf_host=args.mgr,
@@ -392,8 +419,8 @@ def main():
                          pull_report=args.pull_report,
                          local_lf_report_dir=args.local_lf_report_dir,
                          lf_report_dir=args.lf_report_dir,
-                         dut5_0=args.dut5_0,
-                         dut2_0=args.dut2_0,
+                         dut5_1=args.dut5_1,
+                         dut2_1=args.dut2_1,
                          load_old_cfg=args.load_old_cfg,
                          max_stations_2=args.max_stations_2,
                          max_stations_5=args.max_stations_5,
@@ -416,6 +443,7 @@ def main():
         CV_Test.exit_success()
     else:
         CV_Test.exit_fail()
+
 
 if __name__ == "__main__":
     main()
