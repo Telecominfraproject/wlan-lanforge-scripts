@@ -2659,11 +2659,12 @@ class lf_tests(lf_libs):
 
         return rvr_obj, report_name
 
-    def dual_band_performance_test(self, ssid_5G="[BLANK]", ssid_2G="[BLANK]", mode="BRIDGE", vlan_id=100,
-                                   dut_name="TIP",
-                                   instance_name="test_demo", dut_5g="", dut_2g="", influx_tags="",
-                                   move_to_influx=False,
-                                   create_vlan=True, dut_data={}):
+    def multi_band_performance_test(self, ssid_5G="[BLANK]", ssid_2G="[BLANK]", ssid_6G="[BLANK]", mode="BRIDGE",
+                                    vlan_id=100,
+                                    dut_name="TIP",
+                                    instance_name="test_demo", dut_5g="", dut_2g="", dut_6g="", influx_tags="",
+                                    move_to_influx=False,
+                                    create_vlan=True, dut_data={}):
         try:
             instance_name = ''.join(random.choices(string.ascii_uppercase + string.digits, k=12))
 
@@ -2680,47 +2681,122 @@ class lf_tests(lf_libs):
             logging.info("Upstream data: " + str(upstream_port))
 
             self.update_dut_ssid(dut_data=dut_data)
-            self.dualbandptest_obj = ApAutoTest(lf_host=self.manager_ip,
-                                                lf_port=self.manager_http_port,
-                                                lf_user="lanforge",
-                                                lf_password="lanforge",
-                                                ssh_port=self.manager_ssh_port,
-                                                instance_name=instance_name,
-                                                config_name="dbp_config",
-                                                upstream=upstream_port,
-                                                pull_report=True,
-                                                dut5_0=dut_5g,
-                                                dut2_0=dut_2g,
-                                                load_old_cfg=False,
-                                                local_lf_report_dir=self.local_report_path,
-                                                max_stations_2=64,
-                                                max_stations_5=64,
-                                                max_stations_dual=64,
-                                                radio2=[self.wave2_2g_radios],
-                                                radio5=[self.wave2_5g_radios],
-                                                raw_lines=[['modes: AUTO'], ['dur20: 60']],
-                                                # test_tag=influx_tags,
-                                                sets=[['Basic Client Connectivity', '0'],
-                                                      ['Multi Band Throughput', '1'],
-                                                      ['Capacity', '0'],
-                                                      ['Skip 2.4Ghz Tests', '0'],
-                                                      ['Channel Switching', '0'],
-                                                      ['Skip 5Ghz Tests', '0'],
-                                                      ['Skip 6Ghz Tests', '1'],
-                                                      ['Skip 5Ghz-B Tests', '1'],
-                                                      ['Skip Tri-Band Tests', '1'],
-                                                      ['Skip Tri-Band (2.4, 5-low, 5-high) Tests', '1'],
-                                                      ['Stability', '0'],
-                                                      ['Band Steering', '0'],
-                                                      ['Multi STA Throughput vs Pkt Size', '0'],
-                                                      ['Single STA Throughput vs Pkt Size', '0'],
-                                                      ['Long Term', '0']]
-                                                )
-            self.dualbandptest_obj.setup()
-            self.dualbandptest_obj.run()
+
+            if dut_6g:
+                logging.info(f"dut_6g data:{dut_6g}")
+                band = "sixg"
+                self.check_band_ap(band=band)
+                self.multibandptest_obj = ApAutoTest(lf_host=self.manager_ip,
+                                                     lf_port=self.manager_http_port,
+                                                     lf_user="lanforge",
+                                                     lf_password="lanforge",
+                                                     ssh_port=self.manager_ssh_port,
+                                                     instance_name=instance_name,
+                                                     config_name="dbp_config",
+                                                     upstream=upstream_port,
+                                                     pull_report=True,
+                                                     dut5_1=dut_5g,
+                                                     dut2_1=dut_2g,
+                                                     dut6_1=dut_6g,
+                                                     load_old_cfg=False,
+                                                     local_lf_report_dir=self.local_report_path,
+                                                     max_stations_2=64,
+                                                     max_stations_5=64,
+                                                     max_stations_6=64,
+                                                     max_stations_tri=64,
+                                                     max_bandwidth=320,
+                                                     radio2=[[self.be200_radios[0]]],
+                                                     radio5=[[self.be200_radios[1]]],
+                                                     radio6=[[self.be200_radios[2]]],
+                                                     raw_lines=[['modes: AUTO'], ['dur20: 60']],
+                                                     # test_tag=influx_tags,
+                                                     sets=[['Basic Client Connectivity', '0'],
+                                                           ['Multi Band Throughput', '1'],
+                                                           ['Capacity', '0'],
+                                                           ['Skip 2.4Ghz Tests', '0'],
+                                                           ['Channel Switching', '0'],
+                                                           ['Skip 5Ghz Tests', '0'],
+                                                           ['Skip 6Ghz Tests', '0'],
+                                                           ['Skip 5Ghz-B Tests', '1'],
+                                                           ['Skip Tri-Band Tests', '0'],
+                                                           ['Skip Tri-Band (2.4, 5-low, 5-high) Tests', '1'],
+                                                           ['Stability', '0'],
+                                                           ['Band Steering', '0'],
+                                                           ['Multi STA Throughput vs Pkt Size', '0'],
+                                                           ['Single STA Throughput vs Pkt Size', '0'],
+                                                           ['Long Term', '0']]
+                                                     )
+            else:
+                dict_all_radios_2g = {"be200_radios": self.be200_radios,
+                                      "ax210_radios": self.ax210_radios, "ax200_radios": self.ax200_radios,
+                                      "mtk_radios": self.mtk_radios,
+                                      "wave2_2g_radios": self.wave2_2g_radios,
+                                      "wave1_radios": self.wave1_radios
+                                      }
+                dict_all_radios_5g = {"be200_radios": self.be200_radios,
+                                      "ax210_radios": self.ax210_radios, "ax200_radios": self.ax200_radios,
+                                      "mtk_radios": self.mtk_radios,
+                                      "wave2_5g_radios": self.wave2_5g_radios,
+                                      "wave1_radios": self.wave1_radios
+                                      }
+                radio5 = []
+                for radio_list in dict_all_radios_5g.values():
+                    if radio_list:
+                        radio5.append(radio_list[0])
+                        break
+                logging.info(f"Selected Radio for radio5:{radio5}")
+                radio2 = []
+                for radio_list in dict_all_radios_2g.values():
+                    for radio in radio_list:
+                        if radio not in radio5:  # Ensure it's not the same as radio5
+                            radio2.append(radio)
+                            break
+                    if radio2:  # Stop checking further lists if a radio is assigned
+                        break
+                logging.info(f"Selected Radio for radio2: {radio2}")
+
+                self.multibandptest_obj = ApAutoTest(lf_host=self.manager_ip,
+                                                     lf_port=self.manager_http_port,
+                                                     lf_user="lanforge",
+                                                     lf_password="lanforge",
+                                                     ssh_port=self.manager_ssh_port,
+                                                     instance_name=instance_name,
+                                                     config_name="dbp_config",
+                                                     upstream=upstream_port,
+                                                     pull_report=True,
+                                                     dut5_1=dut_5g,
+                                                     dut2_1=dut_2g,
+                                                     load_old_cfg=False,
+                                                     local_lf_report_dir=self.local_report_path,
+                                                     max_stations_2=64,
+                                                     max_stations_5=64,
+                                                     max_stations_dual=64,
+                                                     max_bandwidth=80,
+                                                     radio2=[radio2],
+                                                     radio5=[radio5],
+                                                     raw_lines=[['modes: AUTO'], ['dur20: 60']],
+                                                     # test_tag=influx_tags,
+                                                     sets=[['Basic Client Connectivity', '0'],
+                                                           ['Multi Band Throughput', '1'],
+                                                           ['Capacity', '0'],
+                                                           ['Skip 2.4Ghz Tests', '0'],
+                                                           ['Channel Switching', '0'],
+                                                           ['Skip 5Ghz Tests', '0'],
+                                                           ['Skip 6Ghz Tests', '1'],
+                                                           ['Skip 5Ghz-B Tests', '1'],
+                                                           ['Skip Tri-Band Tests', '1'],
+                                                           ['Skip Tri-Band (2.4, 5-low, 5-high) Tests', '1'],
+                                                           ['Stability', '0'],
+                                                           ['Band Steering', '0'],
+                                                           ['Multi STA Throughput vs Pkt Size', '0'],
+                                                           ['Single STA Throughput vs Pkt Size', '0'],
+                                                           ['Long Term', '0']]
+                                                     )
+            self.multibandptest_obj.setup()
+            self.multibandptest_obj.run()
             if move_to_influx:
                 report_name = "../reports/" + \
-                              self.dualbandptest_obj.report_name[0]['LAST']["response"].split(":::")[1].split("/")[-1]
+                              self.multibandptest_obj.report_name[0]['LAST']["response"].split(":::")[1].split("/")[-1]
                 try:
                     influx = CSVtoInflux(influx_host=self.influx_params["influx_host"],
                                          influx_port=self.influx_params["influx_port"],
@@ -2733,20 +2809,17 @@ class lf_tests(lf_libs):
                 except Exception as e:
                     print(e)
                     pass
-            report_name = self.dualbandptest_obj.report_name[0]['LAST']["response"].split(":::")[1].split("/")[-1] + "/"
-            self.attach_report_graphs(report_name=report_name, pdf_name="Dual Band Performance Test")
+            report_name = self.multibandptest_obj.report_name[0]['LAST']["response"].split(":::")[1].split("/")[
+                              -1] + "/"
+            self.attach_report_graphs(report_name=report_name, pdf_name="Multi Band Performance Test")
             result = self.read_kpi_file(column_name=["pass/fail"], dir_name=report_name)
             allure.attach.file(source="../reports/" + report_name + "/kpi.csv",
-                               name=f"dual_band_CSV", attachment_type="CSV")
-            # if result[0][0] == "PASS":
-            #     return True, "Test Passed"
-            # else:
-            #     return False, "Test Failed"
+                               name=f"Multi_band_CSV", attachment_type="CSV")
 
         except Exception as e:
             logging.error(f"{e}")
             return False, f"{e}"
-        return self.dualbandptest_obj
+        return self.multibandptest_obj
 
     def multi_station_performance(self, ssid_name=None, security_key=None, mode="BRIDGE", vlan=1, band="twog",
                                   antenna=1,
