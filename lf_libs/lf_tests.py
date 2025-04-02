@@ -71,6 +71,8 @@ roam_test = importlib.import_module("py-scripts.lf_hard_roam_test")
 Roam = roam_test.Roam
 wifi_mobility_test = importlib.import_module("py-scripts.lf_wifi_mobility_test")
 WifiMobility = wifi_mobility_test.WifiMobility
+modify_station = importlib.import_module("py-scripts.modify_station")
+ModifyStation = modify_station.ModifyStation
 
 
 class lf_tests(lf_libs):
@@ -966,9 +968,80 @@ class lf_tests(lf_libs):
         else:
             logging.info("ALL Stations got IP as Expected")
 
+
+
+    def empsk_test(self,ssid="[BLANK]", passkey="[BLANK]", security="wpa2", mode="BRIDGE", band="twog",
+                       vlan_id=[None], num_sta=None, scan_ssid=True, client_type=0, pre_cleanup=True,
+                       station_data=["ip", "alias", "mac", "channel", "port type", "security", "ap", "parent dev"],
+                       allure_attach=True, identifier=None, allure_name="station data", dut_data={}):
+
+        sta_data = self.client_connect(ssid=ssid, passkey=passkey, security=security,
+                                                   mode=mode, band=band, pre_cleanup=False, num_sta=num_sta,
+                                                   scan_ssid=True,
+                                                   station_data=station_data,
+                                                   allure_attach=True, dut_data=dut_data, allure_name=allure_name)
+
+        logging.info(f"sta_data from client_connect:{sta_data}")
+        station_list = []
+        for sta in sta_data.keys():
+            station_list.append(sta)
+            radio = sta_data[sta]["parent dev"]
+
+        enable_flag = ["use-wpa3"]
+        disable_flag = ["wpa2_enable"]
+        obj_modify_sta = ModifyStation(_host=self.manager_ip, _port=self.manager_http_port,
+                                       _ssid=ssid,
+                                       _password=passkey,
+                                       _security=security,
+                                       _station_list=station_list,
+                                       _radio=radio,
+                                       _enable_flags=enable_flag,
+                                       _disable_flags=disable_flag,
+                                       _debug_on=True)
+        obj_modify_sta.set_station()
+        logging.info("Successfully changed encryption from WPA2 to WPA3")
+        time.sleep(10)
+        stat_data = self.get_station_data(sta_name=station_list, rows=station_data, allure_attach=False)
+
+        sta_table_dict = {}
+        sta_table_dict["station name"] = list(stat_data.keys())
+        for i in station_data:
+            temp_list = []
+            for j in station_list:
+                temp_list.append(stat_data[j][i])
+            sta_table_dict[i] = temp_list
+
+        # pass fail
+        pass_fail_sta = []
+        for i in range(len(station_list)):
+            if sta_table_dict["ip"][i] == "0.0.0.0" or sta_table_dict["ap"][i] == "Not-Associated":
+                pass_fail_sta.append("Fail")
+            else:
+                pass_fail_sta.append("Pass")
+        sta_table_dict["Pass/Fail"] = pass_fail_sta
+        if allure_attach:
+            self.attach_table_allure(data=sta_table_dict, allure_name="station data for 6G band")
+
+        for i in range(len(station_list)):
+            if sta_table_dict["ip"][i] == "0.0.0.0":
+                logging.info("Station did not get an ip")
+                pytest.fail("Station did not get an ip")
+            else:
+                logging.info("Station got IP")
+
+        for i in range(len(station_list)):
+            if sta_table_dict["ap"][i] == "Not-Associated":
+                logging.info("Station did not associate to AP")
+                pytest.fail("Station did not associate to AP")
+            else:
+                logging.info("Station successfully associated to AP")
+
+        return stat_data
+
+
     def client_connect(self, ssid="[BLANK]", passkey="[BLANK]", security="wpa2", mode="BRIDGE", band="twog",
                        vlan_id=[None], num_sta=None, scan_ssid=True, client_type=0, pre_cleanup=True,
-                       station_data=["4way time (us)", "channel", "cx time (us)", "dhcp (ms)", "ip", "signal", "mode"],
+                       station_data=["4way time (us)", "channel", "cx time (us)", "dhcp (ms)", "ip", "signal", "mode", "ap", "parent dev"],
                        allure_attach=True, identifier=None, allure_name="station data", dut_data={}):
         # pre cleanup
         if pre_cleanup:
