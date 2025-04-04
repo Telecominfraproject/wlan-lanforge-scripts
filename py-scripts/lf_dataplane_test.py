@@ -9,7 +9,7 @@ Note: To Run this script gui should be opened with
 This script is used to automate running Dataplane tests.  You
 may need to view a Dataplane test configured through the GUI to understand
 the options and how best to input data.
-    
+
     ./lf_dataplane_test.py --mgr localhost --port 8080 --lf_user lanforge --lf_password lanforge \
       --instance_name dataplane-instance --config_name test_con --upstream 1.1.eth2 \
       --dut linksys-8450 --duration 15s --station 1.1.sta01500 \
@@ -39,7 +39,7 @@ port_sorting: 0
 kpi_id: Dataplane Pkt-Size
 notes0: ec5211 in bridge mode, wpa2 auth.
 bg: 0xE0ECF8
-test_rig: 
+test_rig:
 show_scan: 1
 auto_helper: 0
 skip_2: 0
@@ -87,7 +87,7 @@ show_1m: 1
 pause_iter: 0
 outer_loop_atten: 0
 show_realtime: 1
-operator: 
+operator:
 mconn: 1
 mpkt: 1000
 tos: 0
@@ -129,6 +129,7 @@ class DataplaneTest(cv_test):
                  upload_speed="0",
                  download_speed="85%",
                  duration="15s",
+                 path_loss=10,
                  station="1.1.sta01500",
                  dut="NA",
                  enables=None,
@@ -158,6 +159,7 @@ class DataplaneTest(cv_test):
         self.config_name = config_name
         self.dut = dut
         self.duration = duration
+        self.path_loss = path_loss
         self.upstream = upstream
         self.station = station
         self.pull_report = pull_report
@@ -215,6 +217,8 @@ class DataplaneTest(cv_test):
             cfg_options.append("test_rig: " + self.test_rig)
         if self.test_tag != "":
             cfg_options.append("test_tag: " + self.test_tag)
+        if self.path_loss != "":
+            cfg_options.append("path_loss: " + str(self.path_loss))
 
         # We deleted the scenario earlier, now re-build new one line at a time.
 
@@ -238,7 +242,7 @@ def main():
 
     IMPORTANT: Start lanforge with socket 3990 :  ./lfclient.bash -cli-socket 3990
         lfclient.bash is located in the LANforgeGUI_X.X.X directory
-        
+
         On local or remote system: ./lfclient.bash -cli-socket 3990 -s LF_MGR 
         On local system the -s LF_MGR will be local_host if not provided
 
@@ -258,7 +262,7 @@ def main():
       --influx_bucket ben \
       --influx_tag testbed Ferndale-01
 
-      
+
     Example 2:
     ./lf_dataplane_test.py --json <name>.json
 
@@ -280,7 +284,7 @@ def main():
         "upload_speed":"0",	
         "raw_line":  ["pkts: Custom;60;MTU", "cust_pkt_sz: 88 1200", "directions: DUT Transmit", "traffic_types: UDP", "bandw_options: 20", "spatial_streams: 1"]
     }
-        
+
     Sample <name>.json between using eth1 and station 1.1.sta0002
     {
         "mgr":"192.168.0.101",
@@ -426,6 +430,7 @@ def main():
         CV_Test.exit_success()
     else:
         CV_Test.exit_fail()
+
 
 if __name__ == "__main__":
     main()
