@@ -1257,7 +1257,8 @@ class lf_tests(lf_libs):
                              ' bssid=' + str(dut_data[identifier]["ssid_data"][idx_]["bssid"]).upper()])
                 self.update_duts(identifier=identifier, ssid_data=ssid_data)
 
-    def add_stations(self, is_wifi7=False, is_bw320=False, band="2G", num_stations=9, ssid_name="", dut_data={}, identifier=None):
+    def add_stations(self, is_wifi7=False, is_bw320=False, band="2G", num_stations=9, ssid_name="", dut_data={},
+                     identifier=None, dual_band_flag=1, temp_radio_data={}):
         dut_name = []
         # for index in range(0, len(self.dut_data)):
         #     dut_name.append(self.dut_data[index]["identifier"])
@@ -1311,8 +1312,14 @@ class lf_tests(lf_libs):
 
         max_station_per_radio = {"wave2_2g_radios": 64, "wave2_5g_radios": 64, "wave1_radios": 64, "mtk_radios": 19,
                                  "ax200_radios": 1, "ax210_radios": 1, "be200_radios": 1}
+        if dual_band_flag > 1:
+            logging.info("dual_band_flag is True, fetched 2g radio data")
+            logging.info(f"temp_radio_data:{temp_radio_data}")
+            temp_radio_data = temp_radio_data
+
         radio_data = {}
         sniff_radio = ""
+
 
         for dut in dut_data:
             for idx_ in dut_data[dut]["ssid_data"]:
@@ -1367,6 +1374,8 @@ class lf_tests(lf_libs):
                     if len(dict_all_radios_5g[j]) > 0:
                         diff = max_station - stations
                         for i in dict_all_radios_5g[j]:
+                            if dual_band_flag > 1 and (i in temp_radio_data):
+                                continue  # Skip this radio
                             if diff >= 0:
                                 radio_data[i] = stations
                                 stations = 0
@@ -1375,6 +1384,7 @@ class lf_tests(lf_libs):
                                 radio_data[i] = max_station
                                 stations = stations - max_station
                                 diff = max_station - stations
+
 
         if band == "6G":
             stations = None
@@ -1528,7 +1538,13 @@ class lf_tests(lf_libs):
             if add_stations:
                 '''SINGLE WIFI CAPACITY using lf_wifi_capacity.py'''
                 self.temp_raw_lines = self.default_scenario_raw_lines.copy()
+                dual_band_flag = 0
                 for band_ in num_stations:
+                    dual_band_flag = dual_band_flag+1
+                    logging.info(f"dual_band_flag value:{dual_band_flag}")
+                    temp_radio_data = {}
+                    if dual_band_flag > 1:
+                        temp_radio_data = radio_data
                     if band_ not in ["2G", "5G", "6G"]:
                         logging.error("Band is missing")
                         pytest.fail("band is missing")
@@ -1555,9 +1571,11 @@ class lf_tests(lf_libs):
                                         temp_band = "sixg"
                                     if temp_band == dut_data[i]["ssid_data"][j]["band"]:
                                         ssid_name = dut_data[i]["ssid_data"][j]["ssid"]
+
                     radio_data = self.add_stations(band=band_, num_stations=num_stations[band_], ssid_name=ssid_name,
                                                    dut_data=dut_data,
-                                                   identifier=identifier, is_wifi7=is_wifi7, is_bw320=is_bw320)
+                                                   identifier=identifier, is_wifi7=is_wifi7, is_bw320=is_bw320,
+                                                   dual_band_flag = dual_band_flag, temp_radio_data=temp_radio_data)
                     if vlan_raw_lines is not None:
                         for i in vlan_raw_lines:
                             self.temp_raw_lines.append(i)
@@ -1816,9 +1834,9 @@ class lf_tests(lf_libs):
         return wificapacity_obj_list
 
     def dataplane_throughput_test(self, ssid="[BLANK]", passkey="[BLANK]", security="wpa2", num_sta=1, mode="BRIDGE",
-                                  vlan_id=[None],
+                                  vlan_id=[None], ap_mode ="wifi6",
                                   download_rate="85%", band="twog", scan_ssid=True,
-                                  upload_rate="0", duration="15s", instance_name="test_demo", raw_lines=None,
+                                  upload_rate="0", duration="15s", path_loss=10, instance_name="test_demo", raw_lines=None,
                                   influx_tags="",
                                   move_to_influx=False,
                                   station_data=["4way time (us)", "channel", "cx time (us)", "dhcp (ms)", "ip",
@@ -1826,6 +1844,7 @@ class lf_tests(lf_libs):
                                   allure_attach=True, allure_name="station data", client_type=0, dut_data={}):
         instance_name = ''.join(random.choices(string.ascii_uppercase + string.digits, k=12))
         dataplane_obj_list = []
+        radio_mode = ""
         for dut in self.dut_data:
             identifier = dut["identifier"]
             if mode == "BRIDGE":
@@ -1853,9 +1872,25 @@ class lf_tests(lf_libs):
                                                station_data=station_data,
                                                allure_attach=allure_attach, identifier=identifier,
                                                allure_name=allure_name, client_type=client_type, dut_data=dut_data)
+            if ap_mode=="wifi7":
+                if band=="twog":
+                    radio_mode = "802.11bgn-BE"
+                if band=="fiveg":
+                    radio_mode = "802.11an-BE"
+                if band=="sixg":
+                     radio_mode = "802.11a-BE"
+            else:
+                if band=="twog":
+                    radio_mode = "802.11bgn-AX"
+                if band=="fiveg":
+                    radio_mode = "802.11an-AX"
+                if band=="sixg":
+                     radio_mode = "802.11a-AX"
+
+            logging.info(f"radio_mode {radio_mode}")
 
             if raw_lines is None:
-                raw_lines = [['pkts: 142;256;512;1024;MTU;4000'], ['directions: DUT Transmit;DUT Receive'],
+                raw_lines = [['pkts: 142;256;512;1024;MTU;4000'], ['directions: DUT Transmit'], ['modes: ' + str(radio_mode)],
                              ['traffic_types: UDP;TCP'],
                              ["show_3s: 1"], ["show_ll_graphs: 1"], ["show_log: 1"]]
             sets = [['Maximize Unused Attenuators', '0']]
@@ -1874,6 +1909,7 @@ class lf_tests(lf_libs):
                                           download_speed=download_rate,
                                           upload_speed=upload_rate,
                                           duration=duration,
+                                          path_loss=path_loss,
                                           dut=identifier,
                                           station=list(station_data.keys())[0],
                                           test_tag=influx_tags,
@@ -2975,6 +3011,7 @@ class lf_tests(lf_libs):
                               -1] + "/"
             self.attach_report_graphs(report_name=report_name, pdf_name="Multi Band Performance Test")
             result = self.read_kpi_file(column_name=["pass/fail"], dir_name=report_name)
+            logging.info(f"result of pass/fail:{result}")
             allure.attach.file(source="../reports/" + report_name + "/kpi.csv",
                                name=f"Multi_band_CSV", attachment_type="CSV")
 
