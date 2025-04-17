@@ -1,3 +1,4 @@
+import copy
 import csv
 import importlib
 import json
@@ -1037,6 +1038,161 @@ class lf_tests(lf_libs):
                 logging.info("Station successfully associated to AP")
 
         return stat_data
+
+    def band_steering_test(self, ssid="[BLANK]", passkey="[BLANK]", security="wpa2", mode="BRIDGE", band="twog",
+                           num_sta=None, scan_ssid=True, client_type=0, pre_cleanup=True,
+                           station_data=["ip", "alias", "mac", "channel", "port type", "security", "ap", "parent dev"],
+                           allure_attach=True, dut_data={},get_target_object=None, config_data=None):
+
+        sta_data = self.client_connect(ssid=ssid, passkey=passkey, security=security,
+                                       mode=mode, band=band, pre_cleanup=False, num_sta=num_sta,
+                                       scan_ssid=True,
+                                       station_data=station_data,
+                                       allure_attach=True, dut_data=dut_data)
+
+        logging.info(f"sta_data in band_steer: {sta_data}")
+        # check ssid info in iwinfo
+        serial_number = list(dut_data.keys())[0]
+        ap_iwinfo = get_target_object.dut_library_object.get_iwinfo(attach_allure=True)
+        ap_data = dict()
+        bssid_list = list()
+        freqs_ = ""
+
+        config = copy.deepcopy(config_data)
+        if str(ap_iwinfo) != "Error: pop from empty list":
+            include_essid = config['interfaces'][0]["ssids"][0]["name"]
+            re_obj = re.compile(
+                rf'(\S+)\s+ESSID: "{re.escape(include_essid)}".*?Access Point:\s+([0-9A-Fa-f:]+).*?Channel:\s+(\d+)\s+\(([\d.]+) GHz\)',
+                re.DOTALL
+            )
+            interface_matches = re_obj.finditer(ap_iwinfo)
+            radio_entries = []
+
+            for match in interface_matches:
+                interface_name = match.group(1)
+                access_point = match.group(2)
+                channel = match.group(3)
+                frequency = match.group(4).replace('.', '')
+
+                radio_entries.append({
+                    'interface': interface_name,
+                    'Access Point': access_point,
+                    'Channel': channel,
+                    'frequency': frequency
+                })
+            if radio_entries:
+                ap_data.update({serial_number: radio_entries})
+                logging.info(f"AP Data from iwinfo updated: {ap_data}")
+            else:
+                logging.warning("No matching radios found in iwinfo.")
+        elif ap_iwinfo == {}:
+            pytest.fail("Empty iwinfo reponse from AP through minicom")
+        else:
+            pytest.fail("Failed to get iwinfo from minicom")
+
+        for serial in ap_data:
+            for radio in ap_data[serial]:
+                bssid_list.append(radio['Access Point'])
+                freqs_ += radio['frequency']
+
+        # ssid = config['interfaces'][0]["ssids"][0]["name"]
+        # key = config['interfaces'][0]["ssids"][0]["encryption"]["key"]
+        pass_fail, message = True, "Roam Test Passed"
+        logging.info(f"bssid_list values:{bssid_list}")
+        logging.info(f"freqs_ values:{freqs_}")
+
+        sta_name = list(sta_data.keys())[0]
+        logging.info(f"sta_name:{sta_name}")
+
+        # Parse BSSID's as a lowercase string separated by ,
+
+        ap1_bssid = bssid_list[0].lower()
+        ap2_bssid = bssid_list[1].lower()
+        bssid_list = ap1_bssid + "," + ap2_bssid
+
+        wifi_mobility_obj = WifiMobility(lfclient_host=self.manager_ip,lf_port=self.manager_http_port,
+                                         ssh_port=self.manager_ssh_port,lf_user="lanforge",lf_password="lanforge",
+                                         blob_test="WiFi-Mobility-",instance_name="cv-inst-0",
+                                         config_name="roam_test_cfg",pull_report=True,load_old_cfg=False,
+                                         raw_lines=None,raw_lines_file="",enables=None,disables=None,sets=None,
+                                         cfg_options=None,sort="interleave",stations=sta_name,bssid_list=bssid_list,
+                                         gen_scan_freqs=freqs_,gen_sleep_interval="30000",gen_scan_sleep_interval="2000",
+                                         duration="300000",auto_verify="30000",default_sleep="250",max_rpt_time='500',
+                                         skip_roam_self='0',loop_check='1',clear_on_start='0',show_events='1',
+                                         report_dir="",graph_groups=None,test_rig="Testbed-01",test_tag="",
+                                         local_lf_report_dir="../reports/",verbosity="5"
+                                         )
+
+        if wifi_mobility_obj.instance_name.endswith('-0'):
+            wifi_mobility_obj.instance_name = wifi_mobility_obj.instance_name + str(random.randint(1, 9999))
+
+        # Create threads
+        wifi_mobility_thread = threading.Thread(target=wifi_mobility_obj.run)
+        wifi_capacity_thread = threading.Thread(target=self.wifi_capacity, kwargs={
+            "mode": mode,
+            "vlan_id": None,
+            "instance_name": "wct_instance",
+            "download_rate": "1Gbps",
+            "influx_tags": "",
+            "upload_rate": "56Kbps",
+            "protocol": "UDP",
+            "duration": "180000",
+            "stations": "",
+            "create_stations": False,
+            "sort": "interleave",
+            "raw_lines": [],
+            "move_to_influx": False,
+            "dut_data": dut_data,
+            "ssid_name": None,
+            "num_stations": {},
+            "add_stations": False
+        })
+
+        logging.info("Both wifi mobility and wifi capacity tests are ready to start")
+        # Start both threads
+        wifi_mobility_thread.start()
+        wifi_capacity_thread.start()
+
+        # Wait for both to finish
+        wifi_mobility_thread.join()
+        wifi_capacity_thread.join()
+
+        logging.info("Both wifi mobility and capacity tests are complete.")
+
+        report_name, wm_pass_fail_data = "", list()
+        if wifi_mobility_obj.report_name and len(wifi_mobility_obj.report_name) >= 1:
+            report_name = wifi_mobility_obj.report_name[0]['LAST']["response"].split(":::")[1].split("/")[-1] + "/"
+            time.sleep(10)
+            logging.info("wifi mobility report_name: " + str(report_name))
+            self.attach_report_graphs(report_name=report_name, pdf_name="WiFi-Mobility (Roam Test) PDF Report")
+        else:
+            logging.error(f"PATH {wifi_mobility_obj.report_name} does not exist")
+
+        if wifi_mobility_obj.get_exists(wifi_mobility_obj.instance_name):
+            wifi_mobility_obj.delete_instance(wifi_mobility_obj.instance_name)
+
+        # fetch csv data from report data & attach pass fail results
+        if not report_name.endswith("/"):
+            report_name = report_name + "/"
+        if os.path.exists("../reports/" + report_name + "chart-csv-7.csv"):
+            with open("../reports/" + report_name + "chart-csv-7.csv", 'rb') as csv_file:
+                file_content = csv_file.read()
+                allure.attach(file_content, name=f"Roam Test Pass/Fail Data",
+                              attachment_type=allure.attachment_type.CSV)
+            with open("../reports/" + report_name + "chart-csv-7.csv", 'r') as csv_file:
+                for row in csv.reader(csv_file):
+                    wm_pass_fail_data.append(row)
+        else:
+            logging.info(f"{report_name} Does not exist.")
+
+        logging.info(f"pass_fail_data in wifi-mobility:{str(wm_pass_fail_data)}")
+        for i in wm_pass_fail_data[1:]:
+            if i[2] == 'FAIL':
+                message = "Roam Test Failed"
+                # logging.info(f"False, message: {message}")
+                pass_fail = False
+
+        return pass_fail, message
 
 
     def client_connect(self, ssid="[BLANK]", passkey="[BLANK]", security="wpa2", mode="BRIDGE", band="twog",
