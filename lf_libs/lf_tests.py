@@ -2405,12 +2405,17 @@ class lf_tests(lf_libs):
         logging.info("Upstream data: " + str(upstream_port))
         skip_bandv2 = [['Skip 2.4Ghz Tests', f'{skip_twog}'], ['Skip 5Ghz Tests', f'{skip_fiveg}'],
                        ['2.4Ghz Channel', f'{channel_2g}'], ['5Ghz Channel', f'{channel_5g}'],
-                       ["use_virtual_ax_sta", "1"],
                        ["Use Issue-3 Behaviour", "0"], ["Skip 6Ghz Tests", "1"], ["Calibrate against LANforge AP", "0"]]
         enable_tests = [['rxsens: 0'], ['max_cx: 0'], ['max_tput: 0'], ['peak_perf: 0'], ['max_tput_bi: 0'],
                         ['dual_band_tput: 0'], ['multi_band_tput: 0'], ['atf: 0'], ['atf3: 0'], ['qos3: 0'],
                         ['lat3: 0'], ['mcast3: 0'], ['rvr: 0'], ['spatial: 0'], ['multi_sta: 0'], ['reset: 0'],
                         ['mu_mimo: 0'], ['stability: 0'], ['ap_coex: 0'], ['acs: 0']]
+        if testbed_ == "advanced-3":
+            logging.info("In advanced-3")
+            skip_bandv2.extend([["Use Virtual AX Stations", "0"], ["Use AX Radios for AC tests", "1"]])
+        else:
+            skip_bandv2.extend([["Use Virtual AX Stations", "1"], ["Use AX Radios for AC tests", "0"]])
+
         for t in test:
             if [f"{t}: 0"] in enable_tests:
                 enable_tests[enable_tests.index([f"{t}: 0"])] = [f"{t}: 1"]
