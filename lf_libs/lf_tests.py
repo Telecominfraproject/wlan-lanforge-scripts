@@ -2415,6 +2415,13 @@ class lf_tests(lf_libs):
             skip_bandv2.extend([["Use Virtual AX Stations", "0"], ["Use AX Radios for AC tests", "1"]])
         else:
             skip_bandv2.extend([["Use Virtual AX Stations", "1"], ["Use AX Radios for AC tests", "0"]])
+        if testbed_ == "advanced-1":
+            logging.info("In advanced-1")
+            """ Multi-Conn """
+            raw_line.append(["mconn: 100"])
+        else:
+            """ Multi-Conn """
+            raw_line.append(["mconn: 10"])
 
         for t in test:
             if [f"{t}: 0"] in enable_tests:
