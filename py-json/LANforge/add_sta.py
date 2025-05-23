@@ -33,7 +33,9 @@ add_sta_flags = {
     "no-supp-op-class-ie"  : 0x4000000000, # Do not include supported-oper-class-IE in assoc requests.  May work around AP bugs.
     "txo-enable"           : 0x8000000000, # Enable/disable tx-offloads, typically managed by set_wifi_txo command
     "use-wpa3"             : 0x10000000000, # Enable WPA-3 (SAE Personal) mode.
-    "use-bss-transition"   : 0x80000000000 # Enable BSS transition.
+    "use-bss-transition"   : 0x80000000000, # Enable BSS transition.
+    "use-owe"              : 0x2000000000000,  # Enable OWE
+    "be320-enable"         : 0x4000000000000 # Enable 320Mhz mode.
 }
 add_sta_modes = {
     "AUTO"        :  0,        #  802.11g
