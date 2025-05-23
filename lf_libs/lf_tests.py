@@ -4442,18 +4442,26 @@ class lf_tests(lf_libs):
 
     def advanced_captive_portal(self, ssid="[BLANK]", security="wpa2", dut_data={}, passkey="[BLANK]", mode="BRIDGE",
                                 band="twog", num_sta=1, vlan_id=[None], json_post_data='', get_testbed_details={},
-                                tip_2x_obj=None):
+                                tip_2x_obj=None, enable_owe=False, is_bw320=False, is_ht160=False):
         self.check_band_ap(band=band)
         self.pre_cleanup()
         pass_fail = "PASS"
         description = ""
         logging.info("DUT DATA: " + str(dut_data))
+
+        if band == "twog":
+            radio_port_name = list(self.get_radio_availabilities(num_stations_2g=1)[0].keys())[0]
+        elif band == "fiveg":
+            radio_port_name = list(self.get_radio_availabilities(num_stations_5g=1)[1].keys())[0]
+        else:
+            radio_port_name = list(self.get_radio_availabilities(num_stations_6g=1).keys())[0]
+
         for dut in self.dut_data:
             station_result = self.client_connect_using_radio(ssid=ssid, passkey=passkey, security=security, mode=mode,
-                                                             band=band, vlan_id=vlan_id, radio="1.1.wiphy0",
-                                                             client_type=0,
-                                                             station_name=["sta0000"],
-                                                             dut_data=dut_data)
+                                                             band=band, vlan_id=vlan_id, radio=radio_port_name,
+                                                             client_type=0,station_name=["sta0000"],
+                                                             dut_data=dut_data, enable_owe = enable_owe,
+                                                             is_bw320=is_bw320, is_ht160=is_ht160)
             sta = "sta0000"
             sta_data = self.json_get(_req_url="port/1/1/%s" % sta)
             self.allure_report_table_format(dict_data=sta_data["interface"], key="Station Data",
