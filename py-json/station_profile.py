@@ -299,7 +299,7 @@ class StationProfile:
             if (value == 1) and (param_name not in self.desired_add_sta_flags):
                 self.desired_add_sta_flags.append(param_name)
                 self.desired_add_sta_flags_mask.append(param_name)
-            elif value == 0:
+            elif value == 0 and (param_name in self.desired_add_sta_flags):
                 self.desired_add_sta_flags.remove(param_name)
                 self.desired_add_sta_flags_mask.append(param_name)
 
