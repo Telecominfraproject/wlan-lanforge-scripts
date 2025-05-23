@@ -1731,10 +1731,10 @@ class lf_libs:
         if name is not None:
             allure.attach(name=name, body=str(data_table))
 
-    def get_radio_availabilities(self, num_stations_2g: int = 0, num_stations_5g: int = 0) -> tuple:
+    def get_radio_availabilities(self, num_stations_2g: int = 0, num_stations_5g: int = 0, num_stations_6g: int = 0) -> tuple:
         """
         Get the port name of radios and how many stations to be created on each radio for the given num of
-        2g stations and 5g stations. This method takes in account the fact that same radio can't be used to
+        2g stations, 5g stations and 6g stations. This method takes in account the fact that same radio can't be used to
         create a station on multiple band at the same time even though it supports both bands.
 
         - Returns tuple[dict[str, int], dict[str, int]] or skips the test if not enough radios are available
@@ -1743,9 +1743,11 @@ class lf_libs:
         message = None
         requested_num_stations_2g = num_stations_2g
         requested_num_stations_5g = num_stations_5g
+        requested_num_stations_6g = num_stations_6g
 
         radio_dict_2g = {}
         radio_dict_5g = {}
+        radio_dict_6g = {}
         dict_all_radios_2g = {
             "be200_radios": self.be200_radios,
             "ax210_radios": self.ax210_radios,
@@ -1761,6 +1763,10 @@ class lf_libs:
             "mtk_radios": self.mtk_radios,
             "wave2_5g_radios": self.wave2_5g_radios,
             "wave1_radios": self.wave1_radios
+        }
+        dict_all_radios_6g = {
+            "be200_radios": self.be200_radios,
+            "ax210_radios": self.ax210_radios
         }
         max_station_per_radio = {
             "wave2_2g_radios": 64,
@@ -1818,6 +1824,36 @@ class lf_libs:
                         message = f"Not enough radios available for connecting {requested_num_stations_5g} 5g clients!"
                     break
 
+        if num_stations_6g != 0:
+            for keys in dict_all_radios_6g:
+                if num_stations_6g == 0:
+                    break
+                max_station = max_station_per_radio[keys]
+                if len(dict_all_radios_6g[keys]) > 0:
+                    diff = max_station - num_stations_6g
+                    for port_name in dict_all_radios_6g[keys]:
+                        if port_name in radio_dict_2g:
+                            continue
+                        if port_name in radio_dict_5g:
+                            continue
+                        if diff >= 0:
+                            radio_dict_6g[port_name] = num_stations_6g
+                            num_stations_6g = 0
+                            break
+                        else:
+                            radio_dict_6g[port_name] = max_station
+                            num_stations_6g -= max_station
+                            diff = max_station - num_stations_6g
+            if num_stations_6g != 0:
+                message = f"Not enough radios available for connecting {requested_num_stations_6g} 6g clients!"
+
+            return radio_dict_6g
+
+
+        logging.info(f"radio_dict_2g dict : {radio_dict_2g}")
+        logging.info(f"radio_dict_5g dict : {radio_dict_5g}")
+        logging.info(f"radio_dict_6g dict : {radio_dict_6g}")
+
         if num_stations_2g != 0 or num_stations_5g != 0:
             logging.info(f"Radio-2G-Stations dict : {num_stations_2g}")
             logging.info(f"Radio-5G-Stations dict : {num_stations_5g}")
@@ -1832,7 +1868,7 @@ class lf_libs:
     def client_connect_using_radio(self, ssid="[BLANK]", passkey="[BLANK]", security="wpa2", mode="BRIDGE", band=None,
                                    vlan_id=[None], radio=None, client_type=0, station_name=[], dut_data=None,
                                    sniff_radio=False, create_vlan=True, attach_port_info=True,
-                                   attach_station_data=True, timeout_sec=100):
+                                   attach_station_data=True, timeout_sec=100, enable_owe = False,is_bw320=False, is_ht160=False):
         # pre cleanup
         # if pre_cleanup:
         #     self.pre_cleanup()
@@ -1857,6 +1893,20 @@ class lf_libs:
 
         client_connect = CreateStation(_host=self.manager_ip, _port=self.manager_http_port, _mode=client_type,
                                        _sta_list=station_name, _password=passkey, _ssid=ssid, _security=security)
+        if enable_owe:
+            passwd = "[BLANK]"
+            client_connect.station_profile.set_command_param("add_sta", "key", passwd)
+            client_connect.station_profile.set_command_flag("add_sta", "use-owe", 1)
+            client_connect.station_profile.set_command_flag("add_sta", "wpa2_enable", 0)
+        logging.info(f"is_bw320:{is_bw320} and is_ht160: {is_ht160}")
+        if is_bw320:
+            client_connect.station_profile.set_command_flag("add_sta", "be320-enable", 1)
+            client_connect.station_profile.set_command_flag("add_sta", "ht160_enable", 1)
+            client_connect.station_profile.set_command_flag("add_sta", "disable_ht80", 0)
+        if is_ht160:
+            client_connect.station_profile.set_command_flag("add_sta", "ht160_enable", 1)
+            client_connect.station_profile.set_command_flag("add_sta", "disable_ht80", 0)
+
         client_connect.upstream_port = upstream_port
         client_connect.upstream_resource = 1
         client_connect.radio = radio
