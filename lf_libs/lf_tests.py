@@ -4494,7 +4494,8 @@ class lf_tests(lf_libs):
                 f"hostname: {hostname} port: {port} username: {username} password: {password} ping_host: {ping_host}")
             ping_command = f"/home/lanforge/vrf_exec.bash {sta} ping -c {ping_count} {ping_host}"
             validate_captive_string = '<div class="card-header">uCentral - Captive Portal</div>'
-            validate_ping_string = "0% packet loss"
+            validate_captive_connection = '<h1> Connected </h1>'
+            validate_ping_string = " 0% packet loss"
             client = paramiko.SSHClient()
             client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
             try:
@@ -4517,7 +4518,8 @@ class lf_tests(lf_libs):
                 logging.info("Captive portal authentication logs: " + str(captive_output))
                 allure.attach(name="Response from captive portal: ",
                               body=captive_output, attachment_type=allure.attachment_type.HTML)
-                if validate_captive_string in captive_output and "Invalid credentials" not in captive_output:
+                if (validate_captive_string in captive_output and "Invalid credentials" not in captive_output and
+                        validate_captive_connection in captive_output):
                     logging.info("Captive portal authentication successful")
                 else:
                     if "Invalid credentials" in captive_output:
