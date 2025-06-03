@@ -1656,7 +1656,7 @@ class lf_tests(lf_libs):
                 pytest.fail(f"Expected Throughput should be less than {up_rate} Mbps")
 
     def wifi_capacity(self, mode="BRIDGE", vlan_id=100, batch_size="1,5,10,20,40,64,128",
-                      instance_name="wct_instance", download_rate="1Gbps", influx_tags="",
+                      instance_name="wct_instance", download_rate="1Gbps", influx_tags="", sets_=[],
                       upload_rate="1Gbps", protocol="TCP-IPv4", duration="60000", stations="", create_stations=False,
                       sort="interleave", raw_lines=[], move_to_influx=False, dut_data={}, ssid_name=None,
                       num_stations={}, add_stations=True, create_vlan=True, pass_fail_criteria=False, is_wifi7=False, is_bw320=False):
@@ -1690,6 +1690,8 @@ class lf_tests(lf_libs):
                     upstream_port = ret[identifier] + "." + str(vlan_id[0])
             logging.info("Upstream data: " + str(upstream_port))
             sets = [["DUT_NAME", dut]]
+            sets.extend(sets_)
+            logging.info("sets:- " + str(sets))
 
             if add_stations:
                 '''SINGLE WIFI CAPACITY using lf_wifi_capacity.py'''
