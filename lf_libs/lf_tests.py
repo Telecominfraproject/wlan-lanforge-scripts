@@ -74,6 +74,8 @@ wifi_mobility_test = importlib.import_module("py-scripts.lf_wifi_mobility_test")
 WifiMobility = wifi_mobility_test.WifiMobility
 modify_station = importlib.import_module("py-scripts.modify_station")
 ModifyStation = modify_station.ModifyStation
+station_profile = importlib.import_module("py-json.station_profile")
+StationProfile = station_profile.StationProfile
 
 
 class lf_tests(lf_libs):
@@ -969,25 +971,52 @@ class lf_tests(lf_libs):
         else:
             logging.info("ALL Stations got IP as Expected")
 
-
-
     def empsk_test(self,ssid="[BLANK]", passkey="[BLANK]", security="wpa2", mode="BRIDGE", band="twog",
-                       vlan_id=[None], num_sta=None, scan_ssid=True, client_type=0, pre_cleanup=True,
-                       station_data=["ip", "alias", "mac", "channel", "port type", "security", "ap", "parent dev"],
-                       allure_attach=True, identifier=None, allure_name="station data", dut_data={}):
+                       num_sta=None, scan_ssid=True, client_type=0, pre_cleanup=True,
+                       allure_attach=True, identifier=None, allure_name="station data", dut_data={},
+                        extra_securities = []):
 
-        sta_data = self.client_connect(ssid=ssid, passkey=passkey, security=security,
-                                                   mode=mode, band=band, pre_cleanup=False, num_sta=num_sta,
-                                                   scan_ssid=True,
-                                                   station_data=station_data,
-                                                   allure_attach=True, dut_data=dut_data, allure_name=allure_name)
+        if pre_cleanup:
+            self.pre_cleanup()
+        self.check_band_ap(band=band)
+        if self.run_lf:
+            dut_data = self.run_lf_dut_data()
+        logging.info("DUT Data:\n" + json.dumps(str(dut_data), indent=2))
+        allure.attach(name="DUT Data:\n", body=json.dumps(str(dut_data), indent=2),
+                      attachment_type=allure.attachment_type.JSON)
 
-        logging.info(f"sta_data from client_connect:{sta_data}")
-        station_list = []
-        for sta in sta_data.keys():
-            station_list.append(sta)
-            radio = sta_data[sta]["parent dev"]
+        dict_all_radios_6g = {"be200_radios": self.be200_radios, "ax210_radios": self.ax210_radios}
+        logging.info(f"dict_all_radios_6g:{dict_all_radios_6g}")
+        radio = dict_all_radios_6g['be200_radios'][0]
+        logging.info("creating station profile obj")
+        obj_sta_profile = StationProfile(self.local_realm.lfclient_url, self.local_realm)
+        obj_sta_profile.add_sta_data = {
+            "shelf": 1,
+            "resource": 1,
+            "radio": radio,
+            "sta_name": 'sta0000',
+            "ssid": "OpenWifi-roam",
+            "key": "aaaaaaaa",
+            "mode": 0,
+            "mac": "xx:xx:xx:xx:*:xx",
+            "flags": 1099511628800, # enable wpa3 and wpa2
+            "flags_mask": 0
+        }
+        if extra_securities:
+            logging.info(f"extra_securities are provided:{extra_securities}")
+            if "wpa3" in extra_securities:
+                logging.info("trying to enable wpa3 security also")
+                obj_sta_profile.add_security_extra(security="wpa3")
+        logging.info(f"creating station profile")
+        obj_sta_profile.create(radio=radio, num_stations=1)
+        time.sleep(30)
+        sta = "sta0000"
+        sta_data = self.json_get(_req_url="port/1/1/%s" % sta)
+        self.allure_report_table_format(dict_data=sta_data["interface"], key="Station Data",
+                                        value="Value", name="station data for 2G band")
+        logging.info(f"sta_data::{sta_data}")
 
+        station_list = ["1.1.sta0000"]
         enable_flag = ["use-wpa3"]
         disable_flag = ["wpa2_enable"]
         obj_modify_sta = ModifyStation(_host=self.manager_ip, _port=self.manager_http_port,
@@ -1002,42 +1031,37 @@ class lf_tests(lf_libs):
         obj_modify_sta.set_station()
         logging.info("Successfully changed encryption from WPA2 to WPA3")
         time.sleep(10)
-        stat_data = self.get_station_data(sta_name=station_list, rows=station_data, allure_attach=False)
 
-        sta_table_dict = {}
-        sta_table_dict["station name"] = list(stat_data.keys())
-        for i in station_data:
-            temp_list = []
-            for j in station_list:
-                temp_list.append(stat_data[j][i])
-            sta_table_dict[i] = temp_list
+        sta_data = self.json_get(_req_url="port/1/1/%s" % sta)
+        self.allure_report_table_format(dict_data=sta_data["interface"], key="Station Data",
+                                        value="Value", name="station data for 6G band")
+
+        logging.info(f"sta_data after security modification:{sta_data}")
 
         # pass fail
         pass_fail_sta = []
         for i in range(len(station_list)):
-            if sta_table_dict["ip"][i] == "0.0.0.0" or sta_table_dict["ap"][i] == "Not-Associated":
+            if sta_data["interface"]["ip"] == "0.0.0.0" or sta_data["interface"]["ap"] == "Not-Associated":
                 pass_fail_sta.append("Fail")
             else:
                 pass_fail_sta.append("Pass")
-        sta_table_dict["Pass/Fail"] = pass_fail_sta
-        if allure_attach:
-            self.attach_table_allure(data=sta_table_dict, allure_name="station data for 6G band")
+        sta_data["Pass/Fail"] = pass_fail_sta
 
         for i in range(len(station_list)):
-            if sta_table_dict["ip"][i] == "0.0.0.0":
+            if sta_data["interface"]["ip"] == "0.0.0.0":
                 logging.info("Station did not get an ip")
                 pytest.fail("Station did not get an ip")
             else:
                 logging.info("Station got IP")
 
         for i in range(len(station_list)):
-            if sta_table_dict["ap"][i] == "Not-Associated":
+            if sta_data["interface"]["ap"] == "Not-Associated":
                 logging.info("Station did not associate to AP")
                 pytest.fail("Station did not associate to AP")
             else:
                 logging.info("Station successfully associated to AP")
 
-        return stat_data
+        return sta_data
 
     def band_steering_test(self, ssid="[BLANK]", passkey="[BLANK]", security="wpa2", mode="BRIDGE", band="twog",
                            num_sta=None, scan_ssid=True, client_type=0, pre_cleanup=True,
