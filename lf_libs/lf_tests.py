@@ -974,7 +974,7 @@ class lf_tests(lf_libs):
     def empsk_test(self,ssid="[BLANK]", passkey="[BLANK]", security="wpa2", mode="BRIDGE", band="twog",
                        num_sta=None, scan_ssid=True, client_type=0, pre_cleanup=True,
                        allure_attach=True, identifier=None, allure_name="station data", dut_data={},
-                        extra_securities = []):
+                        extra_securities = [], is_bw320=False):
 
         if pre_cleanup:
             self.pre_cleanup()
@@ -989,17 +989,16 @@ class lf_tests(lf_libs):
         logging.info(f"dict_all_radios_6g:{dict_all_radios_6g}")
         radio = dict_all_radios_6g['be200_radios'][0]
         logging.info("creating station profile obj")
+        sta = "sta0000"
         obj_sta_profile = StationProfile(self.local_realm.lfclient_url, self.local_realm)
         obj_sta_profile.add_sta_data = {
-            "shelf": 1,
-            "resource": 1,
             "radio": radio,
-            "sta_name": 'sta0000',
-            "ssid": "OpenWifi-roam",
-            "key": "aaaaaaaa",
+            "sta_name": sta,
+            "ssid": ssid,
+            "key": passkey,
             "mode": 0,
             "mac": "xx:xx:xx:xx:*:xx",
-            "flags": 1099511628800, # enable wpa3 and wpa2
+            "flags": 1127003847656448, # enable wpa3 and wpa2 and be320
             "flags_mask": 0
         }
         if extra_securities:
@@ -1007,10 +1006,14 @@ class lf_tests(lf_libs):
             if "wpa3" in extra_securities:
                 logging.info("trying to enable wpa3 security also")
                 obj_sta_profile.add_security_extra(security="wpa3")
+        if is_bw320:
+            obj_sta_profile.set_command_flag("add_sta", "be320-enable", 1)
+            obj_sta_profile.set_command_flag("add_sta", "ht160_enable", 1)
+            obj_sta_profile.set_command_flag("add_sta", "disable_ht80", 0)
+
         logging.info(f"creating station profile")
         obj_sta_profile.create(radio=radio, num_stations=1)
         time.sleep(30)
-        sta = "sta0000"
         sta_data = self.json_get(_req_url="port/1/1/%s" % sta)
         self.allure_report_table_format(dict_data=sta_data["interface"], key="Station Data",
                                         value="Value", name="station data for 2G band")
@@ -1030,6 +1033,7 @@ class lf_tests(lf_libs):
                                        _debug_on=True)
         obj_modify_sta.set_station()
         logging.info("Successfully changed encryption from WPA2 to WPA3")
+        allure.attach(name="Encryption changed:\n", body="Successfully changed encryption from WPA2 to WPA3")
         time.sleep(10)
 
         sta_data = self.json_get(_req_url="port/1/1/%s" % sta)
