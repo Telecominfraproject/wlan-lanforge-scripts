@@ -978,7 +978,7 @@ class lf_tests(lf_libs):
 
         if pre_cleanup:
             self.pre_cleanup()
-        self.check_band_ap(band=band)
+        self.check_band_ap(band="sixg")
         if self.run_lf:
             dut_data = self.run_lf_dut_data()
         logging.info("DUT Data:\n" + json.dumps(str(dut_data), indent=2))
@@ -987,7 +987,8 @@ class lf_tests(lf_libs):
 
         dict_all_radios_6g = {"be200_radios": self.be200_radios, "ax210_radios": self.ax210_radios}
         logging.info(f"dict_all_radios_6g:{dict_all_radios_6g}")
-        radio = dict_all_radios_6g['be200_radios'][0]
+        radio = (dict_all_radios_6g['be200_radios'] or dict_all_radios_6g['ax210_radios'])[0]
+        logging.info(f"radio:{radio}")
         logging.info("creating station profile obj")
         sta = "sta0000"
         obj_sta_profile = StationProfile(self.local_realm.lfclient_url, self.local_realm)
@@ -1004,7 +1005,6 @@ class lf_tests(lf_libs):
         if extra_securities:
             logging.info(f"extra_securities are provided:{extra_securities}")
             if "wpa3" in extra_securities:
-                logging.info("trying to enable wpa3 security also")
                 obj_sta_profile.add_security_extra(security="wpa3")
         if is_bw320:
             obj_sta_profile.set_command_flag("add_sta", "be320-enable", 1)
@@ -1016,7 +1016,7 @@ class lf_tests(lf_libs):
         time.sleep(30)
         sta_data = self.json_get(_req_url="port/1/1/%s" % sta)
         self.allure_report_table_format(dict_data=sta_data["interface"], key="Station Data",
-                                        value="Value", name="station data for 2G band")
+                                        value="Value", name="station data for 2G/5G band")
         logging.info(f"sta_data::{sta_data}")
 
         station_list = ["1.1.sta0000"]
