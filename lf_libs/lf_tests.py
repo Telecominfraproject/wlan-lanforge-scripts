@@ -1070,7 +1070,7 @@ class lf_tests(lf_libs):
     def band_steering_test(self, ssid="[BLANK]", passkey="[BLANK]", security="wpa2", mode="BRIDGE", band="twog",
                            num_sta=None, scan_ssid=True, client_type=0, pre_cleanup=True,
                            station_data=["ip", "alias", "mac", "channel", "port type", "security", "ap", "parent dev"],
-                           allure_attach=True, dut_data={},get_target_object=None, config_data=None):
+                           allure_attach=True, dut_data={},get_target_object=None, get_testbed_details={}):
 
         sta_data = self.client_connect(ssid=ssid, passkey=passkey, security=security,
                                        mode=mode, band=band, pre_cleanup=False, num_sta=num_sta,
@@ -1086,9 +1086,8 @@ class lf_tests(lf_libs):
         bssid_list = list()
         freqs_ = ""
 
-        config = copy.deepcopy(config_data)
         if str(ap_iwinfo) != "Error: pop from empty list":
-            include_essid = config['interfaces'][0]["ssids"][0]["name"]
+            include_essid = ssid
             re_obj = re.compile(
                 rf'(\S+)\s+ESSID: "{re.escape(include_essid)}".*?Access Point:\s+([0-9A-Fa-f:]+).*?Channel:\s+(\d+)\s+\(([\d.]+) GHz\)',
                 re.DOTALL
@@ -1123,9 +1122,9 @@ class lf_tests(lf_libs):
                 bssid_list.append(radio['Access Point'])
                 freqs_ += radio['frequency']
 
-        # ssid = config['interfaces'][0]["ssids"][0]["name"]
-        # key = config['interfaces'][0]["ssids"][0]["encryption"]["key"]
-        pass_fail, message = True, "Roam Test Passed"
+
+        pass_fail = True
+        message_parts = []
         logging.info(f"bssid_list values:{bssid_list}")
         logging.info(f"freqs_ values:{freqs_}")
 
@@ -1133,7 +1132,6 @@ class lf_tests(lf_libs):
         logging.info(f"sta_name:{sta_name}")
 
         # Parse BSSID's as a lowercase string separated by ,
-
         ap1_bssid = bssid_list[0].lower()
         ap2_bssid = bssid_list[1].lower()
         bssid_list = ap1_bssid + "," + ap2_bssid
@@ -1154,6 +1152,59 @@ class lf_tests(lf_libs):
         if wifi_mobility_obj.instance_name.endswith('-0'):
             wifi_mobility_obj.instance_name = wifi_mobility_obj.instance_name + str(random.randint(1, 9999))
 
+        def ping_runner_via_ssh(hostname, port, username, password, sta, ping_host="google.com",
+                                ping_duration=300, ping_interval=1, output_file="ping_output.txt"):
+            logging.info(f"sta::{sta}")
+            ping_count = int(ping_duration / ping_interval)
+            # ping_command = f"ping -i {ping_interval} -c {ping_count} {ping_host}"
+            ping_command = f"/home/lanforge/vrf_exec.bash {sta} ping -c {ping_count} {ping_host}"
+
+            logging.info(f"ping_command:{ping_command}")
+            logging.info(f"SSH ping: {ping_command} on {sta}@{hostname}:{port}")
+
+            client = paramiko.SSHClient()
+            client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+            try:
+                client.connect(hostname, port=port, username=username, password=password)
+                stdin, stdout, stderr = client.exec_command(ping_command)
+                ping_output = stdout.read().decode()
+                client.close()
+
+                # Save to file
+                with open(output_file, "w") as f:
+                    f.write(ping_output)
+
+                # Attach to Allure
+                allure.attach(ping_output, name="Ping Output", attachment_type=allure.attachment_type.TEXT)
+
+                # Analyze output
+                match = re.search(r'([\d.]+)% packet loss', ping_output)
+                if match:
+                    packet_loss = float(match.group(1))
+                    if packet_loss == 0:
+                        logging.info("Ping successful — 0% packet loss.")
+                        allure.attach(name="Ping Result: \n", body="Ping successful — 0% packet loss.")
+                    else:
+                        message_parts.append(f"Ping failed — {packet_loss}% packet loss")
+                        pass_fail = False
+                        logging.info(f"message_parts::{message_parts}")
+                        logging.warning(f"Ping failed — {packet_loss}% packet loss, pass_fail::{pass_fail}")
+                        allure.attach(name="Ping Result: \n", body=f"Ping failed — {packet_loss}% packet loss.")
+                else:
+                    logging.warning("Could not find packet loss info in ping.")
+                    allure.attach(name="Ping Result: \n", body="Could not find packet loss info in ping.")
+
+            except Exception as e:
+                logging.error(f"SSH ping failed: {e}")
+
+            logging.info(f"Ping output saved to {output_file}")
+
+        # SSH connection parameters
+        hostname = get_testbed_details["traffic_generator"]["details"]["manager_ip"]
+        port = get_testbed_details["traffic_generator"]["details"]["ssh_port"]
+        username = 'root'
+        password = 'lanforge'
         # Create threads
         wifi_mobility_thread = threading.Thread(target=wifi_mobility_obj.run)
         wifi_capacity_thread = threading.Thread(target=self.wifi_capacity, kwargs={
@@ -1175,17 +1226,29 @@ class lf_tests(lf_libs):
             "num_stations": {},
             "add_stations": False
         })
-
-        logging.info("Both wifi mobility and wifi capacity tests are ready to start")
-        # Start both threads
+        ping_thread = threading.Thread(target=ping_runner_via_ssh, kwargs={
+            "hostname": hostname,
+            "port": port,
+            "username": username,
+            "password": password,
+            "sta": list(sta_name.split("."))[-1],
+            "ping_host": "google.com",
+            "ping_duration": 300,
+            "ping_interval": 1,
+            "output_file": "ping_output.txt"
+        })
+        logging.info("All three threads (mobility, capacity, ping) are ready to start")
+        # Start all threads
         wifi_mobility_thread.start()
         wifi_capacity_thread.start()
+        ping_thread.start()
 
-        # Wait for both to finish
+        # Wait for all to finish
         wifi_mobility_thread.join()
         wifi_capacity_thread.join()
+        ping_thread.join()
 
-        logging.info("Both wifi mobility and capacity tests are complete.")
+        logging.info("All wifi mobility, wifi capacity tests and ping are completed.")
 
         report_name, wm_pass_fail_data = "", list()
         if wifi_mobility_obj.report_name and len(wifi_mobility_obj.report_name) >= 1:
@@ -1216,9 +1279,15 @@ class lf_tests(lf_libs):
         logging.info(f"pass_fail_data in wifi-mobility:{str(wm_pass_fail_data)}")
         for i in wm_pass_fail_data[1:]:
             if i[2] == 'FAIL':
-                message = "Roam Test Failed"
-                # logging.info(f"False, message: {message}")
+                message_parts.append("Roam Test Failed")
                 pass_fail = False
+        if message_parts:
+            if len(message_parts) == 1:
+                message = message_parts[0]
+            else:
+                message = " and ".join(message_parts)
+        else:
+            message = "Roam Test Passed"
 
         return pass_fail, message
 
