@@ -1422,7 +1422,7 @@ class lf_tests(lf_libs):
             return station_data_all
 
     def dfs_test(self, ssid=None, security=None, passkey=None, mode=None,
-                 band=None, num_sta=1, vlan_id=[None], dut_data={}, tip_2x_obj=None):
+                 band=None, num_sta=1, vlan_id=[None], dut_data={}, tip_2x_obj=None, channel=None):
         """DFS test"""
         self.check_band_ap(band=band)
         logging.info("DUT DATA: " + str(dut_data))
@@ -1440,11 +1440,10 @@ class lf_tests(lf_libs):
             pass_fail = []
             sta_channel_after_dfs = None
             sta_channel_before_dfs = None
-            ap_channel = dut_data[identifier]["radio_data"]["5G"]["channel"]
-            logging.info("AP channel: " + str(ap_channel))
+            logging.info("The configured channel is: " + str(channel))
             sta_channel_before_dfs = station_data[station_list[0]]["channel"]
             logging.info("station channel before dfs: " + str(sta_channel_before_dfs))
-            if str(ap_channel) == str(sta_channel_before_dfs):
+            if str(channel) == str(sta_channel_before_dfs):
                 if tip_2x_obj is not None:
                     logging.info("AP idx: " + str(self.dut_data.index(dut)))
                     tip_2x_obj.simulate_radar(idx=self.dut_data.index(dut))
@@ -1452,8 +1451,8 @@ class lf_tests(lf_libs):
                 else:
                     logging.error("tip_2x_obj is empty")
             else:
-                logging.error("Station not connected to applied channel")
-                pytest.fail("Station not connected to applied channel")
+                logging.error("Station is not connected to the configured channel")
+                pytest.fail("Station is not connected to the configured channel")
             self.get_station_data(
                 rows=["4way time (us)", "channel", "cx time (us)", "dhcp (ms)", "ip", "signal", "mode"],
                 sta_name=station_list, allure_name="Station data after simulate radar")
