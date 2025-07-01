@@ -1428,6 +1428,7 @@ class lf_tests(lf_libs):
                               get_target_object=None):
 
         all_passed = True
+        final_msg = []
 
         sta_names = ['sta000', 'sta001', 'sta002']
         sta_data, sta_got_ip = {}, []
@@ -1451,7 +1452,8 @@ class lf_tests(lf_libs):
             resource = list(radio.split("."))[1]
             sta = f"{shelf}.{resource}.{sta_names[i]}"
             logging.info(f"sta_name::{sta}")
-            sta_data[i] = self.get_station_data(sta_name=[sta], rows=sta_rows, allure_attach=True, allure_name=f"station data of {band}")
+            sta_data[i] = self.get_station_data(sta_name=[sta], rows=sta_rows, allure_attach=True,
+                                                allure_name=f"station data of {band}")
             logging.info(f"{band} Station Data: {sta_data[i]}")
 
         if not all(sta_got_ip):
@@ -1498,6 +1500,7 @@ class lf_tests(lf_libs):
         ssids_data = [s for i in stats_data.get("interfaces", []) for s in i.get("ssids", []) if isinstance(s, dict)]
 
         logging.info(f"ssids_data::{ssids_data}")
+
         def match_and_report_radio_config():
             for ssid, iwinfo in radio_entries.items():
                 ctrl_entry = next((s for s in ssids_data if s.get("ssid") == ssid), None)
@@ -1524,27 +1527,30 @@ class lf_tests(lf_libs):
                         })
                         break
 
-                def compare(label, i_val, c_val):
+                def compare(label, i_val, c_val, band=None):
                     nonlocal all_passed
                     match_result = "yes" if str(i_val).lower() == str(c_val).lower() else "no"
                     if match_result == "no":
                         all_passed = False
+                        final_msg.append(f"{label} mismatch found on {band}")
                     return {
                         "Parameter": label,
                         "iwinfo": i_val,
                         "controller": c_val,
                         "match": match_result
                     }
+
                 band_label = ssid.split("_")[-1].upper()
-                table = [compare("Band", band_label, ctrl_data["band"])]
-                table += [compare(lbl, iwinfo.get(i_key, "N/A"), ctrl_data.get(c_key, "N/A"))
+                table = [compare("Band", band_label, ctrl_data["band"], band_label)]
+                table += [compare(lbl, iwinfo.get(i_key, "N/A"), ctrl_data.get(c_key, "N/A"), band_label)
                           for lbl, i_key, c_key in [
                               ("BSSID", "Access Point", "bssid"),
                               ("Channel", "Channel", "channel"),
                               ("Frequency", "frequency", "frequency")
                           ]]
 
-                table.append(compare("Channel Width (MHz)", iwinfo.get("bandwidth", "N/A"), ctrl_data["channel_width"]))
+                table.append(compare("Channel Width (MHz)", iwinfo.get("bandwidth", "N/A"), ctrl_data["channel_width"],
+                                     band_label))
                 self.attach_table_allure(data=table, allure_name=f"{ssid} Configuration Comparison")
 
         match_and_report_radio_config()
@@ -1568,6 +1574,7 @@ class lf_tests(lf_libs):
                     client_match = "yes" if controller_count == client_count else "no"
                     if client_match == "no":
                         all_passed = False
+                        final_msg.append(f"no.of connected clients mismatch found on {band}")
                     table.append({
                         "Parameter": "Connected Clients",
                         "controller data": str(controller_count),
@@ -1591,6 +1598,7 @@ class lf_tests(lf_libs):
                             match = "yes" if is_match else "no"
                             if match == "no":
                                 all_passed = False
+                                final_msg.append(f"{param} mismatch found on {band}")
                             table.append({
                                 "Parameter": param,
                                 "controller data": ctrl_val,
@@ -1605,7 +1613,8 @@ class lf_tests(lf_libs):
         if all_passed:
             logging.info("All configuration and association validations passed.")
         else:
-            pytest.fail("One or more configuration/association mismatch detected.")
+            logging.error("Mismatches found:\n" + "\n".join(final_msg))
+            pytest.fail("configuration/association mismatches detected:\n" + "\n".join(final_msg))
 
     def dfs_test(self, ssid=None, security=None, passkey=None, mode=None,
                  band=None, num_sta=1, vlan_id=[None], dut_data={}, tip_2x_obj=None, channel=None):
