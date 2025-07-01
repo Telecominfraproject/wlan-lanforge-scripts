@@ -1847,7 +1847,11 @@ class lf_libs:
             if num_stations_6g != 0:
                 message = f"Not enough radios available for connecting {requested_num_stations_6g} 6g clients!"
 
-            return radio_dict_6g
+            if requested_num_stations_2g != 0 and requested_num_stations_5g != 0 and requested_num_stations_6g != 0:
+                logging.info(f"requested radios for 3 bands")
+                return radio_dict_2g, radio_dict_5g, radio_dict_6g
+            else:
+                return radio_dict_6g
 
 
         logging.info(f"radio_dict_2g dict : {radio_dict_2g}")
