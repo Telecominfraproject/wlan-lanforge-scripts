@@ -1421,6 +1421,192 @@ class lf_tests(lf_libs):
                 self.get_supplicant_logs(radio=str(radio))
             return station_data_all
 
+    def wifi_stats_comparison(self, ssid_list=[], passkey="[BLANK]", security="wpa3", mode="BRIDGE", bands=[],
+                              num_sta=None, scan_ssid=True, client_type=0, pre_cleanup=True,
+                              sta_rows=["ssid", "ip", "mode", "channel", "signal", "mac", "parent dev"],
+                              allure_attach=True, identifier=None, allure_name="station data", dut_data={},
+                              get_target_object=None):
+
+        all_passed = True
+
+        sta_names = ['sta000', 'sta001', 'sta002']
+        sta_data, sta_got_ip = {}, []
+
+        radio_dict_2g, radio_dict_5g, radio_dict_6g = self.get_radio_availabilities(1, 1, 1)
+        radios_list = [list(radio_dict_2g)[0], list(radio_dict_5g)[0], list(radio_dict_6g)[0]]
+        logging.info(f"Available Radios: {radios_list}")
+
+        is_bw320 = False
+        for i in range(3):
+            ssid, band, radio, sta = ssid_list[i], bands[i], radios_list[i], sta_names[i]
+            if band == "sixg":
+                is_bw320 = True
+            sta_got_ip.append(self.client_connect_using_radio(
+                ssid=ssid, passkey=passkey, security=security, mode=mode,
+                band=band, radio=radio, station_name=[sta], dut_data=dut_data,
+                attach_port_info=False, attach_station_data=True, is_bw320=is_bw320
+            ))
+
+            shelf = list(radio.split("."))[0]
+            resource = list(radio.split("."))[1]
+            sta = f"{shelf}.{resource}.{sta_names[i]}"
+            logging.info(f"sta_name::{sta}")
+            sta_data[i] = self.get_station_data(sta_name=[sta], rows=sta_rows, allure_attach=True, allure_name=f"station data of {band}")
+            logging.info(f"{band} Station Data: {sta_data[i]}")
+
+        if not all(sta_got_ip):
+            pytest.fail("Some/All Stations didn't get IP address")
+
+        serial_number = next(iter(dut_data))
+        iwinfo_output = get_target_object.dut_library_object.get_iwinfo(attach_allure=False)
+        logging.info(f"iwinfo output:\n{iwinfo_output}")
+
+        if not iwinfo_output or iwinfo_output == "Error: pop from empty list":
+            pytest.fail("Failed to get iwinfo from minicom")
+
+        def parse_iwinfo(ssid, iwinfo):
+            regex = re.compile(
+                rf'(\S+)\s+ESSID: "{re.escape(ssid)}".*?Access Point:\s+([0-9A-Fa-f:]+).*?'
+                rf'Channel:\s+(\d+)\s+\(([\d.]+) GHz\).*?HT Mode:\s+([A-Z]*)(\d+)',
+                re.DOTALL
+            )
+            match = next(regex.finditer(iwinfo), None)
+            if not match:
+                return {}
+            return {
+                'interface': match.group(1),
+                'Access Point': match.group(2),
+                'Channel': match.group(3),
+                'frequency': match.group(4).replace('.', ''),
+                'bandwidth': match.group(6)
+            }
+
+        radio_entries = {ssid: parse_iwinfo(ssid, iwinfo_output) for ssid in ssid_list}
+        logging.info(f"Parsed iwinfo entries: {radio_entries}")
+
+        logging.info(f"waiting for 60 seconds before fetching statistics data from the controller")
+        time.sleep(60)
+        stats_resp = get_target_object.controller_library_object.get_device_statistics(serial_number,
+                                                                                       query="?lastOnly=true")
+        if stats_resp.status_code != 200:
+            pytest.fail("Failed to fetch device statistics from controller")
+
+        stats_data = stats_resp.json()
+        allure.attach(json.dumps(stats_data, indent=4), name="device_statistics from the controller",
+                      attachment_type=allure.attachment_type.JSON)
+
+        ssids_data = [s for i in stats_data.get("interfaces", []) for s in i.get("ssids", []) if isinstance(s, dict)]
+
+        logging.info(f"ssids_data::{ssids_data}")
+        def match_and_report_radio_config():
+            for ssid, iwinfo in radio_entries.items():
+                ctrl_entry = next((s for s in ssids_data if s.get("ssid") == ssid), None)
+                if not ctrl_entry:
+                    self.attach_table_allure([{
+                        "Parameter": "SSID", "iwinfo": ssid,
+                        "controller": "not found", "match": "no"
+                    }], allure_name=f"{ssid} Configuration Mismatch")
+                    continue
+
+                ctrl_data = {
+                    "iface": ctrl_entry.get("iface", "N/A"),
+                    "bssid": ctrl_entry.get("bssid", "N/A"),
+                    "frequency": str(ctrl_entry.get("frequency", ["N/A"])[0]),
+                    "band": ctrl_entry.get("band", "N/A"),
+                    "channel": "N/A", "channel_width": "N/A"
+                }
+
+                for r in stats_data.get("radios", []):
+                    if str(r.get("frequency", [])[0]) == ctrl_data["frequency"]:
+                        ctrl_data.update({
+                            "channel": str(r.get("channel", "N/A")),
+                            "channel_width": str(r.get("channel_width", "N/A"))
+                        })
+                        break
+
+                def compare(label, i_val, c_val):
+                    nonlocal all_passed
+                    match_result = "yes" if str(i_val).lower() == str(c_val).lower() else "no"
+                    if match_result == "no":
+                        all_passed = False
+                    return {
+                        "Parameter": label,
+                        "iwinfo": i_val,
+                        "controller": c_val,
+                        "match": match_result
+                    }
+                band_label = ssid.split("_")[-1].upper()
+                table = [compare("Band", band_label, ctrl_data["band"])]
+                table += [compare(lbl, iwinfo.get(i_key, "N/A"), ctrl_data.get(c_key, "N/A"))
+                          for lbl, i_key, c_key in [
+                              ("BSSID", "Access Point", "bssid"),
+                              ("Channel", "Channel", "channel"),
+                              ("Frequency", "frequency", "frequency")
+                          ]]
+
+                table.append(compare("Channel Width (MHz)", iwinfo.get("bandwidth", "N/A"), ctrl_data["channel_width"]))
+                self.attach_table_allure(data=table, allure_name=f"{ssid} Configuration Comparison")
+
+        match_and_report_radio_config()
+
+        # Flatten station data
+        client_data = {k: v for band in sta_data.values() for k, v in band.items()}
+        client_mac_map = {
+            d["mac"].lower(): {"ssid": d["ssid"], "ip": d["ip"], "mac": d["mac"]}
+            for d in client_data.values()
+        }
+
+        def compare_clients():
+            for interface in stats_data.get("interfaces", []):
+                for ssid in interface.get("ssids", []):
+                    ssid_name, band = ssid.get("ssid", "N/A"), ssid.get("band", "N/A")
+                    assoc = ssid.get("associations", [])
+                    table = []
+                    # Connected Clients row
+                    controller_count = len(assoc)
+                    client_count = sum(1 for c in client_data.values() if c["ssid"] == ssid_name)
+                    client_match = "yes" if controller_count == client_count else "no"
+                    if client_match == "no":
+                        all_passed = False
+                    table.append({
+                        "Parameter": "Connected Clients",
+                        "controller data": str(controller_count),
+                        "client data": str(client_count),
+                        "match": client_match
+                    })
+
+                    for a in assoc:
+                        mac = a.get("station", "").lower()
+                        ip = a.get("ipaddr_v4", "N/A")
+                        client = client_mac_map.get(mac)
+
+                        params = [
+                            ("MAC", mac, client["mac"] if client else "not found", client is not None),
+                            ("IP", ip, client["ip"] if client else "not found", client and client["ip"] == ip),
+                            ("SSID", ssid_name, client["ssid"] if client else "not found",
+                             client and client["ssid"] == ssid_name)
+                        ]
+
+                        for param, ctrl_val, client_val, is_match in params:
+                            match = "yes" if is_match else "no"
+                            if match == "no":
+                                all_passed = False
+                            table.append({
+                                "Parameter": param,
+                                "controller data": ctrl_val,
+                                "client data": client_val,
+                                "match": match
+                            })
+
+                    self.attach_table_allure(data=table, allure_name=f"{ssid_name} Client Association Check")
+
+        compare_clients()
+
+        if all_passed:
+            logging.info("All configuration and association validations passed.")
+        else:
+            pytest.fail("One or more configuration/association mismatch detected.")
+
     def dfs_test(self, ssid=None, security=None, passkey=None, mode=None,
                  band=None, num_sta=1, vlan_id=[None], dut_data={}, tip_2x_obj=None, channel=None):
         """DFS test"""
