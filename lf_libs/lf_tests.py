@@ -1430,15 +1430,20 @@ class lf_tests(lf_libs):
         all_passed = True
         final_msg = []
 
-        sta_names = ['sta000', 'sta001', 'sta002']
+        if len(bands) == 3:
+            sta_names = ['sta000', 'sta001', 'sta002']
+            radio_dict_2g, radio_dict_5g, radio_dict_6g = self.get_radio_availabilities(1, 1, 1)
+            radios_list = [list(radio_dict_2g)[0], list(radio_dict_5g)[0], list(radio_dict_6g)[0]]
+        else:
+            sta_names = ['sta000', 'sta001']
+            radio_dict_2g, radio_dict_5g = self.get_radio_availabilities(1, 1)
+            radios_list = [list(radio_dict_2g)[0], list(radio_dict_5g)[0]]
+
+        logging.info(f"Available Radios: {radios_list}")
         sta_data, sta_got_ip = {}, []
 
-        radio_dict_2g, radio_dict_5g, radio_dict_6g = self.get_radio_availabilities(1, 1, 1)
-        radios_list = [list(radio_dict_2g)[0], list(radio_dict_5g)[0], list(radio_dict_6g)[0]]
-        logging.info(f"Available Radios: {radios_list}")
-
         is_bw320 = False
-        for i in range(3):
+        for i in range(len(bands)):
             ssid, band, radio, sta = ssid_list[i], bands[i], radios_list[i], sta_names[i]
             if band == "sixg":
                 is_bw320 = True
@@ -1563,6 +1568,7 @@ class lf_tests(lf_libs):
         }
 
         def compare_clients():
+            nonlocal all_passed
             for interface in stats_data.get("interfaces", []):
                 for ssid in interface.get("ssids", []):
                     ssid_name, band = ssid.get("ssid", "N/A"), ssid.get("band", "N/A")
