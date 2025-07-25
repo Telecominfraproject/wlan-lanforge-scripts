@@ -1627,13 +1627,28 @@ class lf_tests(lf_libs):
         """DFS test"""
         self.check_band_ap(band=band)
         logging.info("DUT DATA: " + str(dut_data))
+        start_sniffer = False
         for dut in self.dut_data:
+            sniffer_channel = channel
+
             identifier = dut["identifier"]
             station_data = self.client_connect(ssid=ssid, security=security, passkey=passkey, mode=mode,
                                                band=band, num_sta=num_sta, vlan_id=vlan_id,
                                                allure_name="Station data before simulate radar", identifier=identifier,
                                                station_data=["4way time (us)", "channel", "cx time (us)", "dhcp (ms)",
-                                                             "ip", "signal", "mode"], dut_data=dut_data)
+                                                             "ip", "signal", "mode", "parent dev"], dut_data=dut_data)
+
+            logging.info(f"station_data:{station_data}")
+            for ssid in station_data:
+                sniffer_radio = station_data[ssid]['parent dev']
+                logging.info(f"sniffer_radio:{sniffer_radio}")
+
+            start_sniffer = True
+            self.start_sniffer(radio_channel=sniffer_channel,
+                               test_name="dfs_test_capture",
+                               radio=sniffer_radio,
+                               duration=300)
+
             station_list = list(station_data.keys())
             table_dict = {}
             sta_channel_before_dfs_list = []
@@ -1678,14 +1693,16 @@ class lf_tests(lf_libs):
             logging.info("dfs_table_data: " + str(table_dict))
             self.attach_table_allure(data=table_dict, allure_name="Pass_Fail Table")
 
+            if start_sniffer:
+                self.stop_sniffer()
+
             if sta_channel_before_dfs != sta_channel_after_dfs and str(sta_channel_after_dfs) != "-1":
                 logging.info("channel after dfs: " + str(sta_channel_after_dfs))
                 ret = tip_2x_obj.get_dfs_logs(idx=self.dut_data.index(dut))
                 allure.attach(name="Simulate Radar Logs ", body=ret)
-
             else:
-                logging.error("5 Ghz channel didn't changed after radar detected")
-                pytest.fail("5 Ghz channel didn't changed after radar detected")
+                logging.error("5 Ghz channel didn't change after radar was detected")
+                pytest.fail("5 Ghz channel didn't change after radar was detected")
 
     def update_dut_ssid(self, dut_data={}):
         r_val = dict()
