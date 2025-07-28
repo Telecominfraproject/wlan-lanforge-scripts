@@ -1637,10 +1637,12 @@ class lf_tests(lf_libs):
                                                allure_name="Station data before simulate radar", identifier=identifier,
                                                station_data=["4way time (us)", "channel", "cx time (us)", "dhcp (ms)",
                                                              "ip", "signal", "mode", "parent dev"], dut_data=dut_data)
-
             logging.info(f"station_data:{station_data}")
             for ssid in station_data:
                 sniffer_radio = station_data[ssid]['parent dev']
+                shelf = list(ssid.split('.'))[0]
+                resource = list(ssid.split('.'))[1]
+                sniffer_radio = f"{shelf}.{resource}.{sniffer_radio}"
                 logging.info(f"sniffer_radio:{sniffer_radio}")
 
             start_sniffer = True
