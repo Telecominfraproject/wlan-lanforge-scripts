@@ -1638,18 +1638,6 @@ class lf_tests(lf_libs):
                                                station_data=["4way time (us)", "channel", "cx time (us)", "dhcp (ms)",
                                                              "ip", "signal", "mode", "parent dev"], dut_data=dut_data)
             logging.info(f"station_data:{station_data}")
-            for ssid in station_data:
-                sniffer_radio = station_data[ssid]['parent dev']
-                shelf = list(ssid.split('.'))[0]
-                resource = list(ssid.split('.'))[1]
-                sniffer_radio = f"{shelf}.{resource}.{sniffer_radio}"
-                logging.info(f"sniffer_radio:{sniffer_radio}")
-
-            start_sniffer = True
-            self.start_sniffer(radio_channel=sniffer_channel,
-                               test_name="dfs_test_capture",
-                               radio=sniffer_radio,
-                               duration=300)
 
             station_list = list(station_data.keys())
             table_dict = {}
@@ -1662,6 +1650,20 @@ class lf_tests(lf_libs):
             sta_channel_before_dfs = station_data[station_list[0]]["channel"]
             logging.info("station channel before dfs: " + str(sta_channel_before_dfs))
             if str(channel) == str(sta_channel_before_dfs):
+                # start sniffer
+                for ssid in station_data:
+                    sniffer_radio = station_data[ssid]['parent dev']
+                    shelf = list(ssid.split('.'))[0]
+                    resource = list(ssid.split('.'))[1]
+                    sniffer_radio = f"{shelf}.{resource}.{sniffer_radio}"
+                    logging.info(f"sniffer_radio:{sniffer_radio}")
+
+                start_sniffer = True
+                self.start_sniffer(radio_channel=sniffer_channel,
+                                   test_name="dfs_test_capture",
+                                   radio=sniffer_radio,
+                                   duration=300)
+
                 if tip_2x_obj is not None:
                     logging.info("AP idx: " + str(self.dut_data.index(dut)))
                     tip_2x_obj.simulate_radar(idx=self.dut_data.index(dut))
