@@ -1015,10 +1015,12 @@ class lf_tests(lf_libs):
         obj_sta_profile.create(radio=radio, num_stations=1)
         time.sleep(30)
         sta_data = self.json_get(_req_url="port/1/1/%s" % sta)
+        # Through station data we are getting wpa3 as security, but we need to show both wpa2 and wpa3 as we are enabling both the securities.
+        if sta_data["interface"]["security"] == "WPA3":
+            sta_data["interface"]["security"] = "WPA2 and WPA3"
         self.allure_report_table_format(dict_data=sta_data["interface"], key="Station Data",
                                         value="Value", name="station data for 2G/5G band")
         logging.info(f"sta_data::{sta_data}")
-
         station_list = ["1.1.sta0000"]
         enable_flag = ["use-wpa3"]
         disable_flag = ["wpa2_enable"]
