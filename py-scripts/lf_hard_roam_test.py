@@ -451,6 +451,8 @@ class Roam(Realm):
             station_profile.set_command_flag("add_sta", "power_save_enable", 1)
             # station_profile.set_command_flag("add_sta", "ap", "68:7d:b4:5f:5c:3f")
             station_profile.set_wifi_extra(key_mgmt="FT-EAP     ",
+                                           pairwise=self.pairwise_cipher,
+                                           group=self.groupwise_cipher,
                                            eap=self.eap_method,
                                            identity=self.eap_identity,
                                            passwd=self.eap_password,
