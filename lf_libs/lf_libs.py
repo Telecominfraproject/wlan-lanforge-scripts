@@ -1731,7 +1731,8 @@ class lf_libs:
         if name is not None:
             allure.attach(name=name, body=str(data_table))
 
-    def get_radio_availabilities(self, num_stations_2g: int = 0, num_stations_5g: int = 0, num_stations_6g: int = 0) -> tuple:
+    def get_radio_availabilities(self, num_stations_2g: int = 0, num_stations_5g: int = 0,
+                                 num_stations_6g: int = 0) -> tuple:
         """
         Get the port name of radios and how many stations to be created on each radio for the given num of
         2g stations, 5g stations and 6g stations. This method takes in account the fact that same radio can't be used to
@@ -1847,27 +1848,19 @@ class lf_libs:
             if num_stations_6g != 0:
                 message = f"Not enough radios available for connecting {requested_num_stations_6g} 6g clients!"
 
-            if requested_num_stations_2g != 0 and requested_num_stations_5g != 0 and requested_num_stations_6g != 0:
-                logging.info(f"requested radios for 3 bands")
-                return radio_dict_2g, radio_dict_5g, radio_dict_6g
-            else:
-                return radio_dict_6g
-
-
-        logging.info(f"radio_dict_2g dict : {radio_dict_2g}")
-        logging.info(f"radio_dict_5g dict : {radio_dict_5g}")
-        logging.info(f"radio_dict_6g dict : {radio_dict_6g}")
-
-        if num_stations_2g != 0 or num_stations_5g != 0:
-            logging.info(f"Radio-2G-Stations dict : {num_stations_2g}")
-            logging.info(f"Radio-5G-Stations dict : {num_stations_5g}")
-            if message is None:
-                message = (f"Not enough radios available for connecting {requested_num_stations_2g} 2g clients and "
-                           f"{requested_num_stations_5g} 5g clients simultaneously!")
+        result = []
+        if requested_num_stations_2g:
+            result.append(radio_dict_2g)
+        if requested_num_stations_5g:
+            result.append(radio_dict_5g)
+        if requested_num_stations_6g:
+            result.append(radio_dict_6g)
+        logging.info(f"result radios::{result}")
+        if message:
             logging.info(message)
             pytest.skip(message)
 
-        return radio_dict_2g, radio_dict_5g
+        return tuple(result)
 
     def client_connect_using_radio(self, ssid="[BLANK]", passkey="[BLANK]", security="wpa2", mode="BRIDGE", band=None,
                                    vlan_id=[None], radio=None, client_type=0, station_name=[], dut_data=None,
