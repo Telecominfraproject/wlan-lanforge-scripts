@@ -336,11 +336,14 @@ class StaConnect2(Realm):
         elif self.dut_security == WPA3:
             self.station_profile.use_security(security_type="wpa3", ssid=self.dut_ssid, passwd=self.dut_passwd)
         elif self.dut_security == OWE:
+            self.station_profile.set_command_param("add_sta", "key", "[BLANK]")
             self.station_profile.use_security(security_type="owe", ssid=self.dut_ssid, passwd="[BLANK]")
             self.station_profile.set_command_flag("add_sta", "use-owe", 1)
+            self.station_profile.set_command_flag("add_sta", "wpa2_enable", 0)
             self.station_profile.set_command_flag("add_sta", "8021x_radius", 1)
             self.station_profile.set_command_param("add_sta", "ieee80211w", 2)
-            self.station_profile.set_wifi_extra(key_mgmt="OWE")
+            # self.station_profile.set_wifi_extra(key_mgmt="DEFAULT", pairwise="DEFAULT", group="DEFAULT",
+            #                                     eap="DEFAULT", identity="[BLANK]", passwd="[BLANK]")
         else:
             raise ValueError(f"unknown setting for station security: {self.dut_security}")
         self.station_profile.set_command_flag("add_sta", "create_admin_down", 1)
