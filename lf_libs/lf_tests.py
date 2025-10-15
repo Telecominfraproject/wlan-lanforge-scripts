@@ -1434,12 +1434,21 @@ class lf_tests(lf_libs):
 
         if len(bands) == 3:
             sta_names = ['sta000', 'sta001', 'sta002']
-            radio_dict_2g, radio_dict_5g, radio_dict_6g = self.get_radio_availabilities(1, 1, 1)
-            radios_list = [list(radio_dict_2g)[0], list(radio_dict_5g)[0], list(radio_dict_6g)[0]]
+            radio_port_data = list(self.get_radio_availabilities(num_stations_2g=1,num_stations_5g=1,num_stations_6g=1))
+            logging.info(f"radio_port_data:{radio_port_data}")
+            radio_dict_2g = list(radio_port_data[0].keys())[0]
+            radio_dict_5g = list(radio_port_data[1].keys())[0]
+            radio_dict_6g = list(radio_port_data[2].keys())[0]
+
+            radios_list = [radio_dict_2g, radio_dict_5g, radio_dict_6g]
         else:
             sta_names = ['sta000', 'sta001']
-            radio_dict_2g, radio_dict_5g = self.get_radio_availabilities(1, 1)
-            radios_list = [list(radio_dict_2g)[0], list(radio_dict_5g)[0]]
+            radio_port_data = list(self.get_radio_availabilities(num_stations_2g=1, num_stations_5g=1))
+            logging.info(f"radio_port_data:{radio_port_data}")
+            radio_dict_2g = list(radio_port_data[0].keys())[0]
+            radio_dict_5g = list(radio_port_data[1].keys())[0]
+
+            radios_list = [radio_dict_2g, radio_dict_5g]
 
         logging.info(f"Available Radios: {radios_list}")
         sta_data, sta_got_ip = {}, []
@@ -4774,9 +4783,9 @@ class lf_tests(lf_libs):
         if band == "twog":
             radio_port_name = list(self.get_radio_availabilities(num_stations_2g=1)[0].keys())[0]
         elif band == "fiveg":
-            radio_port_name = list(self.get_radio_availabilities(num_stations_5g=1)[1].keys())[0]
+            radio_port_name = list(self.get_radio_availabilities(num_stations_5g=1)[0].keys())[0]
         else:
-            radio_port_name = list(self.get_radio_availabilities(num_stations_6g=1).keys())[0]
+            radio_port_name = list(self.get_radio_availabilities(num_stations_6g=1)[0].keys())[0]
 
         for dut in self.dut_data:
             station_result = self.client_connect_using_radio(ssid=ssid, passkey=passkey, security=security, mode=mode,
@@ -4875,12 +4884,24 @@ class lf_tests(lf_libs):
                   private_key=None, pk_passwd=None, ca_cert=None, eap_phase1=None, eap_phase2=None,
                   soft_roam=False, sta_type="11r"):
 
+        bands = [b.strip().lower() for b in band.split(",")]
+        logging.info(f"bands:{bands}")
+
+        sta_radio = next((r for r in [fiveg_radio, twog_radio, sixg_radio] if r is not None), None)
+
+        if sta_radio is None:
+            logging.error("station radio is None")
+
+        logging.info(f"Selected station radio: {sta_radio}")
+
+        logging.info(f"twog_radio:{twog_radio}, fiveg_radio:{fiveg_radio}, sixg_radio:{sixg_radio}")
+
         # create monitor and start sniffer & run test in parallel
         if "1.1." in sniff_radio_:
             sniff_radio_.strip("1.1.")
         t1 = threading.Thread(target=self.start_sniffer, args=(channel, sniff_radio_, "11r-roam-test-capture", 300))
         t1.start()
-
+        logging.info(f"sniffer started")
         roam_obj = Roam(lanforge_ip=self.manager_ip,
                         port=self.manager_http_port,
                         band=band,
@@ -4906,24 +4927,18 @@ class lf_tests(lf_libs):
                         ieee80211w="1",
                         )
         create_sta = False
-        if band == "twog":
-            self.local_realm.reset_port(twog_radio)
+        logging.info(f"first band:{bands[0]}")
+
+        self.local_realm.reset_port(sta_radio)
+        roam_obj.station_radio = sta_radio
+        if bands[0] == "twog":
             roam_obj.band = '2G'
-            roam_obj.station_radio = twog_radio
             create_sta = roam_obj.create_clients(sta_prefix="roam")
-        if band == "fiveg":
-            self.local_realm.reset_port(fiveg_radio)
+        if bands[0] == "fiveg":
             roam_obj.band = '5G'
-            roam_obj.station_radio = fiveg_radio
             create_sta = roam_obj.create_clients(sta_prefix="roam")
-        if band == "sixg":
-            self.local_realm.reset_port(sixg_radio)
+        if bands[0] == "sixg":
             roam_obj.band = '6G'
-            roam_obj.station_radio = sixg_radio
-            create_sta = roam_obj.create_clients(sta_prefix="roam")
-        if band == "both":
-            self.local_realm.reset_port("1.1.wiphy5")
-            roam_obj.station_radio = "1.1.wiphy5"
             create_sta = roam_obj.create_clients(sta_prefix="roam")
         if not create_sta:
             # stop sniffer if station is not created
