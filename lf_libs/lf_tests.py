@@ -92,7 +92,7 @@ class lf_tests(lf_libs):
     def client_connectivity_test(self, ssid="[BLANK]", passkey="[BLANK]", bssid="[BLANK]", dut_data={},
                                  security="open", extra_securities=[], client_type=0, pre_cleanup=True,
                                  num_sta=1, mode="BRIDGE", vlan_id=[None], band="twog",
-                                 allure_attach=True, runtime_secs=40):
+                                 allure_attach=True, runtime_secs=40, extra_sta_rows= []):
         if pre_cleanup:
             self.pre_cleanup()
         self.check_band_ap(band=band)
@@ -239,6 +239,8 @@ class lf_tests(lf_libs):
         for obj in sta_connect_obj:
             sta_rows = ["4way time (us)", "channel", "ssid", "key/phrase", "cx time (us)", "dhcp (ms)", "ip", "signal",
                         "mac", "mode"]
+            if extra_sta_rows:
+                sta_rows = sta_rows + extra_sta_rows
             station_data = self.get_station_data(sta_name=obj.station_names, rows=sta_rows,
                                                  allure_attach=False)
             sta_table_dict = {}
