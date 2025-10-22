@@ -4877,13 +4877,13 @@ class lf_tests(lf_libs):
                 description = f"{e}"
         return pass_fail, description
 
-    def roam_test(self, ap1_bssid="90:3c:b3:6c:46:dd", ap2_bssid="90:3c:b3:6c:47:2d", fiveg_radio="1.1.wiphy4",
-                  twog_radio="1.1.wiphy5", sixg_radio="1.1.wiphy6", scan_freq="5180,5180",
+    def roam_test(self, ap1_bssid="90:3c:b3:6c:46:dd", ap2_bssid="90:3c:b3:6c:47:2d", fiveg_radio=None,
+                  twog_radio=None, sixg_radio=None, scan_freq="5180,5180",
                   band="twog", sniff_radio_="1.1.wiphy7", num_sta=1, security="wpa2", security_key="Openwifi",
                   ssid="OpenWifi", upstream="1.1.eth1", duration=None, iteration=1, channel="11", option="ota",
-                  dut_name=["edgecore_eap101", "edgecore_eap102"], traffic_type="lf_udp", eap_method=None,
-                  eap_identity=None, eap_password=None, pairwise_cipher=None, groupwise_cipher=None,
-                  private_key=None, pk_passwd=None, ca_cert=None, eap_phase1=None, eap_phase2=None,
+                  dut_name=["edgecore_eap101", "edgecore_eap102"], traffic_type="lf_udp", eap_method="TLS",
+                  eap_identity="user", eap_password="password", pairwise_cipher="NA", groupwise_cipher="NA",
+                  private_key="NA", pk_passwd="NA", ca_cert="NA", eap_phase1=None, eap_phase2=None,
                   soft_roam=False, sta_type="11r"):
 
         bands = [b.strip().lower() for b in band.split(",")]
@@ -4942,6 +4942,8 @@ class lf_tests(lf_libs):
         if bands[0] == "sixg":
             roam_obj.band = '6G'
             create_sta = roam_obj.create_clients(sta_prefix="roam")
+
+        self.get_supplicant_logs(radio=str(sta_radio))
         if not create_sta:
             # stop sniffer if station is not created
             try:
