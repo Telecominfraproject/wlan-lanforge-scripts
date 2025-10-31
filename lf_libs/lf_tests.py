@@ -4274,6 +4274,43 @@ class lf_tests(lf_libs):
         finally:
             self.set_radio_channel(radio=selected_be_radio, antenna="0")
 
+    def save_crashlogs_to_pstore(self, get_target_object=None, get_testbed_details=None):
+        """save crashlogs to pstore"""
+
+        start_time = int(time.time())
+        logging.info("start time:- " + str(start_time))
+        get_target_object.dut_library_object.run_generic_command(cmd="echo c > /proc/sysrq-trigger", idx=0,
+                                                                            print_log=True,
+                                                                            attach_allure=True,
+                                                                            attach_name="Crash command: echo c > /proc/sysrq-trigger",
+                                                                            expected_attachment_type=allure.attachment_type.TEXT)
+        logging.info("Waiting for 5 minutes to let the AP reboot and come back online...")
+        time.sleep(300)
+        end_time = int(time.time())
+        ap_logs = get_target_object.dut_library_object.get_dut_logs(idx=0, print_log=False, attach_allure=False)
+        allure.attach(body=ap_logs, name="AP logread")
+        logging.info("end time:- " + str(end_time))
+        ret_val = get_target_object.dut_library_object.ubus_call_ucentral_status(idx=0, retry=5)
+        if not ret_val["connected"] or ret_val["connected"] is None:
+            pytest.fail("AP is in disconnected state from Ucentral gateway!!!")
+        device_name = get_testbed_details["device_under_tests"][0]["identifier"]
+        # Check reboot logs
+        # 0=any kind of logs (default) 0=normal logs, 1=crash logs, 2=reboot logs only
+        query_ = f"?logType=2&startDate={start_time}&endDate={end_time}"
+        resp = get_target_object.controller_library_object.get_device_reboot_logs(device_name, query=query_)
+        if resp.status_code == 200:
+            allure.attach(body=json.dumps(resp.json(), indent=4), name="device_reboot_logs_per_test_case\n",
+                          attachment_type=allure.attachment_type.JSON)
+            response = resp.json()
+            # crash log validation
+            if response["values"]:
+                logging.info("AP crashed during the test")
+            else:
+                pytest.fail("Crash log is not present, something went wrong while saving crash logs to pstore")
+        else:
+            logging.info("resp.status_code:- " + str(resp.status_code))
+
+
     def multi_ssid_test(self, setup_params_general: dict, no_of_2g_and_5g_stations: int = 2, mode: str = "BRIDGE",
                         security_key: str = "something", security: str = "wpa2") -> None:
         sta_names_2g, sta_names_5g = [], []
