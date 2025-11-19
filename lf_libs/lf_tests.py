@@ -4299,14 +4299,30 @@ class lf_tests(lf_libs):
         query_ = f"?logType=2&startDate={start_time}&endDate={end_time}"
         resp = get_target_object.controller_library_object.get_device_reboot_logs(device_name, query=query_)
         if resp.status_code == 200:
-            allure.attach(body=json.dumps(resp.json(), indent=4), name="device_reboot_logs_per_test_case\n",
-                          attachment_type=allure.attachment_type.JSON)
+
             response = resp.json()
             # crash log validation
             if response["values"]:
                 logging.info("AP crashed during the test")
+                allure.attach(body=json.dumps(resp.json(), indent=4), name="device_reboot_logs_per_test_case\n",
+                              attachment_type=allure.attachment_type.JSON)
             else:
-                pytest.fail("Crash log is not present, something went wrong while saving crash logs to pstore")
+                # retry once after 2 minutes
+                logging.info("retry after 120 seconds to check crash logs in GW")
+                time.sleep(120)
+                resp = get_target_object.controller_library_object.get_device_reboot_logs(device_name, query=query_)
+                if resp.status_code == 200:
+
+                    response = resp.json()
+                    # crash log validation
+                    if response["values"]:
+                        logging.info("AP crashed during the test")
+                        allure.attach(body=json.dumps(resp.json(), indent=4), name="device_reboot_logs_per_test_case\n",
+                                      attachment_type=allure.attachment_type.JSON)
+                    else:
+                        pytest.fail("Crash log is not present, something went wrong while saving crash logs to pstore")
+                else:
+                    logging.info("resp.status_code:- " + str(resp.status_code))
         else:
             logging.info("resp.status_code:- " + str(resp.status_code))
 
