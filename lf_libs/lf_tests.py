@@ -4310,6 +4310,8 @@ class lf_tests(lf_libs):
 
                 del_resp = get_target_object.controller_library_object.delete_device_reboot_logs(device_name,
                                                                                               query=delete_query)
+                allure.attach(body=json.dumps(del_resp.json(), indent=4), name="delete_logs_from_gw\n",
+                              attachment_type=allure.attachment_type.JSON)
                 if del_resp.status_code == 200:
                     logging.info("Crash logs deleted successfully from GW")
             else:
@@ -4328,6 +4330,8 @@ class lf_tests(lf_libs):
                         time.sleep(3)
                         del_resp = get_target_object.controller_library_object.delete_device_reboot_logs(device_name,
                                                                                                          query=delete_query)
+                        allure.attach(body=json.dumps(del_resp.json(), indent=4), name="delete_logs_from_gw\n",
+                                      attachment_type=allure.attachment_type.JSON)
                         if del_resp.status_code == 200:
                             logging.info("Crash logs deleted successfully from GW")
                     else:
