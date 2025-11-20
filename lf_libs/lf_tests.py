@@ -4297,6 +4297,7 @@ class lf_tests(lf_libs):
         # Check reboot logs
         # 0=any kind of logs (default) 0=normal logs, 1=crash logs, 2=reboot logs only
         query_ = f"?logType=2&startDate={start_time}&endDate={end_time}&newest=true"
+        delete_query = f"?logType=2&startDate={start_time}&endDate={end_time}"
         resp = get_target_object.controller_library_object.get_device_reboot_logs(device_name, query=query_)
         if resp.status_code == 200:
 
@@ -4306,6 +4307,11 @@ class lf_tests(lf_libs):
                 logging.info("AP crashed during the test")
                 allure.attach(body=json.dumps(resp.json(), indent=4), name="device_reboot_logs_per_test_case\n",
                               attachment_type=allure.attachment_type.JSON)
+
+                del_resp = get_target_object.controller_library_object.delete_device_reboot_logs(device_name,
+                                                                                              query=delete_query)
+                if del_resp.status_code == 200:
+                    logging.info("Crash logs deleted successfully from GW")
             else:
                 # retry once after 2 minutes
                 logging.info("retry after 120 seconds to check crash logs in GW")
@@ -4319,6 +4325,11 @@ class lf_tests(lf_libs):
                         logging.info("AP crashed during the test")
                         allure.attach(body=json.dumps(resp.json(), indent=4), name="device_reboot_logs_per_test_case\n",
                                       attachment_type=allure.attachment_type.JSON)
+                        time.sleep(3)
+                        del_resp = get_target_object.controller_library_object.delete_device_reboot_logs(device_name,
+                                                                                                         query=delete_query)
+                        if del_resp.status_code == 200:
+                            logging.info("Crash logs deleted successfully from GW")
                     else:
                         pytest.fail("Crash log is not present, something went wrong while saving crash logs to pstore")
                 else:
