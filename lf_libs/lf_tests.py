@@ -4296,7 +4296,7 @@ class lf_tests(lf_libs):
         device_name = get_testbed_details["device_under_tests"][0]["identifier"]
         # Check reboot logs
         # 0=any kind of logs (default) 0=normal logs, 1=crash logs, 2=reboot logs only
-        query_ = f"?logType=2&startDate={start_time}&endDate={end_time}"
+        query_ = f"?logType=2&startDate={start_time}&endDate={end_time}&newest=true"
         resp = get_target_object.controller_library_object.get_device_reboot_logs(device_name, query=query_)
         if resp.status_code == 200:
 
