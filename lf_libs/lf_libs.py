@@ -1203,35 +1203,76 @@ class lf_libs:
                     time.sleep(2)
             time.sleep(5)
             # query and fetch vlan Ip Address
-            port_data = self.json_get(_req_url="/port?fields=alias,parent+dev,port+type,ip,mac")['interfaces']
-            logging.info("Port data: " + str(port_data))
+            port_data = self.json_get(
+                _req_url="/port?fields=alias,parent+dev,port+type,ip,mac"
+            )['interfaces']
+            logging.info("Initial Port data: " + str(port_data))
+
+            # Check if any VLAN interface has no IP
+            retry_required = False
+            for i in port_data:
+                for item in i:
+                    if (i[item]['port type'] == '802.1Q VLAN'and i[item]['ip'] == '0.0.0.0'):
+                        retry_required = True
+                        logging.warning(
+                            f"VLAN Interface - {i[item]['alias']} does not have IP. "
+                            f"Waiting for 2 minutes before retrying..."
+                        )
+                        break
+                if retry_required:
+                    break
+                else:
+                    logging.info("Ports got IPs, no need to wait and retry " + str(port_data))
+
+
+            # Retry after 2 minutes if VLAN IP is missing
+            if retry_required:
+                time.sleep(120)
+                port_data = self.json_get(
+                    _req_url="/port?fields=alias,parent+dev,port+type,ip,mac"
+                )['interfaces']
+                logging.info("Retried Port data after 2 minutes: " + str(port_data))
+
             vlan_table_data = {}
             port = []
             ip = []
             parent_dev = []
             not_ip_vlans = []
             vlan_ip_fail = False
+
             for i in port_data:
                 for item in i:
-                    if i[item]['port type'] == '802.1Q VLAN' and i[item]['ip'] == '0.0.0.0':
+                    if (i[item]['port type'] == '802.1Q VLAN'and i[item]['ip'] == '0.0.0.0'):
                         vlan_ip_fail = True
-                        logging.error(f"VLAN Interface - {i[item]['alias']} do not have IP")
+                        logging.error(
+                            f"VLAN Interface - {i[item]['alias']} do not have IP"
+                        )
                         port.append(item)
                         ip.append(i[item]['ip'])
                         not_ip_vlans.append(item)
                         parent_dev.append(i[item]['parent dev'])
-                    elif i[item]['port type'] == '802.1Q VLAN' and i[item]['ip'] != '0.0.0.0':
+
+                    elif (
+                            i[item]['port type'] == '802.1Q VLAN'
+                            and i[item]['ip'] != '0.0.0.0'
+                    ):
                         port.append(item)
                         ip.append(i[item]['ip'])
                         parent_dev.append(i[item]['parent dev'])
+
             # creating dict for vlan table
             vlan_table_data["Port"] = port
             vlan_table_data["Parent Dev"] = parent_dev
             vlan_table_data["ip"] = ip
+
             # Attaching vlan table to allure
-            self.attach_table_allure(data=vlan_table_data, allure_name="VLAN Table")
+            self.attach_table_allure(
+                data=vlan_table_data,
+                allure_name="VLAN Table"
+            )
+
             if vlan_ip_fail:
-                # Fail if Vlan don't have IP
+                # Fail if VLAN doesn't have IP even after retry
                 pytest.fail("VLAN do not have IP:-" + str(not_ip_vlans))
             return vlan_raws
         else:

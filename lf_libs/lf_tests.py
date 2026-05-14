@@ -2445,10 +2445,10 @@ class lf_tests(lf_libs):
 
             # clean l3 traffics which won't get cleaned by deleting old scenario in CV
             self.client_disconnect(clean_l3_traffic=True)
-            all_radio_5g = (self.be200_radios + self.ax210_radios + self.ax200_radios +
+            all_radio_5g = (self.be200_radios + self.ax210_radios + self.ax200_radios
                             + self.mtk_radios + self.wave2_5g_radios + self.wave1_radios)
             logging.info("All 5g radios" + str(all_radio_5g))
-            all_radio_2g = (self.be200_radios + self.ax210_radios + self.ax200_radios +
+            all_radio_2g = (self.be200_radios + self.ax210_radios + self.ax200_radios
                             + self.mtk_radios + self.wave2_2g_radios + self.wave1_radios)
             logging.info("All 2g radios" + str(all_radio_2g))
             radio = all_radio_5g[:2] if band == "5G" else all_radio_2g[:2]
@@ -3086,10 +3086,10 @@ class lf_tests(lf_libs):
                                "of data_rates 40% of throughput_1 and 40% of throughput_4 as throughput_7")
             self.client_disconnect(clear_all_sta=True, clean_l3_traffic=True)
             sta = list(map(lambda i: f"sta000{i}", range(3)))
-            all_radio_5g = (self.be200_radios + self.ax210_radios + self.ax200_radios +
+            all_radio_5g = (self.be200_radios + self.ax210_radios + self.ax200_radios
                             + self.mtk_radios + self.wave2_5g_radios + self.wave1_radios)
             logging.info("All 5g radios" + str(all_radio_5g))
-            all_radio_2g = (self.be200_radios + self.ax210_radios + self.ax200_radios +
+            all_radio_2g = (self.be200_radios + self.ax210_radios + self.ax200_radios
                             + self.mtk_radios + self.wave2_2g_radios + self.wave1_radios)
             logging.info("All 2g radios" + str(all_radio_2g))
             if len(all_radio_5g) < 3:
@@ -4782,10 +4782,10 @@ class lf_tests(lf_libs):
                                                          dut_data=dut_data)
                     sta_list = sta_list + list(station_result.keys())
                 else:
-                    all_radio_5g = (self.be200_radios + self.ax210_radios + self.ax200_radios +
+                    all_radio_5g = (self.be200_radios + self.ax210_radios + self.ax200_radios
                             + self.mtk_radios + self.wave2_5g_radios + self.wave1_radios)
                     logging.info("All 5g radios" + str(all_radio_5g))
-                    all_radio_2g = (self.be200_radios + self.ax210_radios + self.ax200_radios +
+                    all_radio_2g = (self.be200_radios + self.ax210_radios + self.ax200_radios
                             + self.mtk_radios + self.wave2_2g_radios + self.wave1_radios)
                     logging.info("All 2g radios" + str(all_radio_2g))
                     if band == "twog":
