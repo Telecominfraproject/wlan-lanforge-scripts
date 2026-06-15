@@ -131,6 +131,7 @@ class StaScan(Realm):
         #    print("interfaces: %s\nstations: %s"%(interfaces, stations))
 
         # Start scan on all stations.
+        print("Start scan on all stations")
         for port in self.sta_list:
             port = LFUtils.name_to_eid(port)
             data = {
@@ -138,8 +139,8 @@ class StaScan(Realm):
                 "resource": port[1],
                 "port": port[2]
             }
+            print(f"data passing scan_wifi :{data}")
             self.json_post("/cli-json/scan_wifi", data)
-
         # TODO:  Make configurable
         # Wait for scans to complete.
         if self.debug:
@@ -159,6 +160,7 @@ class StaScan(Realm):
                 "port": port[2]
             }
             scan_results = self.json_get("scanresults/%s/%s/%s" % (port[0], port[1], port[2]))
+            print("Scan results for port: %s\n%s" % (port, scan_results))
             if self.debug:
                 print("Scan results for port: %s\n%s"%(port, scan_results))
             if self.csv_output:

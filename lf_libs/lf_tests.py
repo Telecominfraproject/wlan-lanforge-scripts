@@ -1373,6 +1373,7 @@ class lf_tests(lf_libs):
             client_connect.upstream_port = data[identifier]["upstream"]
             client_connect.radio = radio
             logging.info("scan ssid radio: " + str(client_connect.radio))
+            logging.info("ssid:: " + ssid)
             if scan_ssid:
                 self.data_scan_ssid = self.scan_ssid(radio=client_connect.radio, ssid=ssid)
             logging.info("ssid scan data: " + str(self.data_scan_ssid))
@@ -4782,6 +4783,7 @@ class lf_tests(lf_libs):
                                                          dut_data=dut_data)
                     sta_list = sta_list + list(station_result.keys())
                 else:
+                    logging.info("DEBUG lf_tests.py loaded from updated file")
                     all_radio_5g = (self.be200_radios + self.ax210_radios + self.ax200_radios
                             + self.mtk_radios + self.wave2_5g_radios + self.wave1_radios)
                     logging.info("All 5g radios" + str(all_radio_5g))
@@ -5143,7 +5145,7 @@ if __name__ == '__main__':
     basic = {
         "target": "tip_2x",
         "controller": {
-            "url": "https://sec-qa01.cicd.lab.wlan.tip.build:16001",
+            "url": "https://sec-qa01.lab.open-lan.org:16001",
             "username": "tip@ucentral.com",
             "password": "OpenWifi%123"
         },
